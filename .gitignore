@@ -1,0 +1,22 @@
+##############################
+# Build/Output directories   #
+##############################
+
+[Bb]uild*/
+[Bb]in*/
+
+
+##############################
+# IDE specific stuff         #
+##############################
+
+# Ignore Visual Studio Code working directory
+.vscode/
+
+
+##############################
+# Other OS specific stuff    #
+##############################
+
+# Ignore macOS Finder's directory view settings
+.DS_Store
