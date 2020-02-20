@@ -2,7 +2,7 @@
 # General CMake setup
 ########################################
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 project(CTLib VERSION 0.0.0)
 
@@ -19,7 +19,11 @@ set(CT_LIB_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 # Options
 ########################################
 
+# General
 option(CT_LIB_BUILD_DOCS "Build HTML docs" ON)
+
+# Modules
+option(CT_LIB_MODULE_BRRES "Include BRRES module" ON)
 
 
 ########################################

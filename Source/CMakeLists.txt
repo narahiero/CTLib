@@ -1,1 +1,23 @@
+########################################
+# Setup target
+########################################
 
+add_library(CTLib STATIC "${CT_LIB_INCLUDE_DIR}/CTLib/ctlib.hpp" ctlib.cpp)
+
+# Set C++ settings
+target_compile_features(CTLib PUBLIC cxx_std_11)
+set_target_properties(CTLib PROPERTIES CXX_EXTENSIONS OFF)
+
+# Add include directory
+target_include_directories(CTLib PUBLIC "${CT_LIB_INCLUDE_DIR}")
+
+
+########################################
+# Add modules
+########################################
+
+# BRRES module
+if (CT_LIB_MODULES_BRRES)
+    target_sources(CTLib PRIVATE "${CT_LIB_INCLUDE_DIR}/CTLib/brres.hpp"
+            BRRES/brres.cpp)
+endif()
