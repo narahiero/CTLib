@@ -20,19 +20,6 @@ endif()
 # Function to add tests
 ########################################
 
-#function(ct_lib_add_test EXECNAME)
-#    cmake_parse_arguments(CT_LIB_TEST
-#            ""
-#            ""
-#            "SOURCES"
-#            ${ARGN})
-#    
-#    add_executable(${EXECNAME} "${CT_LIB_TEST_SOURCES}")
-#    target_include_directories(${EXECNAME} PRIVATE "${CT_LIB_INCLUDE_DIR}")
-#    target_link_libraries(${EXECNAME} gtest_main CTLib)
-#    add_test(NAME ${EXECNAME} COMMAND ${EXECNAME})
-#endfunction()
-
 function(ct_lib_add_test EXECNAME)
     cmake_parse_arguments(CT_LIB_TEST
             ""
@@ -40,9 +27,16 @@ function(ct_lib_add_test EXECNAME)
             "SOURCES"
             ${ARGN})
     
+    # Create target
     add_executable(${EXECNAME} "${CT_LIB_TEST_SOURCES}")
+
+    # Add include directory
     target_include_directories(${EXECNAME} PRIVATE "${CT_LIB_INCLUDE_DIR}")
+
+    # Link CT Lib and Google Test
     target_link_libraries(${EXECNAME} gtest_main CTLib)
+
+    # Let GTest find and add the tests
     gtest_discover_tests(${EXECNAME}
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
 endfunction()
@@ -52,5 +46,10 @@ endfunction()
 # Add tests
 ########################################
 
-ct_lib_add_test(CTLibTest SOURCES ctlib.cpp)
-ct_lib_add_test(BRRESTest SOURCES brres.cpp)
+# Tests for CTLib main header
+ct_lib_add_test(CTLibTest SOURCES CTLib.cpp)
+
+# Tests for BRRES module
+if(CT_LIB_MODULE_BRRES)
+    ct_lib_add_test(BRRESTest SOURCES BRRES.cpp)
+endif()

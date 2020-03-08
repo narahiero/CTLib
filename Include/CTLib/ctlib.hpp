@@ -52,7 +52,8 @@
 /*! @} name Version Macros */
 
 
-namespace ctlib {
+namespace CTLib
+{
 
 /*! @brief Queries the CT Lib version of the binaries.
  * 
