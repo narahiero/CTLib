@@ -3,9 +3,9 @@
 // Some clever macro tricks to make a version c-style string without generating any code
 #define CT_LIB_VERSION_CONCAT(m, n, p) #m "." #n "." #p
 #define CT_LIB_MAKE_VERSION(m, n, p) CT_LIB_VERSION_CONCAT(m, n, p)
-#define CT_LIB_VERSION_STRING CT_LIB_MAKE_VERSION(CT_LIB_VERSION_MAJOR, \
-                                        CT_LIB_VERSION_MINOR, \
-                                        CT_LIB_VERSION_PATCH)
+#define CT_LIB_VERSION_STRING CT_LIB_MAKE_VERSION( \
+    CT_LIB_VERSION_MAJOR, CT_LIB_VERSION_MINOR CT_LIB_VERSION_PATCH \
+)
 
 namespace CTLib
 {
