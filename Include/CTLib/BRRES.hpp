@@ -1,8 +1,15 @@
+//////////////////////////////////////////////////
+//  Copyright (c) 2020 Nara Hiero
+//
+// This file is licensed under GPLv3+
+// Refer to the `License.txt` file included.
+//////////////////////////////////////////////////
+
 #pragma once
 
-/*! @file brres.hpp
+/*! @file BRRES.hpp
  * 
- * @brief The header for the BRRES module.
+ *  @brief The header for the BRRES module.
  */
 
 #include <cstdint>
@@ -12,14 +19,14 @@ namespace CTLib
 {
 
 /*! @defgroup brres BRRES
- * @addtogroup brres
- * @{
+ *  @addtogroup brres
+ *  @{
  */
 
 /*! @brief BRRES Files are used to make objects. They contain models, textures
- * and animations.
+ *  and animations.
  * 
- * Source: http://wiki.tockdom.com/wiki/BRRES
+ *  Source: http://wiki.tockdom.com/wiki/BRRES
  */
 class BRRES
 {

@@ -47,6 +47,7 @@ Here are a few quick rules before getting into more details.
 ### <a name="cpp-code-style-headers"></a>Headers and Includes
 
 - The include guard used by this project is `#pragma once`.
+- The file extention for headers is `.hpp`.
 - Includes in a file should be grouped as follow:
   - The header of the source file.
   - Standard library headers.
@@ -155,8 +156,8 @@ operator overloads, then functions.
 
 - The order of access modifiers  should be: `public`, `protected`, then `private`.
 
-- The order of member declarations should be: static functions, constructors and destructor,
-operator overloads, functions, static variables, then variables.
+- The order of member declarations should be: compile-time constants, static functions,
+constructors and destructor, operator overloads, functions, static variables, then variables.
 
 - The Qt `signal` should be between `public` and `protected` when applicable.
 
@@ -423,4 +424,4 @@ int myFunction(int a, int b, int c)
 }
 ```
 
-[Back to Table of Contents](#contents)
+[Back to Table of Contents](#cpp-code-style)

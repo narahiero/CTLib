@@ -5,9 +5,20 @@
 // Refer to the `License.txt` file included.
 //////////////////////////////////////////////////
 
-#include <CTLib/BRRES.hpp>
+#pragma once
+
+/*! @file Yaz.hpp
+ * 
+ *  @brief The header for the Yaz module.
+ */
 
 namespace CTLib
 {
+
+class Yaz
+{
+
+public:
     
+};
 }

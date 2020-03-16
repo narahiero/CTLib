@@ -14,4 +14,4 @@ set(DOXYGEN_LAYOUT_FILE "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml")
 # Add Doxygen docs target
 ########################################
 
-doxygen_add_docs(Doxy "${CT_LIB_INCLUDE_DIR}" ALL)
+doxygen_add_docs(Doxy "${CT_LIB_INCLUDE_DIR}")

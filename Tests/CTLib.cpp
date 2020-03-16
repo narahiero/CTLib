@@ -1,8 +1,15 @@
+//////////////////////////////////////////////////
+//  Copyright (c) 2020 Nara Hiero
+//
+// This file is licensed under GPLv3+
+// Refer to the `License.txt` file included.
+//////////////////////////////////////////////////
+
+#include <stdio.h>
+
 #include <gtest/gtest.h>
 
 #include <CTLib/CTLib.hpp>
-
-#include <stdio.h>
 
 /* Test the following functions:
  *      getVersion(int*, int*, int*)
