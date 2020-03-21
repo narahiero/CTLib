@@ -8,7 +8,7 @@ add_library(CTLib STATIC
 )
 
 # Set C++ settings
-target_compile_features(CTLib PUBLIC cxx_std_11)
+target_compile_features(CTLib PUBLIC cxx_std_17)
 set_target_properties(CTLib PROPERTIES CXX_EXTENSIONS OFF)
 
 # Add include directory
