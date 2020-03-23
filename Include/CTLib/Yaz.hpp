@@ -12,13 +12,58 @@
  *  @brief The header for the Yaz module.
  */
 
+
+#include <cstdint>
+#include <stdexcept>
+
+#include <CTLib/Memory.hpp>
+
+
 namespace CTLib
 {
+
+/*! @brief Enumeration of Yaz formats. */
+enum class YazFormat
+{
+    /*! @brief Yaz0 format. */
+    Yaz0,
+    
+    /*! @brief Yaz1 format. */
+    Yaz1
+};
 
 class Yaz
 {
 
 public:
     
+    static Buffer decompress(Buffer& data);
+
+    /*! @brief Decompresses the passed data, forcing the format to the
+     *  specified one. 
+     * 
+     *  For more details, see CTLib::Yaz::decompress(CTLib::Buffer&).
+     * 
+     *  @param[in] data The data to be decompressed
+     *  @param[in] format The required Yaz format
+     * 
+     *  @throw CTLib::YazError If `data` is invalid or corrupted.
+     * 
+     *  @return The decompressed data.
+     */
+    static Buffer decompress(Buffer& data, YazFormat format);
+};
+
+/*! @brief YazError is the error class used by methods in this header. */
+class YazError : public std::runtime_error
+{
+
+public:
+
+    /*! @brief Constructs a CTLib::YazError with the specified message. */
+    YazError(const char* msg);
+
+    /*! @brief Constructs a CTLib::YazError with the specified message. */
+    YazError(const std::string& msg);
 };
 }

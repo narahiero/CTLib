@@ -52,8 +52,16 @@ endfunction()
 # Tests for CT Lib main header
 ct_lib_add_test(CTLibTest SOURCES CTLib.cpp)
 
+# Tests for CT Lib utilities header
+ct_lib_add_test(UtilitiesTest SOURCES Utilities.cpp)
+
 # Tests for CT Lib memory header
 ct_lib_add_test(MemoryTest SOURCES Memory.cpp)
+
+# Tests for Yaz module
+if(CT_LIB_MODULE_YAZ)
+    ct_lib_add_test(YazTest SOURCES Yaz.cpp)
+endif()
 
 # Tests for BRRES module
 if(CT_LIB_MODULE_BRRES)

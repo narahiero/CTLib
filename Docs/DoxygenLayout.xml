@@ -31,6 +31,7 @@
 
     <!-- Layout definition for a class page -->
     <class>
+        <includes visible="yes">
         <detaileddescription title="Overview"/>
         <memberdecl>
             <nestedclasses visible="yes" title=""/>

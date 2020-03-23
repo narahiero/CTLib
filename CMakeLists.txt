@@ -32,6 +32,7 @@ option(CT_LIB_BUILD_DOCS "Build HTML docs" ON)
 option(CT_LIB_BUILD_TESTS "Build tests" ON)
 
 # Modules
+option(CT_LIB_MODULE_YAZ "Include Yaz module" ON)
 option(CT_LIB_MODULE_BRRES "Include BRRES module" ON)
 
 # Miscellaneous
