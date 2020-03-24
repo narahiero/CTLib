@@ -136,19 +136,19 @@ public:
      */
     static bool nativeOrder();
 
+    /*! @brief Constructs a buffer of size 0.
+     *  
+     *  No memory will be allocated for this buffer.
+     */
+    Buffer();
+
     /*! @brief Constructs a buffer of the specified size.
      *
      *  This constructor will construct a new buffer of the specified size. The
      *  memory will be allocated on the heap, and will fully be managed by this
      *  class.
      * 
-     *  The `size` cannot be zero and is limited by the maximum value of
-     *  `size_t`.
-     * 
      *  @param[in] size The size of the buffer to be created.
-     * 
-     *  @throw CTLib::BufferError (CTLib::BufferError::ALLOCATE_ZERO) If `size`
-     *  is zero.
      */
     Buffer(size_t size);
 
@@ -165,8 +165,8 @@ public:
     /*! @brief Constructs a that will move the data from the specified buffer.
      *
      *  This constructor will construct a new buffer with its state and data
-     *  moved from the passed buffer object. The original buffer **must NOT**
-     *  be used afterwards, as it _will_ be in an invalid state.
+     *  moved from the passed buffer object. The original buffer will then be
+     *  of size 0.
      * 
      *  @param[in] src The buffer to be moved from
      */
@@ -188,8 +188,7 @@ public:
     /*! @brief Moves the state and data of the specified buffer to this buffer.
      *
      *  The state and data of the passed buffer will be moved into this buffer.
-     *  The original buffer **must NOT** be used afterwards, as it _will_ be in
-     *  an invalid state.
+     *  The original buffer will then be of size 0.
      * 
      *  @param[in] src The buffer to be moved from.
      * 
@@ -858,9 +857,6 @@ private:
     // constructor used for duplicate() and slice()
     Buffer(const Buffer*, size_t off);
 
-    // throws ALLOCATE_ZERO if size is zero
-    void assertValidSize(size_t size) const;
-
     // throws BUFFER_OVERFLOW if pos is more than the limit
     void assertValidPos(size_t pos) const;
 
@@ -898,14 +894,11 @@ const class BufferError : public std::runtime_error
 
 public:
 
-    /*! @brief Thrown when a buffer of size 0 is constructed. */
-    static constexpr unsigned ALLOCATE_ZERO = 0;
-
     /*! @brief Thrown when a **put/get** operation would surpass the limit. */
-    static constexpr unsigned BUFFER_OVERFLOW = 1;
+    static constexpr unsigned BUFFER_OVERFLOW = 0;
 
     /*! @brief Thrown when a limit larger than the capacity is set. */
-    static constexpr unsigned INVALID_LIMIT = 2;
+    static constexpr unsigned INVALID_LIMIT = 1;
 
     /*! @brief Constructs a buffer error of the specified type with an optional
      *  error message.
@@ -929,10 +922,6 @@ private:
     // contains message info to construct error messages
     static constexpr const char* MESSAGES[][2]
     {
-        {
-            "ALLOCATE_ZERO",
-            "Tried to allocate a buffer of size 0."
-        },
         {
             "BUFFER_OVERFLOW",
             "Not enough bytes remaining in buffer."

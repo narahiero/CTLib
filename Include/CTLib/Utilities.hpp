@@ -17,6 +17,8 @@
 #include <stdexcept>
 #include <string>
 
+#include <CTLib/Memory.hpp>
+
 
 namespace CTLib
 {
@@ -91,5 +93,65 @@ public:
      *  @return The result of the comparision
      */
     static bool matchesString(const char* str, uint8_t* bytes, size_t count);
+
+    /*! @brief Find the longest match of the array `find` in the array `bytes`.
+     *  
+     *  @param[in] bytes The array to be scanned
+     *  @param[in] bytesSize The size of the array `bytes`
+     *  @param[in] find The array containing the bytes to be matched
+     *  @param[in,out] findSize The size of the array `find`, then the size of
+     *  the returned array when this function returns
+     * 
+     *  @return The location of the longest match in the array `bytes`
+     */
+    static uint8_t* findLongestMatch(
+        uint8_t* bytes, size_t bytesSize, uint8_t* find, size_t& findSize
+    );
+};
+
+/*! @brief Utility class containing various methods to perform I/O operations. 
+ */
+class IO
+{
+
+public:
+
+    /*! @brief Reads the file with the specified filename. 
+     *
+     *  @param[in] filename The input file name
+     * 
+     *  @return A buffer containing the data in the file, or of size 0 if an
+     *  error occurred
+     */
+    static Buffer readFile(const char* filename);
+
+    /*! @brief Reads the file with the specified filename. 
+     *
+     *  @param[in] filename The input file name
+     * 
+     *  @return A buffer containing the data in the file, or of size 0 if an
+     *  error occurred
+     */
+    static Buffer readFile(const std::string& filename);
+
+    /*! @brief Writes the data in the specified buffer to the file with the
+     *  specified filename.
+     * 
+     *  @param[in] filename The output file name
+     *  @param[in] data The input data
+     * 
+     *  @return Whether the write was successful
+     */
+    static bool writeFile(const char* filename, Buffer& data);
+
+    /*! @brief Writes the data in the specified buffer to the file with the
+     *  specified filename.
+     * 
+     *  @param[in] filename The output file name
+     *  @param[in] data The input data
+     * 
+     *  @return Whether the write was successful
+     */
+    static bool writeFile(const std::string& filename, Buffer& data);
 };
 }

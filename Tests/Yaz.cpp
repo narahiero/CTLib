@@ -10,6 +10,8 @@
 #include <CTLib/Utilities.hpp>
 #include <CTLib/Yaz.hpp>
 
+#include <fstream>
+
 TEST(DecompressTests, Simple)
 {
     {
@@ -60,4 +62,53 @@ TEST(DecompressTests, Simple)
         CTLib::Buffer decompressed = CTLib::Yaz::decompress(buffer);
         EXPECT_TRUE(CTLib::Bytes::matches(expect, *decompressed, 30));
     }
+}
+
+TEST(CompressTests, None)
+{
+    {
+        uint8_t data[] = {
+            0x10, 0x30, 0x20, 0x60, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA
+        };
+
+        uint8_t expect[] = {
+            0x59, 0x61, 0x7A, 0x30, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xFF, 0x10, 0x30, 0x20, 0x60, 0xAA, 0xAA, 0xAA, 0xAA, 0xFF, 0xAA, 0xAA,
+            0xAA, 0x00, 0x00, 0x00
+        };
+
+        CTLib::Buffer buffer(0x0B);
+        buffer.putArray(data, 0x0B).flip();
+
+        CTLib::Buffer compressed = CTLib::Yaz::compress(
+            buffer, CTLib::YazFormat::Yaz0, CTLib::YazLevel::NONE
+        );
+        EXPECT_TRUE(CTLib::Bytes::matches(expect, *compressed, 0x20));
+        EXPECT_EQ(compressed.capacity(), compressed.limit());
+    }
+
+    {
+        uint8_t data[] = {
+            0x01, 0x02, 0x03, 0x04, 0x05, 0xAA, 0xAA
+        };
+
+        uint8_t expect[] = {
+            0x59, 0x61, 0x7A, 0x31, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0xFF, 0x01, 0x02, 0x03, 0x04, 0x05, 0xAA, 0xAA
+        };
+
+        CTLib::Buffer buffer(0x07);
+        buffer.putArray(data, 0x07).flip();
+
+        CTLib::Buffer compressed = CTLib::Yaz::compress(
+            buffer, CTLib::YazFormat::Yaz1, CTLib::YazLevel::NONE
+        );
+        EXPECT_TRUE(CTLib::Bytes::matches(expect, *compressed, 0x18));
+        EXPECT_EQ(compressed.capacity(), compressed.limit());
+    }
+}
+
+TEST(CompressTests, Best)
+{
+    
 }

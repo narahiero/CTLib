@@ -32,11 +32,63 @@ enum class YazFormat
     Yaz1
 };
 
+/*! @brief The Yaz compression level. */
+enum class YazLevel
+{
+    /*! @brief No compression.
+     *  
+     *  The data is generally around 12.5% bigger in size, but very small data
+     *  (size less than `0x10`) will have an increase of over 100%.
+     * 
+     *  Pretty much only useful for debugging, since the algorithm used for
+     *  this level is by far the simplest.
+     */
+    NONE,
+
+    /*! @brief Very light compression.
+     *  
+     *  Good for situations where size is not a problem, such as when testing
+     *  a Custom Track.
+     */
+    FAST,
+
+    /*! @brief 
+     *  
+     * 
+     */
+    GOOD,
+
+    /*! @brief
+     * 
+     * 
+     */
+    HIGH,
+
+    /*! @brief Best possible compression.
+     *  
+     *  The compression is a good as possible with the Yaz format, but can get
+     *  pretty slow. Only good for situations like when compressing a track for
+     *  release.
+     */
+    BEST
+};
+
+/*! @brief The Yaz class contains methods to compress and decompress data. */
 class Yaz
 {
 
 public:
     
+    static Buffer compress(Buffer& data, YazFormat format, YazLevel level);
+
+    /*! @brief Decompresses the passed data.
+     *  
+     *  @param[in] data The data to be decompressed
+     * 
+     *  @throw CTLib::YazError If `data` is invalid or corrupted.
+     * 
+     *  @return The decompressed data.
+     */
     static Buffer decompress(Buffer& data);
 
     /*! @brief Decompresses the passed data, forcing the format to the

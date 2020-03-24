@@ -80,11 +80,11 @@ void decompressData(Buffer& data, Buffer& out)
                 uint16_t rewind = (b & 0x0FFF) + 1;
 
                 uint16_t count = b >> 12;
-                if (count == 0) // read thrid byte for actual count
+                if (count == 0) // read third byte for actual count
                 {
                     count = data.get() + 0x12;
                 }
-                else
+                else // add two to the count
                 {
                     count += 2;
                 }
@@ -126,7 +126,7 @@ Buffer decompressBase(Buffer& data, YazFormat* format)
     Buffer out(header.dataSize);
     decompressData(data, out);
 
-    return out;
+    return out.flip();
 }
 
 Buffer Yaz::decompress(Buffer& data)

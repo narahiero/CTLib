@@ -10,12 +10,10 @@
 #include <sstream>
 
 #ifndef CT_LIB_NO_SAFETY_CHECKS
-#define ASSERT_VALID_SIZE(s) assertValidSize(s)
 #define ASSERT_VALID_POS(p) assertValidPos(p)
 #define ASSERT_VALID_LIMIT(l) assertValidLimit(l)
 #define ASSERT_REMAINING(i, n) assertRemaining(i, n)
 #else
-#define ASSERT_VALID_SIZE(s) do { } while (false)
 #define ASSERT_VALID_POS(p) do { } while (false)
 #define ASSERT_VALID_LIMIT(l) do { } while (false)
 #define ASSERT_REMAINING(i, n) do { } while (false)
@@ -31,6 +29,17 @@ bool Buffer::nativeOrder()
     return *u8;
 }
 
+Buffer::Buffer() :
+    buffer{nullptr},
+    size{0},
+    off{0},
+    pos{0},
+    max{0},
+    endian{BIG_ENDIAN}
+{
+
+}
+
 Buffer::Buffer(size_t size) :
     buffer{nullptr},
     size{size},
@@ -39,8 +48,10 @@ Buffer::Buffer(size_t size) :
     max{size},
     endian{BIG_ENDIAN}
 {
-    ASSERT_VALID_SIZE(size);
-    buffer = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
+    if (size > 0) 
+    {
+        buffer = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
+    }
 }
 
 Buffer::Buffer(const Buffer& src) :
@@ -51,10 +62,13 @@ Buffer::Buffer(const Buffer& src) :
     max{src.max},
     endian{src.endian}
 {
-    buffer = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
-    for (size_t i = 0; i < size; ++i)
+    if (size > 0)
     {
-        (*this)[i] = src[i];
+        buffer = std::shared_ptr<uint8_t[]>(new uint8_t[size]);
+        for (size_t i = 0; i < size; ++i)
+        {
+            (*this)[i] = src[i];
+        }
     }
 }
 
@@ -66,7 +80,10 @@ Buffer::Buffer(Buffer&& src) noexcept :
     max{src.max},
     endian{src.endian}
 {
-    
+    src.size = 0;
+    src.off = 0;
+    src.pos = 0;
+    src.max = 0;
 }
 
 Buffer::Buffer(const Buffer* src, size_t off) :
@@ -77,7 +94,7 @@ Buffer::Buffer(const Buffer* src, size_t off) :
     max{src->max - off},
     endian{src->endian}
 {
-    ASSERT_VALID_SIZE(size - this->off);
+    
 }
 
 Buffer::~Buffer()
@@ -91,7 +108,10 @@ Buffer& Buffer::operator=(const Buffer& src)
     {
         return *this;
     }
-    buffer = std::shared_ptr<uint8_t[]>(new uint8_t[src.size]);
+    if (src.size > 0)
+    {
+        buffer = std::shared_ptr<uint8_t[]>(new uint8_t[src.size]);
+    }
     size = src.size;
     off = src.off;
     pos = src.pos;
@@ -112,6 +132,10 @@ Buffer& Buffer::operator=(Buffer&& src) noexcept
     pos = src.pos;
     max = src.max;
     endian = src.endian;
+    src.size = 0;
+    src.off = 0;
+    src.pos = 0;
+    src.max = 0;
     return *this;
 }
 
@@ -538,14 +562,6 @@ int Buffer::compareTo(const Buffer& other) const
         }
     }
     return r0 > r1 ? 1 : r0 < r1 ? -1 : 0;
-}
-
-void Buffer::assertValidSize(size_t size) const
-{
-    if (size == 0)
-    {
-        throw BufferError(BufferError::ALLOCATE_ZERO);
-    }
 }
 
 void Buffer::assertValidPos(size_t pos) const

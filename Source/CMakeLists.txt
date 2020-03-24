@@ -25,6 +25,7 @@ if(CT_LIB_MODULE_YAZ)
     target_sources(CTLib PRIVATE
         "${CT_LIB_INCLUDE_DIR}/CTLib/Yaz.hpp"
         Yaz/Yaz.cpp
+        Yaz/Compress.cpp
         Yaz/Decompress.cpp
     )
 endif()

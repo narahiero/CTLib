@@ -43,21 +43,6 @@ TEST(BufferTests, MoveCtor)
     EXPECT_EQ(nullptr, *buffer);
 }
 
-TEST(BufferTests, ZeroSizedAlloc)
-{
-    EXPECT_THROW({
-        try
-        {
-            CTLib::Buffer(0);
-        }
-        catch (const CTLib::BufferError& e)
-        {
-            EXPECT_EQ(CTLib::BufferError::ALLOCATE_ZERO, e.getType());
-            throw;
-        }
-    }, CTLib::BufferError);
-}
-
 TEST(BufferTests, PositionLimitAndRemaining)
 {
     CTLib::Buffer buffer(8);
@@ -601,38 +586,6 @@ TEST(BufferTests, PosAndLimitOutOfBounds)
         catch (const CTLib::BufferError& e)
         {
             EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
-            throw;
-        }
-        
-    }, CTLib::BufferError);
-}
-
-TEST(BufferTests, SliceWithSamePositionAndLimit)
-{
-    CTLib::Buffer buffer(2);
-    EXPECT_THROW({
-        try
-        {
-            CTLib::Buffer slice{buffer.position(2).slice()};
-        }
-        catch (const CTLib::BufferError& e)
-        {
-            EXPECT_EQ(CTLib::BufferError::ALLOCATE_ZERO, e.getType());
-            throw;
-        }
-        
-    }, CTLib::BufferError);
-
-    buffer = CTLib::Buffer(3);
-    CTLib::Buffer slice0{buffer.position(1).slice()};
-    EXPECT_THROW({
-        try
-        {
-            CTLib::Buffer slice1{slice0.position(2).slice()};
-        }
-        catch (const CTLib::BufferError& e)
-        {
-            EXPECT_EQ(CTLib::BufferError::ALLOCATE_ZERO, e.getType());
             throw;
         }
         
