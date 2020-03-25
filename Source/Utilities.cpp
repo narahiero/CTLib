@@ -65,7 +65,7 @@ uint8_t* Bytes::findLongestMatch(uint8_t* bytes, size_t bytesSize, uint8_t* find
         size_t maxSize = findSize > (bytesSize - i) ? (bytesSize - i) : findSize;
         while ((find[j] == bytes[i + j]) && (++j < maxSize))
         {
-            // loop until difference found
+            // loop until difference is found or max size is reached
         }
         bestLoc = best < j ? (bytes + i) : bestLoc;
         best = best < j ? j : best;

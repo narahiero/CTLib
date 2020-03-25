@@ -25,38 +25,44 @@ void writeHeader(Buffer& out, YazFormat format, size_t len)
     out.putInt(0);
 }
 
-void noCompression(Buffer& data, Buffer& out)
+// modified version of CTLib::Bytes::findLongestMatch from <Utilities.hpp>
+// to allow self referencing chunks
+size_t findBestMatch(Buffer& data, size_t& best)
 {
-    uint8_t counter = 1; // 1 so that `--counter` evaluates to 0
-    while (data.hasRemaining())
+    uint8_t* curr = *data + data.position();
+    size_t size = data.limit() > 0x111 ? 0x111 : data.limit();
+
+    uint8_t* search = data.position() > 0x1000 ? (curr - 0x1000) : *data;
+    size_t searchSize = curr - search;
+
+    best = 0;
+    uint8_t* bestLoc = search;
+    for (size_t i = 0, j = 0; i < searchSize; ++i, j = 0)
     {
-        if (--counter <= 0)
+        while ((curr[j] == search[i + j]) && (++j < size))
         {
-            out.put(0xFF);
-            counter = 8;
+            // loop until difference is found or max size is reached
         }
-        out.put(data.get());
+        bestLoc = best < j ? (search + i) : bestLoc;
+        best = best < j ? j : best;
     }
+
+    return curr - bestLoc;
 }
 
-void dataCompression(Buffer& data, Buffer& out)
+void compressData(Buffer& data, Buffer& out)
 {
     Buffer dataGroup(0x18);
     uint8_t groupHead = 0;
     uint8_t groupIdx = 8;
     while (data.hasRemaining())
     {
-        uint8_t* curr = *data + data.position();
-        size_t size = data.limit() > 0x111 ? 0x111 : data.limit();
-
-        uint8_t* search = data.position() > 0x1000 ? (curr - 0x1000) : *data;
-        size_t searchSize = curr - search;
-
-        uint8_t* find = Bytes::findLongestMatch(search, searchSize, curr, size);
+        size_t size = 0;
+        size_t pos = findBestMatch(data, size);
 
         if (size > 2) // only use back reference if worth it
         {
-            uint16_t chunk = (curr - find - 1) & 0xFFF; // relative position
+            uint16_t chunk = (pos - 1) & 0xFFF; // relative position
             if (size < 0x12)
             {
                 chunk |= ((size - 0x2) & 0xF) << 12; // add size info
@@ -94,23 +100,8 @@ void dataCompression(Buffer& data, Buffer& out)
         groupHead <<= groupIdx - 1;
         out.put(groupHead).put(dataGroup.flip());
     }
-}
-
-void compressData(Buffer& data, Buffer& out, YazLevel level)
-{
-    switch (level)
-    {
-    case YazLevel::NONE:
-        noCompression(data, out);
-        break;
-
-    default:
-        dataCompression(data, out);
-        break;
-    }
 
     size_t len = out.position();
-
     if ((len & 0x3) > 0) // add padding
     {
         size_t padding = 4 - (len & 0x3);
@@ -121,18 +112,18 @@ void compressData(Buffer& data, Buffer& out, YazLevel level)
     }
 }
 
-Buffer compressBase(Buffer& data, YazFormat format, YazLevel level)
+Buffer compressBase(Buffer& data, YazFormat format)
 {
     Buffer out(calculateMaxSize(data.remaining()));
 
     writeHeader(out, format, data.remaining());
-    compressData(data, out, level);
+    compressData(data, out);
 
     return out.flip();
 }
 
-Buffer Yaz::compress(Buffer& data, YazFormat format, YazLevel level)
+Buffer Yaz::compress(Buffer& data, YazFormat format)
 {
-    return compressBase(data, format, level);
+    return compressBase(data, format);
 }
 }
