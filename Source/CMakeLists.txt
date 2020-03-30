@@ -30,6 +30,15 @@ if(CT_LIB_MODULE_YAZ)
     )
 endif()
 
+# U8 module
+if(CT_LIB_MODULE_U8)
+    target_sources(CTLib PRIVATE
+        "${CT_LIB_INCLUDE_DIR}/CTLib/U8.hpp"
+        U8/U8.cpp
+        U8/U8Arc.cpp
+    )
+endif()
+
 # BRRES module
 if(CT_LIB_MODULE_BRRES)
     target_sources(CTLib PRIVATE

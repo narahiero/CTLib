@@ -10,10 +10,17 @@
 /*! @file Utilities.hpp
  *
  *  @brief The header containing miscellaneous utilities for CT Lib.
+ * 
+ *  The utilities header contains mostly methods used to help with development.
+ * 
+ *  **Note**: You may have noticed that some methods are unused. They are not
+ *  to be removed at the moment, as they are used when making a rough first
+ *  draft.
  */
 
 
 #include <cstdint>
+#include <map>
 #include <stdexcept>
 #include <string>
 
@@ -153,5 +160,56 @@ public:
      *  @return Whether the write was successful
      */
     static bool writeFile(const std::string& filename, Buffer& data);
+};
+
+/*! @brief Utility class used to iterate over the values of a map. */
+template<class K, class V>
+class MapValueIterator final
+{
+
+public:
+
+    /*! Alias for std::map::iterator. */
+    using MapIterator = typename std::map<K, V>::iterator;
+
+    /*! @brief Constructs a MapValueIterator wrapped around the specified
+     *  map iterator.
+     * 
+     *  @param[in] it The map iterator to be wrapped
+     */
+    MapValueIterator(MapIterator& it) :
+        it{it}
+    {
+
+    }
+
+    /*! @brief Returns whether this iterator equals `other`. */
+    bool operator==(const MapValueIterator<K, V>& other) const
+    {
+        return it == other.it;
+    }
+
+    /*! @brief Returns whether this iterator does not equal `other`. */
+    bool operator!=(const MapValueIterator<K, V>& other) const
+    {
+        return it != other.it;
+    }
+
+    /*! @brief Returns the element currently pointed by this iterator. */
+    V& operator*() const
+    {
+        return (*it).second;
+    }
+
+    /*! @brief Increments the position of this iterator. */
+    MapValueIterator& operator++()
+    {
+        ++it;
+        return *this;
+    }
+
+private:
+
+    MapIterator it;
 };
 }

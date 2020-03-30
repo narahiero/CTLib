@@ -63,6 +63,11 @@ if(CT_LIB_MODULE_YAZ)
     ct_lib_add_test(YazTest SOURCES Yaz.cpp)
 endif()
 
+# Tests for U8 module
+if(CT_LIB_MODULE_U8)
+    ct_lib_add_test(U8Test SOURCES U8.cpp)
+endif()
+
 # Tests for BRRES module
 if(CT_LIB_MODULE_BRRES)
     ct_lib_add_test(BRRESTest SOURCES BRRES.cpp)

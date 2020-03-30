@@ -22,6 +22,15 @@
 namespace CTLib
 {
 
+/*! @defgroup yaz Yaz
+ * 
+ *  @addtogroup yaz
+ * 
+ *  @brief The Yaz module contains all classes and methods that can be used to
+ *  interact with Nintendo's Yaz compression format.
+ *  @{
+ */
+
 /*! @brief Enumeration of Yaz formats. */
 enum class YazFormat
 {
@@ -41,6 +50,7 @@ public:
     /*! @brief Compresses the passed data using the specified Yaz format.
      *
      *  @param[in] data The data to be compressed
+     *  @param[in] format The compression format
      * 
      *  @return The compressed data
      */
@@ -71,8 +81,8 @@ public:
     static Buffer decompress(Buffer& data, YazFormat format);
 };
 
-/*! @brief YazError is the error class used by methods in this header. */
-class YazError : public std::runtime_error
+/*! @brief YazError is the error class used by the methods in this header. */
+class YazError final : public std::runtime_error
 {
 
 public:
@@ -83,4 +93,6 @@ public:
     /*! @brief Constructs a CTLib::YazError with the specified message. */
     YazError(const std::string& msg);
 };
+
+/*! @} addtogroup yaz */
 }

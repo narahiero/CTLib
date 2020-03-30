@@ -33,6 +33,7 @@ option(CT_LIB_BUILD_TESTS "Build tests" ON)
 
 # Modules
 option(CT_LIB_MODULE_YAZ "Include Yaz module" ON)
+option(CT_LIB_MODULE_U8 "Include U8 module" ON)
 option(CT_LIB_MODULE_BRRES "Include BRRES module" ON)
 
 # Miscellaneous

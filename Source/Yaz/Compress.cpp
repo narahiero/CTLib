@@ -7,8 +7,6 @@
 
 #include <CTLib/Yaz.hpp>
 
-#include <CTLib/Utilities.hpp>
-
 namespace CTLib
 {
 

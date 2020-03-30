@@ -22,8 +22,6 @@
 namespace CTLib
 {
 
-const class BufferMemory;
-
 /*! @brief A buffer similar to Java's `java.nio.ByteBuffer` class.
  * 
  *  The `CTLib::Buffer` class is heavily based on Java's `java.nio.ByteBuffer`,
@@ -116,7 +114,7 @@ const class BufferMemory;
  *  - `CTLib::Buffer::nativeOrder()` replaces
  *  `java.nio.ByteOrder::nativeOrder()`.
  */
-const class Buffer
+class Buffer final
 {
 
 public:
@@ -172,7 +170,7 @@ public:
      */
     Buffer(Buffer&& src) noexcept;
 
-    virtual ~Buffer();
+    ~Buffer();
 
     /*! @brief Copies the state and data of the specified buffer.
      *
@@ -889,7 +887,7 @@ private:
 };
 
 /*! The error class used by the CTLib::Buffer class. */
-const class BufferError : public std::runtime_error
+class BufferError final : public std::runtime_error
 {
 
 public:
