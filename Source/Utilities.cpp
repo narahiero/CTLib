@@ -39,6 +39,39 @@ std::string Strings::stringify(uint8_t* bytes, size_t size)
     return str;
 }
 
+size_t Strings::count(const std::string& str, const char c)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < str.size(); ++i)
+    {
+        if (str[i] == c)
+        {
+            ++n;
+        }
+    }
+    return n;
+}
+
+std::vector<std::string> Strings::split(const std::string& str, const char c)
+{
+    std::vector<std::string> vec;
+    vec.reserve(count(str, c) + 1);
+    
+    size_t pos = 0;
+    while (pos <= str.size())
+    {
+        size_t find = str.find(c, pos);
+        if (find == std::string::npos)
+        {
+            find = str.size();
+        }
+        vec.push_back(str.substr(pos, find - pos));
+        pos = find + 1;
+    }
+
+    return vec;
+}
+
 bool Bytes::matches(uint8_t* a, uint8_t* b, size_t count)
 {
     for (size_t i = 0; i < count; ++i)

@@ -23,6 +23,7 @@
 #include <map>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <CTLib/Memory.hpp>
 
@@ -48,6 +49,25 @@ public:
  *  @return The 'stringified' array of bytes
  */
 static std::string stringify(uint8_t* bytes, size_t size);
+
+/*! @brief Returns the number of occurrences of the specified character in the
+ *  specified string.
+ *  
+ *  @param[in] str The string to be searched
+ *  @param[in] c The character to be counted
+ * 
+ *  @return The number of occurrences
+ */
+static size_t count(const std::string& str, const char c);
+
+/*! @brief Splits the specified string by the specified character.
+ *  
+ *  @param[in] str The string to be split
+ *  @param[in] c The character to split by
+ * 
+ *  @return The split string
+ */
+static std::vector<std::string> split(const std::string& str, const char c);
 
 /*! @brief Formats a string `sprintf`-style.
  *  

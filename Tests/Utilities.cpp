@@ -18,6 +18,36 @@ TEST(StringsTests, Stringify)
     EXPECT_EQ("null \\x00", CTLib::Strings::stringify(bytes1, 6));
 }
 
+TEST(StringsTests, Count)
+{
+    std::string str = "this is some string";
+    EXPECT_EQ(4, CTLib::Strings::count(str, 's'));
+    EXPECT_EQ(3, CTLib::Strings::count(str, 'i'));
+    EXPECT_EQ(1, CTLib::Strings::count(str, 'r'));
+    EXPECT_EQ(0, CTLib::Strings::count(str, 'z'));
+
+    str = "some/path/to/some/file";
+    EXPECT_EQ(4, CTLib::Strings::count(str, '/'));
+}
+
+TEST(StringsTests, Split)
+{
+    std::string str = "this is some string";
+    auto vec = CTLib::Strings::split(str, ' ');
+    EXPECT_EQ(4, vec.size());
+    EXPECT_EQ((std::vector<std::string>{"this", "is", "some", "string"}), vec);
+
+    str = "some/path/to/some/file";
+    vec = CTLib::Strings::split(str, '/');
+    EXPECT_EQ(5, vec.size());
+    EXPECT_EQ((std::vector<std::string>{"some", "path", "to", "some", "file"}), vec);
+
+    str = "/some/funky//string/";
+    vec = CTLib::Strings::split(str, '/');
+    EXPECT_EQ(6, vec.size());
+    EXPECT_EQ((std::vector<std::string>{"", "some", "funky", "", "string", ""}), vec);
+}
+
 TEST(StringsTests, Format)
 {
     const char* str = "string";

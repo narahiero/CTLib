@@ -12,25 +12,30 @@
 TEST(U8ArcTests, Count)
 {
     CTLib::U8Arc arc;
+    EXPECT_EQ(0, arc.totalCount());
     EXPECT_EQ(0, arc.count());
 
     CTLib::U8Dir* root = arc.addDirectory(".");
+    EXPECT_EQ(1, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(0, root->count());
 
     root->addFile("course_model.brres");
     root->addFile("course.kcl");
     root->addFile("course.kmp");
-    EXPECT_EQ(4, arc.count());
+    EXPECT_EQ(4, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
     EXPECT_EQ(3, root->count());
 
     CTLib::U8Dir* posteffect = root->addDirectory("posteffect");
-    EXPECT_EQ(5, arc.count());
+    EXPECT_EQ(5, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
     EXPECT_EQ(4, root->count());
     EXPECT_EQ(0, posteffect->count());
 
     posteffect->addFile("posteffect.blight");
-    EXPECT_EQ(6, arc.count());
+    EXPECT_EQ(6, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
     EXPECT_EQ(4, root->count());
     EXPECT_EQ(1, posteffect->count());
 }
@@ -122,4 +127,56 @@ TEST(U8ArcTests, Rename)
     EXPECT_THROW(file->rename("vrcorn_model.brres"), CTLib::U8Error);
 
     EXPECT_THROW(file->rename(""), CTLib::U8Error);
+}
+
+TEST(U8ArcTests, AbsoluteGet)
+{
+    CTLib::U8Arc arc;
+    CTLib::U8Dir* root = arc.addDirectory(".");
+    root->addDirectory("posteffect")->addFile("posteffect.blight");
+
+    CTLib::U8Entry* entry = arc.getEntryAbsolute("./posteffect/posteffect.blight");
+    ASSERT_TRUE(entry != nullptr);
+    EXPECT_EQ("posteffect.blight", entry->getName());
+    EXPECT_EQ("posteffect", entry->getParent()->getName());
+    EXPECT_EQ(CTLib::U8EntryType::File, entry->getType());
+
+    CTLib::U8Entry* nothing = arc.getEntryAbsolute("./some/file.txt");
+    EXPECT_EQ(nullptr, nothing);
+
+    CTLib::U8Dir* dossun = root->addDirectory("effect")->addDirectory("dossun");
+    dossun->addFile("rk_dossun.breff");
+    dossun->addFile("rk_dossun.breft");
+    
+    CTLib::U8Entry* dir = arc.getEntryAbsolute("./effect/dossun");
+    ASSERT_TRUE(dir != nullptr);
+    EXPECT_EQ(dossun, dir);
+}
+
+TEST(U8ArcTests, AbsoluteAdd)
+{
+    CTLib::U8Arc arc;
+    CTLib::U8Dir* posteffect = arc.addDirectoryAbsolute("./posteffect");
+    EXPECT_EQ(2, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
+    EXPECT_EQ("posteffect", posteffect->getName());
+    EXPECT_EQ(".", posteffect->getParent()->getName());
+    EXPECT_EQ(CTLib::U8EntryType::Directory, posteffect->getType());
+
+    CTLib::U8Dir* root = arc.getEntry(".")->asDirectory();
+    CTLib::U8File* model = arc.addFileAbsolute("./course_model.brres");
+    EXPECT_EQ(3, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
+    EXPECT_EQ(2, root->count());
+    EXPECT_EQ("course_model.brres", model->getName());
+    EXPECT_EQ(root, model->getParent());
+    EXPECT_EQ(CTLib::U8EntryType::File, model->getType());
+
+    CTLib::U8File* file = arc.addFileAbsolute("./effect/dossun/rk_dossun.breft");
+    EXPECT_EQ(6, arc.totalCount());
+    EXPECT_EQ(1, arc.count());
+    EXPECT_EQ(3, root->count());
+    EXPECT_EQ("rk_dossun.breft", file->getName());
+    EXPECT_EQ("dossun", file->getParent()->getName());
+    EXPECT_EQ(CTLib::U8EntryType::File, file->getType());
 }

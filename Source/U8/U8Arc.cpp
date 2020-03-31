@@ -51,9 +51,54 @@ U8File* U8Arc::addFile(const std::string& name)
     return root->addFile(name);
 }
 
+U8Dir* U8Arc::addDirectoryAbsolute(const std::string& path)
+{
+    return addEntryAbsolute(path, U8EntryType::Directory)->asDirectory();
+}
+
+U8File* U8Arc::addFileAbsolute(const std::string& path)
+{
+    return addEntryAbsolute(path, U8EntryType::File)->asFile();
+}
+
 size_t U8Arc::count() const
 {
+    return root->count();
+}
+
+size_t U8Arc::totalCount() const
+{
     return entries.size() - 1;
+}
+
+U8Entry* U8Arc::getEntry(const std::string& name) const
+{
+    return root->getEntry(name);
+}
+
+bool U8Arc::hasEntry(const std::string& name) const
+{
+    return root->hasEntry(name);
+}
+
+U8Entry* U8Arc::getEntryAbsolute(const std::string& path) const
+{
+    U8Entry* entry = root;
+    auto parts = Strings::split(path, '/');
+    for (const std::string& part : parts)
+    {
+        if (entry == nullptr || entry->getType() != U8EntryType::Directory)
+        {
+            return nullptr;
+        }
+        entry = entry->asDirectory()->getEntry(part);
+    }
+    return entry;
+}
+
+bool U8Arc::hasEntryAbsolute(const std::string& path) const
+{
+    return getEntryAbsolute(path) != nullptr;
 }
 
 U8Arc::Iterator U8Arc::begin()
@@ -64,6 +109,50 @@ U8Arc::Iterator U8Arc::begin()
 U8Arc::Iterator U8Arc::end()
 {
     return entries.end();
+}
+
+U8Entry* U8Arc::addEntryAbsolute(const std::string& path, U8EntryType type)
+{
+    U8Entry* entry = root;
+    bool exists = true;
+
+    auto parts = Strings::split(path, '/');
+    std::string name = parts.back();
+    parts.pop_back();
+
+    for (const std::string& part : parts)
+    {
+        if (exists)
+        {
+            U8Entry* child = entry->asDirectory()->getEntry(part);
+            if (child == nullptr)
+            {
+                exists = false;
+            }
+            else if (child->getType() != U8EntryType::Directory)
+            {
+                throw U8Error("Cannot add a subdirectory to a file!");
+            }
+            else
+            {
+                entry = child;
+                continue;
+            }
+        }
+        entry = entry->asDirectory()->addDirectory(part);
+    }
+    
+    switch (type)
+    {
+    case U8EntryType::Directory:
+        return entry->asDirectory()->addDirectory(name);
+    
+    case U8EntryType::File:
+        return entry->asDirectory()->addFile(name);
+
+    default:
+        return nullptr; // <!> should never execute <!>
+    }
 }
 
 

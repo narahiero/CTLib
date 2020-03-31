@@ -288,8 +288,89 @@ public:
      */
     U8File* addFile(const std::string& name);
 
-    /*! @brief Returns the number of entries in this archive. */
+    /*! @brief Adds a directory at the specified _forward slash separated_
+     *  absolute path.
+     *
+     *  Any missing parent directory will be created.
+     * 
+     *  If any of the parent directories in the specified path designate an
+     *  already existing file, a U8Error is thrown.
+     *  
+     *  @param[in] path The absolute path of the directory to be created
+     * 
+     *  @throw CTLib::U8Error If an entry at the specified path already exists,
+     *  or if any parent directory in `path` designate an already existing
+     *  file.
+     * 
+     *  @return The newly created directory
+     */
+    U8Dir* addDirectoryAbsolute(const std::string& path);
+
+    /*! @brief Adds a file at the specified _forward slash separated_ absolute
+     *  path.
+     *  
+     *  Any missing parent directory will be created.
+     * 
+     *  If any of the parent directories in the specified path designate an
+     *  already existing file, a U8Error is thrown.
+     *  
+     *  @param[in] path The absolute path of the file to be created
+     * 
+     *  @throw CTLib::U8Error If an entry at the specified path already exists,
+     *  or if any parent directory in `path` designate an already existing
+     *  file.
+     * 
+     *  @return The newly created file
+     */
+    U8File* addFileAbsolute(const std::string& path);
+
+    /*! @brief Returns the number of entries in the root of this archive. */
     size_t count() const;
+
+    /*! @brief Returns the number of entries in this entire archive. */
+    size_t totalCount() const;
+
+    /*! @brief Returns the entry with the specified name, or `nullptr` if no
+     *  entry with such name exists.
+     *  
+     *  @param[in] name The name of the entry
+     * 
+     *  @return The entry with the specified name, or `nullptr`
+     */
+    U8Entry* getEntry(const std::string& name) const;
+
+    /*! @brief Returns whether there is an entry with the specified name in the
+     *  root of this archive.
+     */
+    bool hasEntry(const std::string& name) const;
+
+    /*! @brief Returns the entry designated by the specified _forward slash_
+     *  _delimited_ absolute path.
+     *
+     *  Consider the following code:
+     *  ~~~{.cpp}
+     *  U8Arc arc;
+     *  arc.addDirectory(".")->addDirectory("posteffect")->addFile("posteffect.blight");
+     *  // ...
+     *  U8Entry* file = arc.getAbsoluteEntry("./posteffect/posteffect.blight");
+     *  ~~~
+     * 
+     *  As you can see at the end of this code snippet, the nested BLIGHT file
+     *  is accessed directly from the archive using its absolute path.
+     * 
+     *  If no entry is found at the specified path, `nullptr` is returned.
+     * 
+     *  @param[in] path The absolute path to the entry
+     * 
+     *  @return The entry designated by the specified path, or `nullptr`
+     */
+    U8Entry* getEntryAbsolute(const std::string& path) const;
+
+    /*! @brief Returns whether an entry is found at the specified path.
+     *  
+     *  @see CTLib::U8Arc::getEntryAbsolute() for more information
+     */
+    bool hasEntryAbsolute(const std::string& path) const;
 
     /*! @brief Returns an iterator pointing to the first entry. */
     Iterator begin();
@@ -298,6 +379,9 @@ public:
     Iterator end();
 
 private:
+
+    // adds an entry of the specified type at the specified path
+    U8Entry* addEntryAbsolute(const std::string& path, U8EntryType type);
 
     // vector containing all entries in this archive
     std::vector<U8Entry*> entries;
