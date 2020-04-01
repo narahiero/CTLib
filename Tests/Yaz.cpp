@@ -10,8 +10,6 @@
 #include <CTLib/Utilities.hpp>
 #include <CTLib/Yaz.hpp>
 
-#include <fstream>
-
 TEST(DecompressTests, Simple)
 {
     {
@@ -62,9 +60,4 @@ TEST(DecompressTests, Simple)
         CTLib::Buffer decompressed = CTLib::Yaz::decompress(buffer);
         EXPECT_TRUE(CTLib::Bytes::matches(expect, *decompressed, 30));
     }
-}
-
-TEST(CompressTests, Best)
-{
-    
 }

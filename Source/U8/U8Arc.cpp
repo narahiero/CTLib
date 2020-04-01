@@ -30,7 +30,7 @@ U8Arc::U8Arc(U8Arc&& src) :
     {
         entry->arc = this;
     }
-    src.root = new U8Dir(this);
+    src.root = new U8Dir(&src);
 }
 
 U8Arc::~U8Arc()
@@ -99,6 +99,11 @@ U8Entry* U8Arc::getEntryAbsolute(const std::string& path) const
 bool U8Arc::hasEntryAbsolute(const std::string& path) const
 {
     return getEntryAbsolute(path) != nullptr;
+}
+
+U8Dir* U8Arc::asDirectory() const
+{
+    return root;
 }
 
 U8Arc::Iterator U8Arc::begin()
@@ -259,6 +264,11 @@ bool U8Dir::hasEntry(const std::string& name) const
     return entries.count(name) > 0;
 }
 
+std::string U8Dir::getAbsolutePath() const
+{
+    return parent == nullptr ? "" : (parent->getAbsolutePath() + name + "/");
+}
+
 U8EntryType U8Dir::getType() const
 {
     return U8EntryType::Directory;
@@ -306,6 +316,21 @@ U8File::U8File(U8Arc* arc, U8Dir* parent, const std::string& name) :
 }
 
 U8File::~U8File() = default;
+
+void U8File::setData(Buffer data)
+{
+    this->data = std::move(data);
+}
+
+Buffer U8File::getData() const
+{
+    return data;
+}
+
+std::string U8File::getAbsolutePath() const
+{
+    return parent->getAbsolutePath() + name;
+}
 
 U8EntryType U8File::getType() const
 {

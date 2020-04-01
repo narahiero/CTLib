@@ -179,4 +179,13 @@ TEST(U8ArcTests, AbsoluteAdd)
     EXPECT_EQ("rk_dossun.breft", file->getName());
     EXPECT_EQ("dossun", file->getParent()->getName());
     EXPECT_EQ(CTLib::U8EntryType::File, file->getType());
+
+    // entry already exists
+    EXPECT_THROW(arc.addFileAbsolute("./effect/dossun/rk_dossun.breft"), CTLib::U8Error);
+
+    // parent directory with invalid name
+    EXPECT_THROW(arc.addDirectoryAbsolute("./posteffect//posteffect.blight"), CTLib::U8Error);
+
+    // parent directory is an already existing file
+    EXPECT_THROW(arc.addFileAbsolute("./course_model.brres/model.mdl0"), CTLib::U8Error);
 }

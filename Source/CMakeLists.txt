@@ -36,5 +36,6 @@ if(CT_LIB_MODULE_U8)
         "${CT_LIB_INCLUDE_DIR}/CTLib/U8.hpp"
         U8/U8.cpp
         U8/U8Arc.cpp
+        U8/Read.cpp
     )
 endif()

@@ -73,6 +73,9 @@ public:
     /*! @brief Returns the name of this entry. */
     std::string getName() const;
 
+    /*! @brief Returns the absolute path of this entry. */
+    virtual std::string getAbsolutePath() const = 0;
+
     /*! @brief Returns the type of this entry. */
     virtual U8EntryType getType() const = 0;
 
@@ -181,6 +184,9 @@ public:
      */
     bool hasEntry(const std::string& name) const;
 
+    /*! @brief Returns the absolute path of this directory. */
+    std::string getAbsolutePath() const override;
+
     /*! @brief Returns CTLib::U8EntryType::Directory. */
     U8EntryType getType() const override;
 
@@ -221,6 +227,15 @@ public:
 
     ~U8File();
 
+    /*! @brief Sets the contents of this file to the specified buffer. */
+    void setData(Buffer data);
+
+    /*! @brief Returns a copy of the contents of this file. */
+    Buffer getData() const;
+
+    /*! @brief Returns the absolute path of the file. */
+    std::string getAbsolutePath() const override;
+
     /*! @brief Returns CTLib::U8EntryType::File. */
     U8EntryType getType() const override;
 
@@ -234,6 +249,9 @@ private:
 
     // simply calls matching U8Entry constructor
     U8File(U8Arc* arc, U8Dir* parent, const std::string& name);
+
+    // contents of this file
+    Buffer data;
 };
 
 /*! @brief The U8Arc class is a object-oriented representation of Nintendo's U8
@@ -372,6 +390,15 @@ public:
      */
     bool hasEntryAbsolute(const std::string& path) const;
 
+    /*! @brief Returns the directory used under the hood by this U8 archive to
+     *  store its entries.
+     * 
+     *  _**IMPORTANT**: DO NOT MODIFY THE RETURNED DIRECTORY IN **ANY** WAY!_
+     *  
+     *  @return The directory storing the entries in the root of this archive.
+     */
+    U8Dir* asDirectory() const;
+
     /*! @brief Returns an iterator pointing to the first entry. */
     Iterator begin();
 
@@ -390,8 +417,25 @@ private:
     U8Dir* root;
 };
 
+/*! The U8 class contains methods to read and write U8Arc objects. */
+class U8
+{
+
+public:
+
+    /*! @brief Parses a U8Arc from the specified data.
+     *
+     *  @param[in] data The buffer containing the data to be parsed
+     * 
+     *  @throw CTLib::U8Error If data is invalid or corrupted.
+     * 
+     *  @return The parsed U8Arc
+     */
+    static U8Arc read(Buffer& data);
+};
+
 /*! @brief U8Error is the error class used by the methods in this header. */
-class U8Error final : std::runtime_error
+class U8Error final : public std::runtime_error
 {
 
 public:
