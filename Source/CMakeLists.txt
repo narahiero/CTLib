@@ -37,5 +37,6 @@ if(CT_LIB_MODULE_U8)
         U8/U8.cpp
         U8/U8Arc.cpp
         U8/Read.cpp
+        U8/Write.cpp
     )
 endif()

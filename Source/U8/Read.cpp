@@ -7,8 +7,6 @@
 
 #include <CTLib/U8.hpp>
 
-#include <iostream>
-
 namespace CTLib
 {
 

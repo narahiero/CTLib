@@ -8,4 +8,4 @@ used by Mario Kart Wii. It is licensed under GPLv3+.
 | **Format**      | **Status**         |
 | --------------- |:------------------:|
 | Yaz0/Yaz1       | Fully Supported    |
-| U8              | In Progress        |
+| U8              | Fully Supported    |

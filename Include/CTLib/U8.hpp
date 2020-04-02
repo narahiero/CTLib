@@ -168,7 +168,7 @@ public:
 
     /*! @brief Returns the number of entries in this directory, not recursive.
      */
-    size_t count() const;
+    uint32_t count() const;
 
     /*! @brief Returns the entry with the specified name, or `nullptr` if no
      *  entry with such name exists.
@@ -228,10 +228,13 @@ public:
     ~U8File();
 
     /*! @brief Sets the contents of this file to the specified buffer. */
-    void setData(Buffer data);
+    void setData(const Buffer& data);
 
     /*! @brief Returns a copy of the contents of this file. */
     Buffer getData() const;
+
+    /*! @brief Returns the size of the data. */
+    uint32_t getDataSize() const;
 
     /*! @brief Returns the absolute path of the file. */
     std::string getAbsolutePath() const override;
@@ -266,6 +269,9 @@ public:
 
     /*! @brief An iterator to iterate over the entries in this archive. */
     using Iterator = std::vector<U8Entry*>::iterator;
+
+    /*! @brief A const iterator to iterate over the entries in this archive. */
+    using ConstIterator = std::vector<U8Entry*>::const_iterator;
 
     /*! @brief Constructs an empty U8 archive. */
     U8Arc();
@@ -343,10 +349,10 @@ public:
     U8File* addFileAbsolute(const std::string& path);
 
     /*! @brief Returns the number of entries in the root of this archive. */
-    size_t count() const;
+    uint32_t count() const;
 
     /*! @brief Returns the number of entries in this entire archive. */
-    size_t totalCount() const;
+    uint32_t totalCount() const;
 
     /*! @brief Returns the entry with the specified name, or `nullptr` if no
      *  entry with such name exists.
@@ -405,6 +411,12 @@ public:
     /*! @brief Returns an iterator pointing after the last entry. */
     Iterator end();
 
+    /*! @brief Returns a const iterator pointing to the first entry. */
+    ConstIterator cbegin() const;
+
+    /*! @brief Returns a const iterator pointing after the last entry. */
+    ConstIterator cend() const;
+
 private:
 
     // adds an entry of the specified type at the specified path
@@ -417,7 +429,7 @@ private:
     U8Dir* root;
 };
 
-/*! The U8 class contains methods to read and write U8Arc objects. */
+/*! @brief The U8 class contains methods to read and write U8Arc objects. */
 class U8
 {
 
@@ -432,6 +444,14 @@ public:
      *  @return The parsed U8Arc
      */
     static U8Arc read(Buffer& data);
+
+    /*! @brief Writes the specified U8 archive to a buffer.
+     *  
+     *  @param[in] arc The archive to be written
+     *  
+     *  @return The buffer containing the written archive
+     */
+    static Buffer write(const U8Arc& arc);
 };
 
 /*! @brief U8Error is the error class used by the methods in this header. */

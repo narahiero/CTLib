@@ -61,14 +61,14 @@ U8File* U8Arc::addFileAbsolute(const std::string& path)
     return addEntryAbsolute(path, U8EntryType::File)->asFile();
 }
 
-size_t U8Arc::count() const
+uint32_t U8Arc::count() const
 {
     return root->count();
 }
 
-size_t U8Arc::totalCount() const
+uint32_t U8Arc::totalCount() const
 {
-    return entries.size() - 1;
+    return static_cast<uint32_t>(entries.size() - 1);
 }
 
 U8Entry* U8Arc::getEntry(const std::string& name) const
@@ -114,6 +114,16 @@ U8Arc::Iterator U8Arc::begin()
 U8Arc::Iterator U8Arc::end()
 {
     return entries.end();
+}
+
+U8Arc::ConstIterator U8Arc::cbegin() const
+{
+    return ++entries.cbegin();
+}
+
+U8Arc::ConstIterator U8Arc::cend() const
+{
+    return entries.cend();
 }
 
 U8Entry* U8Arc::addEntryAbsolute(const std::string& path, U8EntryType type)
@@ -249,9 +259,9 @@ U8File* U8Dir::addFile(const std::string& name)
     return new U8File(arc, this, name);
 }
 
-size_t U8Dir::count() const
+uint32_t U8Dir::count() const
 {
-    return entries.size();
+    return static_cast<uint32_t>(entries.size());
 }
 
 U8Entry* U8Dir::getEntry(const std::string& name) const
@@ -317,14 +327,24 @@ U8File::U8File(U8Arc* arc, U8Dir* parent, const std::string& name) :
 
 U8File::~U8File() = default;
 
-void U8File::setData(Buffer data)
+void U8File::setData(const Buffer& data)
 {
-    this->data = std::move(data);
+    this->data = Buffer(data.remaining());
+    while (this->data.hasRemaining())
+    {
+        this->data.put(data[data.position() + this->data.position()]);
+    }
+    this->data.clear();
 }
 
 Buffer U8File::getData() const
 {
     return data;
+}
+
+uint32_t U8File::getDataSize() const
+{
+    return static_cast<uint32_t>(data.remaining());
 }
 
 std::string U8File::getAbsolutePath() const
