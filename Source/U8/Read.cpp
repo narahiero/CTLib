@@ -26,6 +26,9 @@ struct U8Header
 // a node in the filesystem section
 struct U8Node
 {
+    // node index
+    uint32_t index;
+
     // node type (0 for file, 1 for directory)
     uint8_t type;
 
@@ -94,6 +97,8 @@ void readHeader(Buffer& data, U8Header* header)
 U8Node readNode(Buffer& filesystem, std::vector<U8Node>& out, uint32_t max)
 {
     U8Node node;
+
+    node.index = static_cast<uint32_t>(out.size());
 
     // u32 containing: u8 for type, u24 for name off
     uint32_t tn = filesystem.getInt();
@@ -210,7 +215,7 @@ U8Arc readData(Buffer& filesystem, Buffer& data, U8Header* header)
     U8Dir* parent = arc.asDirectory();
     for (uint32_t i = 1; i < root.size; ++i)
     {
-        if (i >= dir.size) // exit current directory
+        while (dir.index != dir.offIdx && i >= dir.size)
         {
             dir = nodes[dir.offIdx];
             parent = parent->getParent();
