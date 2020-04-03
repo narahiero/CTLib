@@ -52,15 +52,27 @@ struct U8Node
     uint32_t size;
 };
 
-void makeStringTable(const U8Arc& arc, U8StringTable* table)
+void orderEntries(U8Dir* dir, std::vector<U8Entry*>& out)
+{
+    for (U8Entry* entry : *dir)
+    {
+        out.push_back(entry);
+        if (entry->getType() == U8EntryType::Directory)
+        {
+            orderEntries(entry->asDirectory(), out);
+        }
+    }
+}
+
+void makeStringTable(std::vector<U8Entry*>& entries, U8StringTable* table)
 {
     // initialize table
     table->offsets[""] = 0; // root entry
     table->size = 1;
 
-    for (auto it = arc.cbegin(); it != arc.cend(); ++it) // first run to order properly
+    for (U8Entry* entry : entries) // first run to order properly
     {
-        table->offsets[(*it)->getName()] = 1; // 1 to differentiate from root
+        table->offsets[entry->getName()] = 1; // 1 to differentiate from root
     }
 
     for (auto pair : table->offsets) // actually calculate offsets
@@ -73,17 +85,16 @@ void makeStringTable(const U8Arc& arc, U8StringTable* table)
     }
 }
 
-void makeInfo(const U8Arc& arc, U8StringTable* table, U8Info* info)
+void makeInfo(std::vector<U8Entry*>& entries, U8StringTable* table, U8Info* info)
 {
-    info->entriesSize = ((arc.totalCount() + 1) * 0xC) + table->size;
+    info->entriesSize = ((static_cast<uint32_t>(entries.size()) + 1) * 0xC) + table->size;
     info->dataOff = (info->entriesSize & 0xFFFFFFF0) + 0x30;
 
     info->offsets.push_back(0); // for the root node
 
     uint32_t dataSize = 0;
-    for (auto it = arc.cbegin(); it != arc.cend(); ++it)
+    for (U8Entry* entry : entries)
     {
-        U8Entry* entry = *it;
         if (entry->getType() == U8EntryType::File)
         {
             U8File* file = entry->asFile();
@@ -101,7 +112,7 @@ void makeInfo(const U8Arc& arc, U8StringTable* table, U8Info* info)
     info->size = info->dataOff + dataSize;
 }
 
-void writeHeader(const U8Arc& arc, U8Info* info, Buffer& out)
+void writeHeader(U8Info* info, Buffer& out)
 {
     out.putArray((uint8_t*)"U\xAA""8-", 4); // magic
     out.putInt(0x20); // offset to filesystem section
@@ -115,13 +126,13 @@ void writeHeader(const U8Arc& arc, U8Info* info, Buffer& out)
     }
 }
 
-U8Node makeRootNode(const U8Arc& arc)
+U8Node makeRootNode(uint32_t size)
 {
     U8Node node;
     node.idx = 0;
     node.tn = 0x1 << 24;
     node.offIdx = 0;
-    node.size = arc.totalCount() + 1;
+    node.size = size;
     return node;
 }
 
@@ -181,7 +192,7 @@ void writeNodes(const U8Arc& arc, U8Info* info, U8StringTable* table, Buffer& ou
 {
     std::vector<U8Node> nodes;
 
-    U8Node root = makeRootNode(arc);
+    U8Node root = makeRootNode(arc.totalCount() + 1);
     nodes.push_back(root);
 
     getOrderedNodes(arc.asDirectory(), &root, info, table, nodes);
@@ -207,14 +218,13 @@ void writeStringTable(U8Info* info, U8StringTable* table, Buffer& out)
     }
 }
 
-void writeData(const U8Arc& arc, Buffer& out)
+void writeData(std::vector<U8Entry*> entries, Buffer& out)
 {
-    for (auto it = arc.cbegin(); it != arc.cend(); ++it)
+    for (U8Entry* entry : entries)
     {
-        if ((*it)->getType() == U8EntryType::File)
+        if (entry->getType() == U8EntryType::File)
         {
-            U8File* file = (*it)->asFile();
-            out.put(file->getData());
+            out.put(entry->asFile()->getData());
 
             size_t padding = 0x10 - (out.position() & 0xF);
             while (padding != 0x10 && padding-- > 0)
@@ -227,17 +237,20 @@ void writeData(const U8Arc& arc, Buffer& out)
 
 Buffer U8::write(const U8Arc& arc)
 {
+    std::vector<U8Entry*> entries;
+    orderEntries(arc.asDirectory(), entries);
+
     U8StringTable table;
-    makeStringTable(arc, &table);
+    makeStringTable(entries, &table);
 
     U8Info info;
-    makeInfo(arc, &table, &info);
+    makeInfo(entries, &table, &info);
 
     Buffer data(info.size);
-    writeHeader(arc, &info, data);
+    writeHeader(&info, data);
     writeNodes(arc, &info, &table, data);
     writeStringTable(&info, &table, data);
-    writeData(arc, data);
+    writeData(entries, data);
 
     return data.clear();
 }
