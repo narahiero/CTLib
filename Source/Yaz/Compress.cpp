@@ -7,6 +7,9 @@
 
 #include <CTLib/Yaz.hpp>
 
+#include <memory>
+#include <iostream>
+
 namespace CTLib
 {
 
@@ -23,40 +26,89 @@ void writeHeader(Buffer& out, YazFormat format, size_t len)
     out.putInt(0);
 }
 
-// modified version of CTLib::Bytes::findLongestMatch from <Utilities.hpp>
-// to allow self referencing chunks
-size_t findBestMatch(Buffer& data, size_t& best)
+size_t findBestMatch(Buffer& data, uint16_t* table, uint16_t tableOff, size_t& best)
 {
     uint8_t* curr = *data + data.position();
-    size_t size = data.limit() > 0x111 ? 0x111 : data.limit();
-
-    uint8_t* search = data.position() > 0x1000 ? (curr - 0x1000) : *data;
-    size_t searchSize = curr - search;
+    size_t size = data.remaining() > 0x111 ? 0x111 : data.remaining();
 
     best = 0;
-    uint8_t* bestLoc = search;
-    for (size_t i = 0, j = 0; i < searchSize; ++i, j = 0)
+    uint8_t* bestLoc = curr;
+    for (size_t i = 1, j = 0; i <= table[*curr << 13]; ++i, j = 0)
     {
-        while ((curr[j] == search[i + j]) && (++j < size))
+        int16_t back = table[(*curr << 13) + i] - tableOff;
+        if (back <= 0)
+        {
+            break; // all remaining offsets are after the current location
+        }
+        else if (back > 0x1000)
+        {
+            continue;
+        }
+        uint8_t* search = curr - back;
+        while ((curr[j] == search[j]) && (++j < size))
         {
             // loop until difference is found or max size is reached
         }
-        bestLoc = best < j ? (search + i) : bestLoc;
+        bestLoc = best < j ? search : bestLoc;
         best = best < j ? j : best;
     }
 
     return curr - bestLoc;
 }
 
+void fillInTable(Buffer& data, uint16_t* table)
+{
+    uint8_t* curr = *data + data.position();
+    size_t size = data.remaining() > 0x1000 ? 0x1000 : data.remaining();
+    for (uint16_t i = 0; i < size; ++i)
+    {
+        uint16_t count = ++table[curr[i] << 13];
+        table[(curr[i] << 13) + count] = 0xFFF - i;
+    }
+}
+
+void updateTable(Buffer& data, uint16_t* table, uint16_t off)
+{
+    for (size_t i = 0; i < 0x100; ++i)
+    {
+        uint16_t* curr = table + (i << 13);
+        uint16_t move = 0;
+        for (uint16_t j = 1; j <= *curr; ++j)
+        {
+            curr[j] += 0xFFF + off;
+            if (curr[j] > 0x1FFF)
+            {
+                move = j;
+            }
+            else if (move > 0)
+            {
+                curr[j - move] = curr[j];
+            }
+        }
+        *curr -= move; // subtract from count
+    }
+    fillInTable(data, table);
+}
+
 void compressData(Buffer& data, Buffer& out)
 {
+    auto offsetsTableHandler = std::make_unique<uint16_t[]>(1 << 21);
+    uint16_t* offsetsTable = offsetsTableHandler.get();
+    int16_t tableOff = 0xFFF;
+
+    for (size_t i = 0; i < 0x100; ++i)
+    {
+        offsetsTable[i << 13] = 0; // set offset counts to 0
+    }
+    fillInTable(data, offsetsTable);
+    
     Buffer dataGroup(0x18);
     uint8_t groupHead = 0;
     uint8_t groupIdx = 8;
     while (data.hasRemaining())
     {
         size_t size = 0;
-        size_t pos = findBestMatch(data, size);
+        size_t pos = findBestMatch(data, offsetsTable, tableOff, size);
 
         if (size > 2) // only use back reference if worth it
         {
@@ -73,11 +125,14 @@ void compressData(Buffer& data, Buffer& out)
             }
 
             data.position(data.position() + size);
+            tableOff -= static_cast<int16_t>(size);
         }
         else // direct single byte copy
         {
             dataGroup.put(data.get());
             groupHead |= 0x1; // set bit of current chunk
+
+            --tableOff;
         }
         
         if (--groupIdx <= 0) // move to next group
@@ -90,6 +145,12 @@ void compressData(Buffer& data, Buffer& out)
         else // move to next chunk
         {
             groupHead <<= 1;
+        }
+
+        if (tableOff < 0)
+        {
+            updateTable(data, offsetsTable, -tableOff);
+            tableOff = 0xFFF;
         }
     }
 
