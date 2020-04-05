@@ -10,7 +10,7 @@ FetchContent_Declare(gtest_fetch
 
 FetchContent_GetProperties(gtest_fetch)
 
-if (NOT gtest_fetch_POPULATED)
+if(NOT gtest_fetch_POPULATED)
     FetchContent_Populate(gtest_fetch)
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     add_subdirectory("${gtest_fetch_SOURCE_DIR}" "${gtest_fetch_BINARY_DIR}")

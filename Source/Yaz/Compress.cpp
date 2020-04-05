@@ -8,7 +8,6 @@
 #include <CTLib/Yaz.hpp>
 
 #include <memory>
-#include <iostream>
 
 namespace CTLib
 {

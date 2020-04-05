@@ -37,7 +37,7 @@ struct U8StringTable
 };
 
 // node in filesystem section
-struct U8Node
+struct U8PackedNode
 {
     // index of node
     uint32_t idx;
@@ -97,11 +97,8 @@ void makeInfo(std::vector<U8Entry*>& entries, U8StringTable* table, U8Info* info
     {
         if (entry->getType() == U8EntryType::File)
         {
-            U8File* file = entry->asFile();
-            
-            info->offsets.push_back(file->getDataSize() == 0 ? 0 : info->dataOff + dataSize);
-
-            uint32_t fileSize = file->getDataSize();
+            uint32_t fileSize = entry->asFile()->getDataSize();
+            info->offsets.push_back(fileSize == 0 ? 0 : info->dataOff + dataSize);
             dataSize += (fileSize & 0xFFFFFFF0) + ((fileSize & 0xF) > 0 ? 0x10 : 0);
         }
         else
@@ -120,15 +117,15 @@ void writeHeader(U8Info* info, Buffer& out)
     out.putInt(info->dataOff); // offset to data section
 
     // 4 unused integers
-    for (size_t i = 0; i < 16; ++i)
+    for (size_t i = 0; i < 0x10; ++i)
     {
         out.put(0);
     }
 }
 
-U8Node makeRootNode(uint32_t size)
+U8PackedNode makeRootNode(uint32_t size)
 {
-    U8Node node;
+    U8PackedNode node;
     node.idx = 0;
     node.tn = 0x1 << 24;
     node.offIdx = 0;
@@ -136,9 +133,11 @@ U8Node makeRootNode(uint32_t size)
     return node;
 }
 
-U8Node makeNode(U8Entry* entry, U8Node* parent, U8Info* info, U8StringTable* table, uint32_t idx)
+U8PackedNode makeNode(
+    U8Entry* entry, U8PackedNode* parent, U8Info* info, U8StringTable* table, uint32_t idx
+)
 {
-    U8Node node;
+    U8PackedNode node;
 
     // node index
     node.idx = idx;
@@ -164,20 +163,14 @@ U8Node makeNode(U8Entry* entry, U8Node* parent, U8Info* info, U8StringTable* tab
     return node;
 }
 
-void writeNode(U8Node* node, Buffer& out)
-{
-    out.putInt(node->tn);
-    out.putInt(node->offIdx);
-    out.putInt(node->size);
-}
-
 void getOrderedNodes(
-    U8Dir* dir, U8Node* parent, U8Info* info, U8StringTable* table, std::vector<U8Node>& nodes
+    U8Dir* dir, U8PackedNode* parent, U8Info* info, U8StringTable* table,
+    std::vector<U8PackedNode>& nodes
 )
 {
     for (U8Entry* entry : *dir)
     {
-        U8Node node = makeNode(entry, parent, info, table, static_cast<uint32_t>(nodes.size()));
+        U8PackedNode node = makeNode(entry, parent, info, table, static_cast<uint32_t>(nodes.size()));
         nodes.push_back(node);
 
         if (entry->getType() == U8EntryType::Directory)
@@ -190,16 +183,18 @@ void getOrderedNodes(
 
 void writeNodes(const U8Arc& arc, U8Info* info, U8StringTable* table, Buffer& out)
 {
-    std::vector<U8Node> nodes;
+    std::vector<U8PackedNode> nodes;
 
-    U8Node root = makeRootNode(arc.totalCount() + 1);
+    U8PackedNode root = makeRootNode(arc.totalCount() + 1);
     nodes.push_back(root);
 
     getOrderedNodes(arc.asDirectory(), &root, info, table, nodes);
 
-    for (U8Node node : nodes)
+    for (U8PackedNode& node : nodes)
     {
-        writeNode(&node, out);
+        out.putInt(node.tn);
+        out.putInt(node.offIdx);
+        out.putInt(node.size);
     }
 }
 
