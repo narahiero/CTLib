@@ -15,6 +15,9 @@ set_target_properties(CTLib PROPERTIES CXX_EXTENSIONS OFF)
 # Add include directory
 target_include_directories(CTLib PUBLIC "${CT_LIB_INCLUDE_DIR}")
 
+# Add dependencies
+target_link_libraries(CTLib ${CT_LIB_DEPS})
+
 
 ########################################
 # Add modules

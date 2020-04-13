@@ -15,9 +15,6 @@ project(CTLib VERSION 0.1.0)
 set(CT_LIB_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/Include")
 set(CT_LIB_SOURCE_DIR "${PROJECT_SOURCE_DIR}/Source")
 
-# Dependencies
-set(CT_LIB_DEPS_INCLUDES "${PROJECT_SOURCE_DIR}/Deps/STB")
-
 # Whether CTLib is current project
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(CT_LIB_IS_CURRENT TRUE)
@@ -56,6 +53,8 @@ endif()
 ########################################
 # Add subdirectories
 ########################################
+
+add_subdirectory(Deps)
 
 add_subdirectory(Source)
 
