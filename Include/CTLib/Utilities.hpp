@@ -146,20 +146,22 @@ public:
     /*! @brief Reads the file with the specified filename. 
      *
      *  @param[in] filename The input file name
+     *  @param[out] err The error code, 0 if none
      * 
      *  @return A buffer containing the data in the file, or of size 0 if an
      *  error occurred
      */
-    static Buffer readFile(const char* filename);
+    static Buffer readFile(const char* filename, uint32_t* err = nullptr);
 
     /*! @brief Reads the file with the specified filename. 
      *
      *  @param[in] filename The input file name
+     *  @param[out] err The error code, 0 if none
      * 
      *  @return A buffer containing the data in the file, or of size 0 if an
      *  error occurred
      */
-    static Buffer readFile(const std::string& filename);
+    static Buffer readFile(const std::string& filename, uint32_t* err = nullptr);
 
     /*! @brief Writes the data in the specified buffer to the file with the
      *  specified filename.

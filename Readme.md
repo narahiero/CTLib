@@ -9,3 +9,6 @@ used by Mario Kart Wii. It is licensed under GPLv3+.
 | --------------- |:------------------:|
 | Yaz0/Yaz1       | Fully Supported    |
 | U8              | Fully Supported    |
+| BRRES           | In Progress        |
+| KCL             | Not Supported Yet  |
+| KMP             | Not Supported Yet  |

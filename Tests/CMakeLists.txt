@@ -18,6 +18,15 @@ endif()
 
 
 ########################################
+# Configure Tests.hpp
+########################################
+
+set(CT_LIB_TESTS_DATA_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Data")
+
+configure_file(Tests.hpp.in Tests.hpp @ONLY)
+
+
+########################################
 # Function to add tests
 ########################################
 
@@ -33,7 +42,10 @@ function(ct_lib_add_test EXECNAME)
     add_executable(${EXECNAME} "${CT_LIB_TEST_SOURCES}")
 
     # Add include directory
-    target_include_directories(${EXECNAME} PRIVATE "${CT_LIB_INCLUDE_DIR}")
+    target_include_directories(${EXECNAME} PRIVATE
+        "${CT_LIB_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 
     # Link CT Lib and Google Test
     target_link_libraries(${EXECNAME} gtest_main CTLib)
@@ -57,6 +69,9 @@ ct_lib_add_test(UtilitiesTest SOURCES Utilities.cpp)
 
 # Tests for CT Lib memory header
 ct_lib_add_test(MemoryTest SOURCES Memory.cpp)
+
+# Tests for CT Lib image header
+ct_lib_add_test(ImageTest SOURCES Image.cpp)
 
 # Tests for Yaz module
 if(CT_LIB_MODULE_YAZ)

@@ -128,7 +128,7 @@ names should be in full upper case.
 ```cpp
 namespace MyNamespace
 class MyClass
-enum MyHTMLColors
+enum MyHTMLColours
 ```
 
 The name of compile-time constants and macros should be in MACRO_CASE.

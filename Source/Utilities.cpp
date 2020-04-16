@@ -107,7 +107,7 @@ uint8_t* Bytes::findLongestMatch(uint8_t* bytes, size_t bytesSize, uint8_t* find
     return bestLoc;
 }
 
-Buffer IO::readFile(const char* filename)
+Buffer IO::readFile(const char* filename, uint32_t* err)
 {
     Buffer buffer;
 
@@ -122,13 +122,20 @@ Buffer IO::readFile(const char* filename)
 
         file.close();
     }
+    else
+    {
+        if (err != nullptr)
+        {
+            *err = 1;
+        }
+    }
 
     return buffer;
 }
 
-Buffer IO::readFile(const std::string& filename)
+Buffer IO::readFile(const std::string& filename, uint32_t* err)
 {
-    return readFile(filename.c_str());
+    return readFile(filename.c_str(), err);
 }
 
 bool IO::writeFile(const char* filename, Buffer& data)

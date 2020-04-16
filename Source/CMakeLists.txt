@@ -23,6 +23,14 @@ target_link_libraries(CTLib ${CT_LIB_DEPS})
 # Add modules
 ########################################
 
+# Image sources
+target_sources(CTLib PRIVATE
+    "${CT_LIB_INCLUDE_DIR}/CTLib/Image.hpp"
+    Image/Image.cpp
+    Image/Encode.cpp
+    Image/Decode.cpp
+)
+
 # Yaz module
 if(CT_LIB_MODULE_YAZ)
     target_sources(CTLib PRIVATE
