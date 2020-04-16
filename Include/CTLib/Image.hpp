@@ -67,6 +67,15 @@ public:
      */
     Image(uint32_t width, uint32_t height, const Buffer& data, RGBAColour colour = {});
 
+    /*! @brief Constructs an image of the specified width, height, and uniform
+     *  colour.
+     * 
+     *  @param[in] width The width of the image, in pixels
+     *  @param[in] height The height of the image, in pixels
+     *  @param[in] colour The image colour
+     */
+    Image(uint32_t width, uint32_t height, RGBAColour colour = {});
+
     /*! @brief Constructs a copy of the specified image. */
     Image(const Image&);
 
@@ -96,6 +105,15 @@ public:
 
     /*! @brief Returns the offset in image data for the specified pixel. */
     size_t offsetFor(uint32_t x, uint32_t y) const;
+
+    /*! @brief Returns a resized version of this image.
+     *  
+     *  @param[in] nw The new width
+     *  @param[in] nh The new height
+     * 
+     *  @return The resized image
+     */
+    Image resize(uint32_t nw, uint32_t nh) const;
 
 private:
 
@@ -183,7 +201,7 @@ public:
      * 
      *  @return The encoded image data
      */
-    static Buffer encode(Image& image, ImageFormat format);
+    static Buffer encode(const Image& image, ImageFormat format);
 
     /*! @brief Decodes the specified image data.
      *  

@@ -6,7 +6,7 @@
 //////////////////////////////////////////////////
 
 #include <CTLib/Image.hpp>
-#include <iostream>
+
 namespace CTLib
 {
 

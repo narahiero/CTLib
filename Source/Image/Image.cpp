@@ -8,6 +8,7 @@
 #include <CTLib/Image.hpp>
 
 #include <stb_image.h>
+#include <stb_image_resize.h>
 #include <stb_image_write.h>
 
 #include <CTLib/Utilities.hpp>
@@ -51,6 +52,18 @@ Image::Image(uint32_t width, uint32_t height, const Buffer& data, RGBAColour col
     {
         buffer[i + min] = colour[i & 3];
     }
+}
+
+Image::Image(uint32_t width, uint32_t height, RGBAColour colour) :
+    width{width},
+    height{height}
+{
+    buffer = Buffer(width * height * 4);
+    while (buffer.hasRemaining())
+    {
+        buffer.put(colour.r).put(colour.g).put(colour.b).put(colour.a);
+    }
+    buffer.clear();
 }
 
 Image::Image(uint32_t width, uint32_t height, uint8_t* data) :
@@ -129,6 +142,13 @@ Buffer Image::getData() const
 size_t Image::offsetFor(uint32_t x, uint32_t y) const
 {
     return ((y * width) + x) * 4;
+}
+
+Image Image::resize(uint32_t nw, uint32_t nh) const
+{
+    Image out(nw, nh);
+    stbir_resize_uint8(*buffer, width, height, 0, *out, nw, nh, 0, 4);
+    return out;
 }
 
 

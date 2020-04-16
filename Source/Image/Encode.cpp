@@ -15,7 +15,7 @@ namespace CTLib
 using PixelFunc = void (*)(Buffer&, Buffer&, uint32_t, uint32_t, uint32_t, uint32_t);
 using BlockFunc = void (*)(Buffer&, Buffer&, uint32_t, uint32_t, uint32_t, uint32_t);
 
-Buffer encodeBase(Image& image, uint8_t bw, uint8_t bh, int8_t sshift, PixelFunc func)
+Buffer encodeBase(const Image& image, uint8_t bw, uint8_t bh, int8_t sshift, PixelFunc func)
 {
     uint32_t nw = (image.getWidth() & ~(bw - 1)) + ((image.getWidth() & (bw - 1)) > 0 ? bw : 0);
     uint32_t nh = (image.getHeight() & ~(bh - 1)) + ((image.getHeight() & (bh - 1)) > 0 ? bh : 0);
@@ -42,7 +42,7 @@ Buffer encodeBase(Image& image, uint8_t bw, uint8_t bh, int8_t sshift, PixelFunc
     return data.flip();
 }
 
-Buffer encodeBlock(Image& image, uint8_t bw, uint8_t bh, int8_t sshift, BlockFunc func)
+Buffer encodeBlock(const Image& image, uint8_t bw, uint8_t bh, int8_t sshift, BlockFunc func)
 {
     uint32_t nw = (image.getWidth() & ~(bw - 1)) + ((image.getWidth() & (bw - 1)) > 0 ? bw : 0);
     uint32_t nh = (image.getHeight() & ~(bh - 1)) + ((image.getHeight() & (bh - 1)) > 0 ? bh : 0);
@@ -71,7 +71,7 @@ uint8_t computeGreyscale(uint8_t rB, uint8_t gB, uint8_t bB)
     return static_cast<uint8_t>(add * 255);
 }
 
-Buffer encodeI4(Image& image)
+Buffer encodeI4(const Image& image)
 {
     return encodeBase(image, 8, 8, -1,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -105,7 +105,7 @@ Buffer encodeI4(Image& image)
     );
 }
 
-Buffer encodeI8(Image& image)
+Buffer encodeI8(const Image& image)
 {
     return encodeBase(image, 8, 4, 0,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -125,7 +125,7 @@ Buffer encodeI8(Image& image)
     );
 }
 
-Buffer encodeIA4(Image& image)
+Buffer encodeIA4(const Image& image)
 {
     return encodeBase(image, 8, 4, 0,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -146,7 +146,7 @@ Buffer encodeIA4(Image& image)
     );
 }
 
-Buffer encodeIA8(Image& image)
+Buffer encodeIA8(const Image& image)
 {
     return encodeBase(image, 4, 4, 1,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -167,7 +167,7 @@ Buffer encodeIA8(Image& image)
     );
 }
 
-Buffer encodeRGB565(Image& image)
+Buffer encodeRGB565(const Image& image)
 {
     return encodeBase(image, 4, 4, 1,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -187,7 +187,7 @@ Buffer encodeRGB565(Image& image)
     );
 }
 
-Buffer encodeRGB5A3(Image& image)
+Buffer encodeRGB5A3(const Image& image)
 {
     return encodeBase(image, 4, 4, 1,
         [](Buffer& img, Buffer& data, uint32_t width, uint32_t height, uint32_t x, uint32_t y)
@@ -219,7 +219,7 @@ Buffer encodeRGB5A3(Image& image)
     );
 }
 
-Buffer encodeRGBA8(Image& image)
+Buffer encodeRGBA8(const Image& image)
 {
     return encodeBlock(image, 4, 4, 2,
         [](Buffer& img, Buffer& block, uint32_t width, uint32_t height, uint32_t gx, uint32_t gy)
@@ -247,7 +247,7 @@ Buffer encodeRGBA8(Image& image)
     );
 }
 
-Buffer encodeCMPR(Image& image)
+Buffer encodeCMPR(const Image& image)
 {
     return encodeBlock(image, 8, 8, -1,
         [](Buffer& img, Buffer& block, uint32_t width, uint32_t height, uint32_t gx, uint32_t gy)
@@ -286,7 +286,7 @@ Buffer encodeCMPR(Image& image)
     );
 }
 
-Buffer ImageCoder::encode(Image& image, ImageFormat format)
+Buffer ImageCoder::encode(const Image& image, ImageFormat format)
 {
     switch (format)
     {

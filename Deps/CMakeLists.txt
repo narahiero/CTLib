@@ -5,6 +5,7 @@
 add_library(Deps_STB STATIC
     STB/Include/stb_dxt.h
     STB/Include/stb_image.h
+    STB/Include/stb_image_resize.h
     STB/Include/stb_image_write.h
     STB/STBImpl.c
 )
