@@ -1,5 +1,7 @@
 # CT Lib
 
+![Latest release](https://img.shields.io/github/v/release/narahiero/CTLib?include_prereleases)
+
 CT Lib is a C++ library that can read and write Nintendo file formats that are
 used by Mario Kart Wii. It is licensed under GPLv3+.
 
