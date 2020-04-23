@@ -247,6 +247,63 @@ Buffer encodeRGBA8(const Image& image)
     );
 }
 
+void getDataBlock(Buffer& imgBlock, Buffer& img, uint32_t w, uint32_t h, uint32_t x, uint32_t y)
+{
+    for (uint32_t l = 0; l < 4; ++l)
+    {
+        if ((y + l) >= h)
+        {
+            // copy first row
+            imgBlock.putArray(*imgBlock, 4 * 4);
+            continue;
+        }
+
+        for (uint32_t p = 0; p < 4; ++p)
+        {
+            if ((x + p) >= w)
+            {
+                // copy first pixel of row
+                imgBlock.putInt(imgBlock.getInt((y + l) * w * 4));
+            }
+            else
+            {
+                imgBlock.putInt(img.getInt((((y + l) * w) + (x + p)) * 4));
+            }
+        }
+    }
+}
+
+void compressBlockDXT1(Buffer& block, Buffer& imgBlock)
+{
+    stb_compress_dxt_block(
+        *block + block.position(), *imgBlock, false, STB_DXT_DITHER | STB_DXT_HIGHQUAL
+    );
+
+    block.order(Buffer::LITTLE_ENDIAN);
+
+    // I know c0 and c1 are supposed to be called c1 and c2 but whatever... :P
+    uint16_t c0 = block.getShort(block.position()), c1 = block.getShort(block.position() + 2);
+    block.order(Buffer::BIG_ENDIAN).putShort(block.position(), c0).putShort(block.position() + 2, c1);
+    
+    if (c0 < c1) // swap palette AND indices
+    {
+        //block.putShort(block.position(), c1).putShort(block.position() + 2, c0);
+    }
+
+    // flip block horizontally
+    uint32_t indices = block.getInt(block.position() + 4);
+    for (size_t i = 0; i < 4; ++i)
+    {
+        const size_t shift = i * 8;
+        uint8_t row = (indices >> shift) & 0xFF;
+        row = ((row & 0x03) << 6) | ((row & 0x0C) << 2) | ((row & 0x30) >> 2) | ((row & 0xC0) >> 6);
+        indices = (indices & ~(0xFF << shift)) | (row << shift);
+    }
+    block.putInt(block.position() + 4, indices);
+
+    block.position(block.position() + 8);
+}
+
 Buffer encodeCMPR(const Image& image)
 {
     return encodeBlock(image, 8, 8, -1,
@@ -258,27 +315,8 @@ Buffer encodeCMPR(const Image& image)
                 for (uint32_t x = 0; x < 8; x += 4)
                 {
                     imgBlock.clear();
-                    for (uint32_t l = 0; l < 4; ++l)
-                    {
-                        for (uint32_t p = 0; p < 4; ++p)
-                        {
-                            size_t off = (((gy + y + l) * width) + (gx + x + p)) * 4;
-                            if ((gx + x + p) >= width || (gy + y + l) >= height)
-                            {
-                                imgBlock.putInt(0xFF);
-                            }
-                            else
-                            {
-                                imgBlock.putArray(*img + off, 4);
-                            }
-                        }
-                    }
-                    stb_compress_dxt_block(*block + block.position(), *imgBlock, false, STB_DXT_HIGHQUAL);
-                    
-                    uint32_t pal = block.order(Buffer::LITTLE_ENDIAN).getInt(block.position());
-                    block.order(Buffer::BIG_ENDIAN).putInt(block.position(), pal);
-
-                    block.position(block.position() + 8);
+                    getDataBlock(imgBlock, img, width, height, gx + x, gy + y);
+                    compressBlockDXT1(block, imgBlock);
                 }
             }
             block.flip();
