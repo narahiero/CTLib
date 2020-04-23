@@ -284,11 +284,6 @@ void compressBlockDXT1(Buffer& block, Buffer& imgBlock)
     // I know c0 and c1 are supposed to be called c1 and c2 but whatever... :P
     uint16_t c0 = block.getShort(block.position()), c1 = block.getShort(block.position() + 2);
     block.order(Buffer::BIG_ENDIAN).putShort(block.position(), c0).putShort(block.position() + 2, c1);
-    
-    if (c0 < c1) // swap palette AND indices
-    {
-        //block.putShort(block.position(), c1).putShort(block.position() + 2, c0);
-    }
 
     // flip block horizontally
     uint32_t indices = block.getInt(block.position() + 4);

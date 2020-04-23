@@ -11,10 +11,146 @@
 
 #include "Tests.hpp"
 
+TEST(BRRESTests, AddHasAndRemove)
+{
+    CTLib::BRRES brres;
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("texture"));
+
+    brres.add<CTLib::TEX0>("texture");
+    EXPECT_TRUE(brres.has<CTLib::TEX0>("texture"));
+    EXPECT_FALSE(brres.has<CTLib::MDL0>("texture"));
+
+    brres.remove<CTLib::TEX0>("texture");
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("texture"));
+
+    brres.add<CTLib::MDL0>("model");
+    EXPECT_TRUE(brres.has<CTLib::MDL0>("model"));
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("model"));
+
+    brres.remove<CTLib::MDL0>("model");
+    EXPECT_FALSE(brres.has<CTLib::MDL0>("model"));
+
+    brres.add<CTLib::TEX0>("tex1");
+    brres.add<CTLib::TEX0>("tex2");
+    brres.add<CTLib::TEX0>("tex3");
+    brres.add<CTLib::TEX0>("tex4");
+    EXPECT_TRUE(brres.has<CTLib::TEX0>("tex1"));
+    EXPECT_TRUE(brres.has<CTLib::TEX0>("tex3"));
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("tex6"));
+    
+    brres.remove<CTLib::TEX0>("tex2");
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("tex2"));
+    EXPECT_TRUE(brres.has<CTLib::TEX0>("tex4"));
+
+    brres.add<CTLib::MDL0>("tex3");
+    EXPECT_TRUE(brres.has<CTLib::TEX0>("tex3"));
+    EXPECT_TRUE(brres.has<CTLib::MDL0>("tex3"));
+
+    brres.remove<CTLib::TEX0>("tex3");
+    EXPECT_FALSE(brres.has<CTLib::TEX0>("tex3"));
+    EXPECT_TRUE(brres.has<CTLib::MDL0>("tex3"));
+}
+
+TEST(BRRESTests, GetGetAllAndCount)
+{
+    CTLib::BRRES brres;
+    
+    EXPECT_EQ(0, brres.count<CTLib::MDL0>());
+    EXPECT_EQ(0, brres.count<CTLib::TEX0>());
+
+    CTLib::MDL0* model = brres.add<CTLib::MDL0>("model");
+    EXPECT_EQ(1, brres.count<CTLib::MDL0>());
+    EXPECT_EQ(0, brres.count<CTLib::TEX0>());
+    EXPECT_EQ(model, brres.get<CTLib::MDL0>("model"));
+
+    CTLib::TEX0* texture = brres.add<CTLib::TEX0>("texture");
+    EXPECT_EQ(1, brres.count<CTLib::MDL0>());
+    EXPECT_EQ(1, brres.count<CTLib::TEX0>());
+    EXPECT_EQ(texture, brres.get<CTLib::TEX0>("texture"));
+
+    brres.add<CTLib::MDL0>("model2");
+    brres.add<CTLib::MDL0>("model3");
+    brres.add<CTLib::TEX0>("model");
+    EXPECT_EQ(3, brres.count<CTLib::MDL0>());
+    EXPECT_EQ(2, brres.count<CTLib::TEX0>());
+    EXPECT_NE((void*)model, (void*)brres.get<CTLib::TEX0>("model"));
+
+    brres.add<CTLib::TEX0>("tex1");
+    brres.add<CTLib::TEX0>("tex2");
+    brres.add<CTLib::TEX0>("tex3");
+    brres.add<CTLib::TEX0>("tex4");
+    EXPECT_EQ(6, brres.count<CTLib::TEX0>());
+
+    std::vector<CTLib::TEX0*> tex0s = brres.getAll<CTLib::TEX0>();
+    EXPECT_EQ(6, tex0s.size());
+
+    brres.add<CTLib::TEX0>("new");
+    EXPECT_EQ(7, brres.count<CTLib::TEX0>());
+    EXPECT_EQ(6, tex0s.size());
+}
+
+TEST(BRRESTests, SubfileCount)
+{
+    CTLib::BRRES brres;
+
+    EXPECT_EQ(0, brres.getSubfileCount());
+
+    brres.add<CTLib::MDL0>("model");
+    brres.add<CTLib::TEX0>("texture");
+    EXPECT_EQ(2, brres.getSubfileCount());
+
+    brres.add<CTLib::MDL0>("mdl1");
+    brres.add<CTLib::MDL0>("mdl2");
+    brres.add<CTLib::MDL0>("mdl3");
+    brres.add<CTLib::MDL0>("mdl4");
+    EXPECT_EQ(6, brres.getSubfileCount());
+
+    brres.remove<CTLib::MDL0>("mdl3");
+    brres.remove<CTLib::TEX0>("texture");
+    EXPECT_EQ(4, brres.getSubfileCount());
+}
+
+TEST(BRRESTests, Errors)
+{
+    CTLib::BRRES brres;
+
+    EXPECT_NO_THROW(brres.add<CTLib::MDL0>("entry"));
+    EXPECT_THROW(brres.add<CTLib::MDL0>("entry"), CTLib::BRRESError);
+    EXPECT_NO_THROW(brres.add<CTLib::TEX0>("entry"));
+    EXPECT_THROW(brres.add<CTLib::TEX0>("entry"), CTLib::BRRESError);
+
+    EXPECT_NO_THROW(brres.get<CTLib::TEX0>("entry"));
+    EXPECT_THROW(brres.get<CTLib::TEX0>("texture"), CTLib::BRRESError);
+
+    brres.add<CTLib::TEX0>("texture");
+    EXPECT_NO_THROW(brres.get<CTLib::TEX0>("texture"));
+    EXPECT_THROW(brres.get<CTLib::MDL0>("texture"), CTLib::BRRESError);
+
+    EXPECT_THROW(brres.remove<CTLib::MDL0>("model"), CTLib::BRRESError);
+    EXPECT_THROW(brres.remove<CTLib::MDL0>("texture"), CTLib::BRRESError);
+    EXPECT_NO_THROW(brres.remove<CTLib::TEX0>("texture"));
+    EXPECT_THROW(brres.remove<CTLib::TEX0>("texture"), CTLib::BRRESError);
+    EXPECT_THROW(brres.get<CTLib::TEX0>("texture"), CTLib::BRRESError);
+}
+
+TEST(TEX0Tests, SetData)
+{
+    CTLib::BRRES brres;
+    CTLib::TEX0* tex0 = brres.add<CTLib::TEX0>("texture");
+
+    CTLib::Image image = CTLib::ImageIO::read(CT_LIB_TESTS_DATA_DIR"/Images/TEX0/Sand.png");
+    tex0->setTextureData(image, CTLib::ImageFormat::RGB565);
+
+    EXPECT_EQ(image.getWidth(), tex0->getWidth());
+    EXPECT_EQ(image.getHeight(), tex0->getHeight());
+    EXPECT_EQ(CTLib::ImageFormat::RGB565, tex0->getFormat());
+    EXPECT_EQ(image.getWidth() * image.getHeight() * 2, tex0->getTextureData().capacity());
+}
+
 TEST(TEX0Tests, MipmapSizes)
 {
     CTLib::BRRES brres;
-    CTLib::TEX0* tex0 = brres.newTEX0("texture");
+    CTLib::TEX0* tex0 = brres.add<CTLib::TEX0>("texture");
     
     CTLib::Image image = CTLib::ImageIO::read(CT_LIB_TESTS_DATA_DIR"/Images/TEX0/Sand.png");
     tex0->setTextureData(image, CTLib::ImageFormat::RGB565);
@@ -50,7 +186,7 @@ TEST(TEX0Tests, MipmapSizes)
 TEST(TEX0Tests, GenMipmaps)
 {
     CTLib::BRRES brres;
-    CTLib::TEX0* tex0 = brres.newTEX0("texture");
+    CTLib::TEX0* tex0 = brres.add<CTLib::TEX0>("texture");
     
     CTLib::Image image = CTLib::ImageIO::read(CT_LIB_TESTS_DATA_DIR"/Images/TEX0/Sand.png");
     tex0->setTextureData(image, CTLib::ImageFormat::RGB565);

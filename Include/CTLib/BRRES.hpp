@@ -66,6 +66,21 @@ private:
     BRRESSubFile(BRRESSubFile&&) = delete;
 };
 
+/*! @brief A model within a BRRES. */
+class MDL0 final : public BRRESSubFile
+{
+
+    friend class BRRES;
+
+public:
+
+    ~MDL0();
+
+private:
+
+    MDL0(BRRES* brres, const std::string& name);
+};
+
 /*! @brief A texture within a BRRES. */
 class TEX0 final : public BRRESSubFile
 {
@@ -196,7 +211,6 @@ public:
 
 private:
 
-    // constructor used by BRRES::newTEX0
     TEX0(BRRES* brres, const std::string& name);
 
     // throws if index >= mipmaps.size()
@@ -235,6 +249,7 @@ public:
     /*! @brief  */
     static BRRES read(Buffer& data);
 
+    /*! @brief Writes the specified BRRES to a new buffer. */
     static Buffer write(const BRRES& brres);
 
     /*! @brief Constructs an empty BRRES. */
@@ -257,45 +272,90 @@ public:
     /*! @brief Returns the total subfile count in this BRRES. */
     uint16_t getSubfileCount() const;
 
-    /*! @brief Creates, add, and return a newly created TEX0 instance with the
-     *  specified name.
+    /*! @brief Creates, add, and return a newly created instance of the
+     *  specified template type with the specified name.
      * 
-     *  @param[in] name The name of the TEX0 entry to be created
+     *  @tparam Type The entry type 
      * 
-     *  @throw CTLib::BRRESError If another TEX0 in this BRRES has the
-     *  specified name.
+     *  @param[in] name The name of the entry to be created
      * 
-     *  @return The newly created TEX0 instance
+     *  @throw CTLib::BRRESError If another entry of the specified template
+     *  type in this BRRES has the specified name.
+     * 
+     *  @return The newly created instance
      */
-    TEX0* newTEX0(const std::string& name);
+    template<class Type>
+    Type* add(const std::string& name);
 
-    /*! @brief Returns the TEX0 instance with the specified name.
-     *  
-     *  @param[in] name The name of the TEX0 entry
-     * 
-     *  @throw CTLib::BRRESError If this BRRES has no TEX0 entry with the
+    /*! @brief Returns the instance of the specified template type with the
      *  specified name.
      * 
-     *  @return The TEX0 instance
-     */
-    TEX0* getTEX0(const std::string& name) const;
-
-    /*! @brief Removes and _deletes_ the TEX0 instance with the specified name.
+     *  @tparam Type The entry type
      *  
-     *  If you have any reference to this TEX0 left, _**DO NOT USE IT**_, as it
+     *  @param[in] name The name of the entry
+     * 
+     *  @throw CTLib::BRRESError If this BRRES has no entry of the specified
+     *  template type with the specified name.
+     * 
+     *  @return The instance with the specified name
+     */
+    template<class Type>
+    Type* get(const std::string& name) const;
+
+    /*! @brief Returns whether this BRRES has an instance of the specified
+     *  template type with the specified name.
+     * 
+     *  @tparam Type The entry type
+     * 
+     *  @param[in] name The name of the entry
+     * 
+     *  @return Whether the specified entry is present
+     */
+    template<class Type>
+    bool has(const std::string& name) const;
+
+    /*! @brief Removes and _deletes_ the instance of the specified template
+     *  type with the specified name.
+     *  
+     *  If you have any reference to this entry left, _**DO NOT USE IT**_, as it
      *  will have been `delete`d when this function returns.
      * 
-     *  @throw CTLib::BRRESError If this BRRES has no TEX0 entry with the
-     *  specified name.
+     *  @tparam Type The entry type
+     * 
+     *  @param[in] name The name of the entry
+     * 
+     *  @throw CTLib::BRRESError If this BRRES has no entry of the specified
+     *  template type with the specified name.
      */
-    void removeTEX0(const std::string& name);
+    template<class Type>
+    void remove(const std::string& name);
 
-    /*! @brief Returns a std::vector containing all TEX0s in this BRRES. */
-    std::vector<TEX0*> getTEX0s() const;
+    /*! @brief Returns a std::vector containing all instances of the specified
+     *  template type in this BRRES.
+     * 
+     *  @tparam Type The entry type
+     * 
+     *  @return A std::vector containing all entries of the specified type
+     */
+    template<class Type>
+    std::vector<Type*> getAll() const;
+
+    /*! @brief Returns the number of instances of the specified template type
+     *  in this BRRES.
+     *  
+     *  @tparam Type Type entry type
+     * 
+     *  @return The entry count of the specified type
+     */
+    template<class Type>
+    uint16_t count() const;
 
 private:
 
-    // vector containing all TEX0s in this BRRES
+    // map of <name, MDL0> containing all MDL0s in this BRRES
+    std::map<std::string, MDL0*> mdl0s;
+
+    // map of <name, TEX0> containing all TEX0s in this BRRES
     std::map<std::string, TEX0*> tex0s;
 };
 

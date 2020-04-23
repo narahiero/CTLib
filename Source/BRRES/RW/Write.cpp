@@ -50,11 +50,10 @@ struct BRRESOffsets
 
 void createStringTable(const BRRES& brres, BRRESStringTable* table)
 {
-    std::vector<TEX0*> tex0s = brres.getTEX0s();
-    if (!tex0s.empty())
+    if (brres.count<TEX0>() > 0)
     {
         addToStringTable(table, TEX0_GROUP);
-        for (TEX0* tex0 : brres.getTEX0s())
+        for (TEX0* tex0 : brres.getAll<TEX0>())
         {
             addToStringTable(table, tex0->getName());
         }
@@ -65,7 +64,7 @@ void createRootIndexGroup(const BRRES& brres, BRRESIndexGroup* root, BRRESGroups
 {
     info->count = 0;
 
-    if (!brres.getTEX0s().empty())
+    if (brres.count<TEX0>() > 0)
     {
         root->addEntry(TEX0_GROUP);
 
@@ -81,7 +80,7 @@ void createIndexGroups(const BRRES& brres, BRRESIndexGroup* groups, BRRESGroupsI
     if (info->indices.count(TEX0_GROUP) > 0)
     {
         BRRESIndexGroup* group = groups + info->indices.at(TEX0_GROUP);
-        for (TEX0* tex0 : brres.getTEX0s())
+        for (TEX0* tex0 : brres.getAll<TEX0>())
         {
             BRRESIndexGroupEntry* entry = group->addEntry(tex0->getName());
             info->subfiles.insert(
@@ -114,7 +113,7 @@ uint32_t calculateSizeAndOffsets(
 
     size = padNumber(size, 0x10);
 
-    for (TEX0* tex0 : brres.getTEX0s())
+    for (TEX0* tex0 : brres.getAll<TEX0>())
     {
         offsets->subfileOffs.insert(std::map<BRRESSubFile*, uint32_t>::value_type(tex0, size));
         size += calculateTEX0Size(tex0);
@@ -203,7 +202,7 @@ void writeGroups(
 
 void writeData(Buffer& out, const BRRES& brres, BRRESStringTable* table, BRRESOffsets* offsets)
 {
-    for (TEX0* tex0 : brres.getTEX0s())
+    for (TEX0* tex0 : brres.getAll<TEX0>())
     {
         uint32_t pos = offsets->subfileOffs.at(tex0);
         out.position(pos);

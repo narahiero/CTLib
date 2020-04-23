@@ -41,58 +41,100 @@ BRRES::~BRRES()
 uint16_t BRRES::getSubfileCount() const
 {
     return static_cast<uint16_t>(
-        tex0s.size()
+        mdl0s.size()
+        + tex0s.size()
     );
 }
 
-TEX0* BRRES::newTEX0(const std::string& name)
-{
-    if (tex0s.count(name) > 0)
-    {
-        throw BRRESError(Strings::format(
-            "BRRES: There is already another TEX0 with the name: %s!", name.c_str()
-        ));
-    }
-    TEX0* tex0 = new TEX0(this, name);
-    tex0s.insert(std::map<std::string, TEX0*>::value_type(name, tex0));
-    return tex0;
+#define CT_LIB_DEFINE_BRRES_ADD(Type, container) \
+template <> \
+Type* BRRES::add<Type>(const std::string& name) \
+{ \
+    if (container.count(name) > 0) \
+    { \
+        throw BRRESError(Strings::format( \
+            "BRRES: There is already another " #Type " with the name: %s!", name.c_str() \
+        )); \
+    } \
+    Type* instance = new Type(this, name); \
+    container.insert(std::map<std::string, Type*>::value_type(name, instance)); \
+    return instance; \
 }
 
-TEX0* BRRES::getTEX0(const std::string& name) const
-{
-    if (tex0s.count(name) == 0)
-    {
-        throw BRRESError(Strings::format(
-            "BRRES: There is no TEX0 with the name: %s!", name.c_str()
-        ));
-    }
-    return tex0s.at(name);
+#define CT_LIB_DEFINE_BRRES_GET(Type, container) \
+template <> \
+Type* BRRES::get<Type>(const std::string& name) const \
+{ \
+    if (container.count(name) == 0) \
+    { \
+        throw BRRESError(Strings::format( \
+            "BRRES: There is no " #Type " with the name: %s!", name.c_str() \
+        )); \
+    } \
+    return container.at(name); \
 }
 
-void BRRES::removeTEX0(const std::string& name)
-{
-    if (tex0s.count(name) == 0)
-    {
-        throw BRRESError(Strings::format(
-            "BRRES: There is no TEX0 with the name: %s!", name.c_str()
-        ));
-    }
-    delete tex0s.at(name);
-    tex0s.erase(name);
+#define CT_LIB_DEFINE_BRRES_HAS(Type, container) \
+template <> \
+bool BRRES::has<Type>(const std::string& name) const \
+{ \
+    return container.count(name) > 0; \
 }
 
-std::vector<TEX0*> BRRES::getTEX0s() const
-{
-    std::vector<TEX0*> vec;
-    vec.reserve(tex0s.size());
-    
-    for (const auto& pair : tex0s)
-    {
-        vec.push_back(pair.second);
-    }
-
-    return vec;
+#define CT_LIB_DEFINE_BRRES_REMOVE(Type, container) \
+template <> \
+void BRRES::remove<Type>(const std::string& name) \
+{ \
+    if (container.count(name) == 0) \
+    { \
+        throw BRRESError(Strings::format( \
+            "BRRES: There is no " #Type " with the name: %s!", name.c_str() \
+        )); \
+    } \
+    delete container.at(name); \
+    container.erase(name); \
 }
+
+#define CT_LIB_DEFINE_BRRES_GET_ALL(Type, container) \
+template <> \
+std::vector<Type*> BRRES::getAll<Type>() const \
+{ \
+    std::vector<Type*> vec; \
+    vec.reserve(container.size()); \
+    for (const auto& pair : container) \
+    { \
+        vec.push_back(pair.second); \
+    } \
+    return vec; \
+}
+
+#define CT_LIB_DEFINE_BRRES_COUNT(Type, container) \
+template <> \
+uint16_t BRRES::count<Type>() const \
+{ \
+    return static_cast<uint16_t>(container.size()); \
+}
+
+CT_LIB_DEFINE_BRRES_ADD(MDL0, mdl0s)
+CT_LIB_DEFINE_BRRES_GET(MDL0, mdl0s)
+CT_LIB_DEFINE_BRRES_HAS(MDL0, mdl0s)
+CT_LIB_DEFINE_BRRES_REMOVE(MDL0, mdl0s)
+CT_LIB_DEFINE_BRRES_GET_ALL(MDL0, mdl0s)
+CT_LIB_DEFINE_BRRES_COUNT(MDL0, mdl0s)
+
+CT_LIB_DEFINE_BRRES_ADD(TEX0, tex0s)
+CT_LIB_DEFINE_BRRES_GET(TEX0, tex0s)
+CT_LIB_DEFINE_BRRES_HAS(TEX0, tex0s)
+CT_LIB_DEFINE_BRRES_REMOVE(TEX0, tex0s)
+CT_LIB_DEFINE_BRRES_GET_ALL(TEX0, tex0s)
+CT_LIB_DEFINE_BRRES_COUNT(TEX0, tex0s)
+
+#undef CT_LIB_DEFINE_BRRES_ADD
+#undef CT_LIB_DEFINE_BRRES_GET
+#undef CT_LIB_DEFINE_BRRES_HAS
+#undef CT_LIB_DEFINE_BRRES_REMOVE
+#undef CT_LIB_DEFINE_BRRES_GET_ALL
+#undef CT_LIB_DEFINE_BRRES_COUNT
 
 
 //////////////////////////////
