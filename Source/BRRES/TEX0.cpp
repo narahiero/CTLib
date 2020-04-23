@@ -35,16 +35,16 @@ void TEX0::setTextureData(const Image& image)
 {
     deleteMipmaps();
     data = ImageCoder::encode(image, format);
-    width = image.getWidth();
-    height = image.getHeight();
+    width = static_cast<uint16_t>(image.getWidth());
+    height = static_cast<uint16_t>(image.getHeight());
 }
 
-uint32_t TEX0::getWidth() const
+uint16_t TEX0::getWidth() const
 {
     return width;
 }
 
-uint32_t TEX0::getHeight() const
+uint16_t TEX0::getHeight() const
 {
     return height;
 }
@@ -104,12 +104,12 @@ uint32_t TEX0::getMipmapCount() const
     return static_cast<uint32_t>(mipmaps.size());
 }
 
-uint32_t TEX0::getMipmapWidth(uint32_t index) const
+uint16_t TEX0::getMipmapWidth(uint32_t index) const
 {
     return width >> (index + 1);
 }
 
-uint32_t TEX0::getMipmapHeight(uint32_t index) const
+uint16_t TEX0::getMipmapHeight(uint32_t index) const
 {
     return height >> (index + 1);
 }

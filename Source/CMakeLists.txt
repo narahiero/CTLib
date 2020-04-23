@@ -13,7 +13,7 @@ target_compile_features(CTLib PUBLIC cxx_std_17)
 set_target_properties(CTLib PROPERTIES CXX_EXTENSIONS OFF)
 
 # Add include directory
-target_include_directories(CTLib PUBLIC "${CT_LIB_INCLUDE_DIR}")
+target_include_directories(CTLib PUBLIC "${CT_LIB_INCLUDE_DIR}" "${CT_LIB_SOURCE_DIR}")
 
 # Add dependencies
 target_link_libraries(CTLib ${CT_LIB_DEPS})
@@ -58,5 +58,10 @@ if(CT_LIB_MODULE_BRRES)
         "${CT_LIB_INCLUDE_DIR}/CTLib/BRRES.hpp"
         BRRES/BRRES.cpp
         BRRES/TEX0.cpp
+        BRRES/RW/BRRESRWCommon.cpp
+        BRRES/RW/BRRESRWCommon.hpp
+        BRRES/RW/Read.cpp
+        BRRES/RW/Write.cpp
+        BRRES/RW/WriteTEX0.cpp
     )
 endif()

@@ -101,10 +101,10 @@ public:
     void setTextureData(const Image& image);
 
     /*! @brief Returns the width of the base texture data of this TEX0. */
-    uint32_t getWidth() const;
+    uint16_t getWidth() const;
 
     /*! @brief Returns the height of the base texture data of this TEX0. */
-    uint32_t getHeight() const;
+    uint16_t getHeight() const;
 
     /*! @brief Returns the format of all texture data in this TEX0. */
     ImageFormat getFormat() const;
@@ -173,7 +173,7 @@ public:
      * 
      *  @return The width of the mipmap at the specified index
      */
-    uint32_t getMipmapWidth(uint32_t index) const;
+    uint16_t getMipmapWidth(uint32_t index) const;
 
     /*! @brief Returns the height the mipmap at the specified index must have.
      *  
@@ -181,7 +181,7 @@ public:
      * 
      *  @return The height of the mipmap at the specified index
      */
-    uint32_t getMipmapHeight(uint32_t index) const;
+    uint16_t getMipmapHeight(uint32_t index) const;
 
     /*! @brief Returns the texture data of the mipmap at the specified index.
      *  
@@ -212,10 +212,10 @@ private:
     void assertValidMipmapImage(uint32_t index, const Image& image) const;
 
     // width of the texture data
-    uint32_t width;
+    uint16_t width;
 
     // height of the texture data
-    uint32_t height;
+    uint16_t height;
 
     // data format
     ImageFormat format;
@@ -231,6 +231,11 @@ class BRRES final
 {
 
 public:
+
+    /*! @brief  */
+    static BRRES read(Buffer& data);
+
+    static Buffer write(const BRRES& brres);
 
     /*! @brief Constructs an empty BRRES. */
     BRRES();
@@ -248,6 +253,9 @@ public:
     BRRES(BRRES&& src);
 
     ~BRRES();
+
+    /*! @brief Returns the total subfile count in this BRRES. */
+    uint16_t getSubfileCount() const;
 
     /*! @brief Creates, add, and return a newly created TEX0 instance with the
      *  specified name.
@@ -281,6 +289,9 @@ public:
      *  specified name.
      */
     void removeTEX0(const std::string& name);
+
+    /*! @brief Returns a std::vector containing all TEX0s in this BRRES. */
+    std::vector<TEX0*> getTEX0s() const;
 
 private:
 

@@ -38,6 +38,13 @@ BRRES::~BRRES()
     }
 }
 
+uint16_t BRRES::getSubfileCount() const
+{
+    return static_cast<uint16_t>(
+        tex0s.size()
+    );
+}
+
 TEX0* BRRES::newTEX0(const std::string& name)
 {
     if (tex0s.count(name) > 0)
@@ -72,6 +79,19 @@ void BRRES::removeTEX0(const std::string& name)
     }
     delete tex0s.at(name);
     tex0s.erase(name);
+}
+
+std::vector<TEX0*> BRRES::getTEX0s() const
+{
+    std::vector<TEX0*> vec;
+    vec.reserve(tex0s.size());
+    
+    for (const auto& pair : tex0s)
+    {
+        vec.push_back(pair.second);
+    }
+
+    return vec;
 }
 
 
