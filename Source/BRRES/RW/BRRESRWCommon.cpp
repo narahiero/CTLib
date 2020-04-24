@@ -8,7 +8,7 @@
 #include "BRRES/RW/BRRESRWCommon.hpp"
 
 #include <CTLib/Utilities.hpp>
-#include <iostream>
+
 namespace CTLib
 {
 
@@ -60,6 +60,11 @@ std::string readBRRESString(Buffer& in, uint32_t off)
 
 void addToStringTable(BRRESStringTable* table, const std::string& str)
 {
+    if (table->offsets.count(str) > 0)
+    {
+        return; // string already in table
+    }
+
     uint32_t strSize = padNumber(static_cast<uint32_t>(str.size()) + 1, 0x4);
 
     if (table->data.remaining() < strSize + 4)
@@ -280,12 +285,13 @@ void BRRESIndexGroupEntry::calculateId()
 
 void BRRESIndexGroupEntry::recalculateId(BRRESIndexGroupEntry* object)
 {
-    for (int32_t i = static_cast<int32_t>(name.size()) - 1; i >= 0; ++i)
+    for (int32_t i = static_cast<int32_t>(name.size()) - 1; i >= 0; --i)
     {
         uint8_t cmp = name[i] ^ object->name[i];
         if (cmp)
         {
             id = (i << 3) | highestBit(cmp);
+            break;
         }
     }
 
