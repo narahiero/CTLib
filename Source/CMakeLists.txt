@@ -4,6 +4,7 @@
 
 add_library(CTLib STATIC
     "${CT_LIB_INCLUDE_DIR}/CTLib/CTLib.hpp" CTLib.cpp
+    "${CT_LIB_INCLUDE_DIR}/CTLib/Math.hpp" Math.cpp
     "${CT_LIB_INCLUDE_DIR}/CTLib/Utilities.hpp" Utilities.cpp
     "${CT_LIB_INCLUDE_DIR}/CTLib/Memory.hpp" Memory.cpp
 )
