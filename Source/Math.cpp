@@ -10,4 +10,11 @@
 namespace CTLib
 {
 
+Vector3f::Vector3f() :
+    Vector()
+{
+
+}
+
+Vector3f::~Vector3f() = default;
 }

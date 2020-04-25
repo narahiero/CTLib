@@ -99,6 +99,11 @@ void addToStringTable(BRRESStringTable* table, const std::string& str)
 ////   BRRES index group
 ////
 
+uint32_t BRRESIndexGroup::getSizeInBytesForCount(uint16_t count)
+{
+    return (count + 1) * 0x10 + 8;
+}
+
 BRRESIndexGroup::BRRESIndexGroup() :
     entries{}
 {

@@ -138,4 +138,14 @@ bool operator!=(const Vector<Type, Size>& lhs, const Vector<Type, Size>& rhs)
 {
     return !(lhs == rhs);
 }
+
+class Vector3f final : public Vector<float, 3>
+{
+
+public:
+
+    Vector3f();
+
+    ~Vector3f();
+};
 }

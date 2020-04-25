@@ -10,6 +10,11 @@
 namespace CTLib
 {
 
+void addTEX0StringsToTable(BRRESStringTable* table, TEX0* tex0)
+{
+    // there are no internal strings used by TEX0
+}
+
 uint32_t calculateTEX0Size(TEX0* tex0)
 {
     uint32_t size = 0x40; // header size
@@ -39,12 +44,14 @@ struct TEX0Info
     uint32_t nameOff;
 };
 
-void createInfo(TEX0* tex0, TEX0Info* info, int32_t offToBRRES, uint32_t nameOff)
+void createInfo(
+    TEX0* tex0, TEX0Info* info, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff
+)
 {
     info->size = calculateTEX0Size(tex0);
     info->offToBRRES = offToBRRES;
     info->dataOff = 0x40;
-    info->nameOff = nameOff;
+    info->nameOff = table->offsets.at(tex0->getName()) + tableOff;
 }
 
 void writeHeader(Buffer& out, TEX0Info* info)
@@ -80,10 +87,12 @@ void writeTextureData(Buffer& out, TEX0Info* info, TEX0* tex0)
     }
 }
 
-void writeTEX0(Buffer& out, TEX0* tex0, int32_t offToBRRES, uint32_t nameOff)
+void writeTEX0(
+    Buffer& out, TEX0* tex0, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff
+)
 {
     TEX0Info info;
-    createInfo(tex0, &info, offToBRRES, nameOff);
+    createInfo(tex0, &info, offToBRRES, table, tableOff);
 
     writeHeader(out, &info);
     writeTEX0Header(out, tex0);

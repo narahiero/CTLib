@@ -63,6 +63,7 @@ if(CT_LIB_MODULE_BRRES)
         BRRES/RW/BRRESRWCommon.hpp
         BRRES/RW/Read.cpp
         BRRES/RW/Write.cpp
+        BRRES/RW/WriteMDL0.cpp
         BRRES/RW/WriteTEX0.cpp
         BRRES/TEX0.cpp
     )

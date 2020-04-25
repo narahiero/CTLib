@@ -61,6 +61,10 @@ class BRRESIndexGroup final
 
 public:
 
+    // returns the size in bytes of a group with the specified number of
+    // entries, the root excluded
+    static uint32_t getSizeInBytesForCount(uint16_t count);
+
     BRRESIndexGroup();
     BRRESIndexGroup(const BRRESIndexGroup&) = delete;
     BRRESIndexGroup(BRRESIndexGroup&&) = delete;
@@ -169,7 +173,23 @@ private:
 ////   Function prototypes
 ////
 
+/// MDL0 ///////////////////////////////
+
+void addMDL0StringsToTable(BRRESStringTable* table, MDL0* mdl0);
+
+uint32_t calculateMDL0Size(MDL0* mdl0);
+
+void writeMDL0(
+    Buffer& out, MDL0* mdl0, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff
+);
+
+/// TEX0 ///////////////////////////////
+
+void addTEX0StringsToTable(BRRESStringTable* table, TEX0* mdl0);
+
 uint32_t calculateTEX0Size(TEX0* tex0);
 
-void writeTEX0(Buffer& out, TEX0* tex0, int32_t offToBRRES, uint32_t nameOff);
+void writeTEX0(
+    Buffer& out, TEX0* tex0, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff
+);
 }

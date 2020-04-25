@@ -6,10 +6,11 @@
 //////////////////////////////////////////////////
 
 #include "BRRES/RW/BRRESRWCommon.hpp"
-#include <iostream>
+
 namespace CTLib
 {
 
+constexpr const char* MDL0_GROUP = "3DModels(NW4R)";
 constexpr const char* TEX0_GROUP = "Textures(NW4R)";
 
 struct BRRESInfo
@@ -48,15 +49,40 @@ struct BRRESOffsets
     uint32_t tableOff;
 };
 
+template <class Type>
+void addAllToStringTable(
+    const BRRES& brres, BRRESStringTable* table, const char* group,
+    void (*addStringsToTable)(BRRESStringTable*, Type*)
+)
+{
+    if (brres.count<Type>() > 0)
+    {
+        addToStringTable(table, group);
+        for (Type* instance : brres.getAll<Type>())
+        {
+            addToStringTable(table, instance->getName());
+            addStringsToTable(table, instance);
+        }
+    }
+}
+
 void createStringTable(const BRRES& brres, BRRESStringTable* table)
 {
-    if (brres.count<TEX0>() > 0)
+    addAllToStringTable<MDL0>(brres, table, MDL0_GROUP, &addMDL0StringsToTable);
+    addAllToStringTable<TEX0>(brres, table, TEX0_GROUP, &addTEX0StringsToTable);
+}
+
+template <class Type>
+void addIfNotEmpty(
+    const BRRES& brres, BRRESIndexGroup* root, BRRESGroupsInfo* info, const char* group
+)
+{
+    if (brres.count<Type>() > 0)
     {
-        addToStringTable(table, TEX0_GROUP);
-        for (TEX0* tex0 : brres.getAll<TEX0>())
-        {
-            addToStringTable(table, tex0->getName());
-        }
+        root->addEntry(group);
+
+        info->indices.insert(std::map<std::string, uint32_t>::value_type(group, info->count));
+        ++info->count;
     }
 }
 
@@ -64,29 +90,45 @@ void createRootIndexGroup(const BRRES& brres, BRRESIndexGroup* root, BRRESGroups
 {
     info->count = 0;
 
-    if (brres.count<TEX0>() > 0)
-    {
-        root->addEntry(TEX0_GROUP);
+    addIfNotEmpty<MDL0>(brres, root, info, MDL0_GROUP);
+    addIfNotEmpty<TEX0>(brres, root, info, TEX0_GROUP);
+}
 
-        info->indices.insert(
-            std::map<std::string, uint32_t>::value_type(TEX0_GROUP, info->count)
-        );
-        ++info->count;
+template <class Type>
+void createIndexGroup(
+    const BRRES& brres, BRRESIndexGroup* groups, BRRESGroupsInfo* info, const char* group
+)
+{
+    if (info->indices.count(group) > 0)
+    {
+        BRRESIndexGroup* indexGroup = groups + info->indices.at(group);
+        for (Type* instance : brres.getAll<Type>())
+        {
+            BRRESIndexGroupEntry* entry = indexGroup->addEntry(instance->getName());
+            info->subfiles.insert(
+                std::map<BRRESIndexGroupEntry*, BRRESSubFile*>::value_type(entry, instance)
+            );
+        }
     }
 }
 
 void createIndexGroups(const BRRES& brres, BRRESIndexGroup* groups, BRRESGroupsInfo* info)
 {
-    if (info->indices.count(TEX0_GROUP) > 0)
+    createIndexGroup<MDL0>(brres, groups, info, MDL0_GROUP);
+    createIndexGroup<TEX0>(brres, groups, info, TEX0_GROUP);
+}
+
+template <class Type>
+void addSubfilesSize(
+    const BRRES& brres, BRRESOffsets* offsets, uint32_t& size, uint32_t (*calculateSize)(Type*)
+)
+{
+    size = padNumber(size, 0x10);
+
+    for (Type* instance : brres.getAll<Type>())
     {
-        BRRESIndexGroup* group = groups + info->indices.at(TEX0_GROUP);
-        for (TEX0* tex0 : brres.getAll<TEX0>())
-        {
-            BRRESIndexGroupEntry* entry = group->addEntry(tex0->getName());
-            info->subfiles.insert(
-                std::map<BRRESIndexGroupEntry*, BRRESSubFile*>::value_type(entry, tex0)
-            );
-        }
+        offsets->subfileOffs.insert(std::map<BRRESSubFile*, uint32_t>::value_type(instance, size));
+        size += calculateSize(instance);
     }
 }
 
@@ -111,18 +153,13 @@ uint32_t calculateSizeAndOffsets(
     ////////////////////////////////////
     /// subfiles
 
-    size = padNumber(size, 0x10);
-
-    for (TEX0* tex0 : brres.getAll<TEX0>())
-    {
-        offsets->subfileOffs.insert(std::map<BRRESSubFile*, uint32_t>::value_type(tex0, size));
-        size += calculateTEX0Size(tex0);
-    }
-
-    size = padNumber(size, 0x10);
+    addSubfilesSize<MDL0>(brres, offsets, size, &calculateMDL0Size);
+    addSubfilesSize<TEX0>(brres, offsets, size, &calculateTEX0Size);
 
     ////////////////////////////////////
     /// string table
+
+    size = padNumber(size, 0x10);
 
     offsets->tableOff = size;
     size += padNumber(static_cast<uint32_t>(table->data.flip().remaining()), 0x10);
@@ -200,18 +237,27 @@ void writeGroups(
     }
 }
 
-void writeData(Buffer& out, const BRRES& brres, BRRESStringTable* table, BRRESOffsets* offsets)
+template <class Type>
+void writeSubfilesData(
+    Buffer& out, const BRRES& brres, BRRESStringTable* table, BRRESOffsets* offsets,
+    void (*writeSubfile)(Buffer&, Type*, int32_t, BRRESStringTable*, uint32_t)
+)
 {
-    for (TEX0* tex0 : brres.getAll<TEX0>())
+    for (Type* instance : brres.getAll<Type>())
     {
-        uint32_t pos = offsets->subfileOffs.at(tex0);
+        uint32_t pos = offsets->subfileOffs.at(instance);
         out.position(pos);
 
-        writeTEX0(
-            out.slice(), tex0, -static_cast<int32_t>(pos),
-            table->offsets.at(tex0->getName()) + offsets->tableOff - pos
+        writeSubfile(
+            out.slice(), instance, static_cast<int32_t>(pos), table, offsets->tableOff - pos
         );
     }
+}
+
+void writeData(Buffer& out, const BRRES& brres, BRRESStringTable* table, BRRESOffsets* offsets)
+{
+    writeSubfilesData<MDL0>(out, brres, table, offsets, &writeMDL0);
+    writeSubfilesData<TEX0>(out, brres, table, offsets, &writeTEX0);
 }
 
 void writeStringTable(Buffer& out, BRRESStringTable* table, BRRESOffsets* offsets)

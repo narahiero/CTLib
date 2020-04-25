@@ -18,6 +18,7 @@
 #include <vector>
 
 #include <CTLib/Image.hpp>
+#include <CTLib/Math.hpp>
 #include <CTLib/Memory.hpp>
 
 
@@ -72,13 +73,274 @@ class MDL0 final : public BRRESSubFile
 
     friend class BRRES;
 
+private:
+
+    template <class Type> class SectionContainer;
+
 public:
+
+    /*! @brief The superclass of all sections in a MDL0. */
+    class Section
+    {
+
+    public:
+
+        virtual ~Section();
+
+    protected:
+
+        //! constructs a section for the specified MDL0
+        Section(MDL0* mdl0);
+
+    private:
+
+        Section(const Section&) = delete;
+        Section(Section&&) = delete;
+
+        // pointer to the MDL0 owning this section object
+        MDL0* mdl0;
+    };
+
+    class NamedSection : public Section
+    {
+
+    public:
+
+        ~NamedSection();
+
+        /*! @brief Returns the name of this section. */
+        std::string getName() const;
+
+    protected:
+
+        //! constructs a named section for the specified MDL0
+        NamedSection(MDL0* mdl0, const std::string& name);
+
+        //! name of this section
+        std::string name;
+    };
+
+    /*! @brief The superclass of sections containing only an array of data. */
+    class ArraySection : public NamedSection
+    {
+
+    public:
+
+        ~ArraySection();
+
+        /*! @brief Returns the number of elements in this section. */
+        uint16_t getCount() const;
+
+        /*! @brief Returns the data of this section. */
+        Buffer getData() const;
+
+    protected:
+
+        //! simply invokes the Section's constructor with matching arguments
+        ArraySection(MDL0* mdl0, const std::string& name);
+
+        //! element count
+        uint16_t count;
+
+        //! buffer containing actual array data
+        Buffer data;
+    };
+
+    /*! @brief Contains vertex data of a MDL0. (Section #2) */
+    class VertexArray final : public ArraySection
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief Enumeration of the valid vertex components type. */
+        enum class Components
+        {
+            /*! @brief 2 values per vertex (1 for X, 1 for Y). */
+            XY = 0x0,
+
+            /*! @brief 3 values per vertex (1 for X, 1 for Y, 1 for Z). */
+            XYZ = 0x1
+        };
+
+        /*! @brief Returns the number of components for the specified type. */
+        static uint8_t componentCount(Components comps);
+
+        /*! @brief Sets the vertex data and components type of this vertex
+         *  section.
+         *  
+         *  @param[in] data The vertex data, containing floats
+         *  @param[in] comps The vertex components type
+         */
+        void setData(Buffer& data, Components comps = Components::XYZ);
+
+        /*! @brief Returns the components type of this vertex section. */
+        Components getComponentsType() const;
+
+        /*! @brief Returns the box minimum of this vertex section. */
+        Vector3f getBoxMin() const;
+
+        /*! @brief Returns the box maximum of this vertex section. */
+        Vector3f getBoxMax() const;
+
+    private:
+
+        VertexArray(MDL0* mdl0, const std::string& name);
+
+        // the components type
+        Components comps;
+
+        // vec3f of box min
+        Vector3f boxMin;
+
+        // vec3f of box max
+        Vector3f boxMax;
+    };
+
+    /*! @brief Contains normal data of a MDL0. (Section #3) */
+    class NormalArray : public ArraySection
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief Enumeration of the possible normal component types. */
+        enum class Components
+        {
+            /*! @brief 3 values per normal (1 for X, 1 for Y, 1 for Z). */
+            Normal = 0x0,
+
+            /*! @brief 9 values per normal. */
+            Normal_BiNormal_Tangent = 0x1,
+
+            /*! @brief 3 values per normal. */
+            Normal_OR_BiNormal_OR_Tangent = 0x2
+        };
+
+        /*! @brief Returns the number of components for the specified type. */
+        static uint8_t componentCount(Components comps);
+
+        ~NormalArray();
+
+        /*! @brief Sets the normal data and components type of this normal
+         *  section.
+         *  
+         *  @param[in] data The normal data, containing floats
+         *  @param[in] comps The normal components type
+         */
+        void setData(Buffer& data, Components comps = Components::Normal);
+
+        /*! @brief Returns the components type of this normal section. */
+        Components getComponentsType() const;
+
+    private:
+
+        NormalArray(MDL0* mdl0, const std::string& name);
+
+        // the components type
+        Components comps;
+    };
 
     ~MDL0();
 
+    /*! @brief Adds and returns a section of the specified template type with
+     *  the specified name.
+     * 
+     *  @tparam Type The section type
+     * 
+     *  @param[in] name The section name
+     * 
+     *  @throw CTLib::BRRESError If another section of the same type has the
+     *  specified name.
+     * 
+     *  @return The newly created section
+     */
+    template <class Type>
+    Type* add(const std::string& name);
+
+    /*! @brief Returns the section of the specified template type with the
+     *  specified name.
+     * 
+     *  @tparam Type The section type
+     * 
+     *  @param[in] name The section name
+     * 
+     *  @throw CTLib::BRRESError If no section of the same type has the
+     *  specified name.
+     * 
+     *  @return The section with the specified name
+     */
+    template <class Type>
+    Type* get(const std::string& name) const;
+
+    /*! @brief Returns a std::vector containing all section entries of the
+     *  specified template type.
+     * 
+     *  @tparam Type The section type
+     */
+    template <class Type>
+    std::vector<Type*> getAll() const;
+
+    /*! @brief Returns the number of section entries of the specified template
+     *  type.
+     *  
+     *  @tparam Type The section type
+     */
+    template <class Type>
+    uint16_t count() const;
+
 private:
 
+    // only works with named sections
+    template <class Type>
+    class SectionContainer final
+    {
+
+        friend class MDL0;
+
+    public:
+
+        // Constructs an empty section container instance.
+        SectionContainer(MDL0* mdl0);
+
+        SectionContainer(const SectionContainer&) = delete;
+        SectionContainer(SectionContainer&&) = delete;
+
+        ~SectionContainer();
+
+        // creates and add an instance with the specified name
+        Type* add(const std::string& name);
+
+        // returns the instance with the specified name
+        Type* get(const std::string& name) const;
+
+        // removes and _delete_ all instances in this container
+        void deleteAll();
+
+    private:
+
+        // throws if this container contains an entry with the specified name
+        void assertUniqueName(const std::string& name) const;
+
+        // throws if this container has no entry with the specified name
+        void assertExists(const std::string& name) const;
+
+        // pointer to the MDL0 owning this container
+        MDL0* mdl0;
+
+        // vector containing all section instances
+        std::vector<Type*> sections;
+
+        // map of <name, index> containing the index for name in 'container'
+        std::map<std::string, uint32_t> nameLinks;
+    };
+
     MDL0(BRRES* brres, const std::string& name);
+
+    SectionContainer<VertexArray> verticesSections;
+    SectionContainer<NormalArray> normalsSections;
 };
 
 /*! @brief A texture within a BRRES. */
@@ -284,7 +546,7 @@ public:
      * 
      *  @return The newly created instance
      */
-    template<class Type>
+    template <class Type>
     Type* add(const std::string& name);
 
     /*! @brief Returns the instance of the specified template type with the
@@ -299,7 +561,7 @@ public:
      * 
      *  @return The instance with the specified name
      */
-    template<class Type>
+    template <class Type>
     Type* get(const std::string& name) const;
 
     /*! @brief Returns whether this BRRES has an instance of the specified
@@ -311,7 +573,7 @@ public:
      * 
      *  @return Whether the specified entry is present
      */
-    template<class Type>
+    template <class Type>
     bool has(const std::string& name) const;
 
     /*! @brief Removes and _deletes_ the instance of the specified template
@@ -327,7 +589,7 @@ public:
      *  @throw CTLib::BRRESError If this BRRES has no entry of the specified
      *  template type with the specified name.
      */
-    template<class Type>
+    template <class Type>
     void remove(const std::string& name);
 
     /*! @brief Returns a std::vector containing all instances of the specified
@@ -337,7 +599,7 @@ public:
      * 
      *  @return A std::vector containing all entries of the specified type
      */
-    template<class Type>
+    template <class Type>
     std::vector<Type*> getAll() const;
 
     /*! @brief Returns the number of instances of the specified template type
@@ -347,7 +609,7 @@ public:
      * 
      *  @return The entry count of the specified type
      */
-    template<class Type>
+    template <class Type>
     uint16_t count() const;
 
 private:
