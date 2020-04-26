@@ -16,27 +16,37 @@ namespace CTLib
 ///  class BRRES
 
 BRRES::BRRES() :
+    mdl0s{},
     tex0s{}
 {
 
 }
 
+#define CT_LIB_BRRES_MOVE_CONTAINER(container) \
+    for (auto& pair : container) \
+        pair.second->brres = this
+
 BRRES::BRRES(BRRES&& src) :
+    mdl0s{std::move(src.mdl0s)},
     tex0s{std::move(src.tex0s)}
 {
-    for (auto& tex0 : tex0s)
-    {
-        tex0.second->brres = this;
-    }
+    CT_LIB_BRRES_MOVE_CONTAINER(mdl0s);
+    CT_LIB_BRRES_MOVE_CONTAINER(tex0s);
 }
+
+#undef CT_LIB_BRRES_MOVE_CONTAINER
+
+#define CT_LIB_BRRES_DELETE_CONTAINER(container) \
+    for (auto& pair : container) \
+        delete pair.second
 
 BRRES::~BRRES()
 {
-    for (auto& tex0 : tex0s)
-    {
-        delete tex0.second;
-    }
+    CT_LIB_BRRES_DELETE_CONTAINER(mdl0s);
+    CT_LIB_BRRES_DELETE_CONTAINER(tex0s);
 }
+
+#undef CT_LIB_BRRES_DELETE_CONTAINER
 
 uint16_t BRRES::getSubfileCount() const
 {
