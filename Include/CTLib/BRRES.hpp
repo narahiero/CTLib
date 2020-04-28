@@ -198,6 +198,9 @@ public:
         /*! @brief Returns the Type of this links section. */
         Type getLinksType() const;
 
+        /*! @brief Returns the command count of this links section. */
+        uint32_t getCount() const;
+
     private:
 
         Links(MDL0* mdl0, const std::string& name);
@@ -220,6 +223,31 @@ public:
 
         /*! @brief The SectionType of this class. */
         constexpr static SectionType TYPE = SectionType::Bone;
+
+        /*! @brief Returns the bone after the specified one in a 'flat'
+         *  hierarchy.
+         *  
+         *  The logic goes as follows:
+         * 
+         *  If the specified bone has any child, return the first child.
+         *  Else, if the specified bone has a 'next' sibling, return it.
+         *  Else, if the specified bone has parent, and that parent has a 'next'
+         *  sibling, return it.
+         *  Else return `nullptr`.
+         * 
+         *  If the root bone of a MDL0 is passed and this method is repeatedly
+         *  invoked with the return value of the previous call until `nullptr`
+         *  is returned, then all bones in the MDL0 will be returned exactly
+         *  once.
+         * 
+         *  Passing `nullptr` will simply make this function return `nullptr`
+         *  back.
+         * 
+         *  @param[in] bone The bone to query the 'flat next'
+         * 
+         *  @return The 'flat next' of the specified bone
+         */
+        static Bone* flatNext(Bone* bone);
 
         ~Bone();
 
@@ -307,12 +335,6 @@ public:
         /*! @brief Returns the scale of this bone. */
         Vector3f getScale() const;
 
-        /*! @brief Returns the box minimum of this bone. */
-        Vector3f getBoxMin() const;
-
-        /*! @brief Returns the box maximum of this bone. */
-        Vector3f getBoxMax() const;
-
     private:
 
         // inserts 'bone' at the appropriate location in 'first' bone chain
@@ -360,12 +382,6 @@ public:
 
         // scale
         Vector3f scale;
-
-        // box minimum
-        Vector3f boxMin;
-
-        // box maximum
-        Vector3f boxMax;
     };
 
     /*! @brief Contains vertex data of a MDL0. (Section #2) */

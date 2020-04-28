@@ -101,6 +101,10 @@ void addToStringTable(BRRESStringTable* table, const std::string& str)
 
 uint32_t BRRESIndexGroup::getSizeInBytesForCount(uint16_t count)
 {
+    if (count < 1)
+    {
+        return 0;
+    }
     return (count + 1) * 0x10 + 8;
 }
 

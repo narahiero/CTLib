@@ -223,12 +223,49 @@ MDL0::Links::Type MDL0::Links::getLinksType() const
     return linksType;
 }
 
+uint32_t MDL0::Links::getCount() const
+{
+    switch (linksType)
+    {
+    case Type::NodeTree:
+        return mdl0->count<Bone>();
+    
+    default:
+        return 0;
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 ////
 ////   Bone section
 ////
+
+MDL0::Bone* MDL0::Bone::flatNext(Bone* bone)
+{
+    if (bone == nullptr)
+    {
+        return nullptr;
+    }
+
+    if (bone->child != nullptr)
+    {
+        return bone->child;
+    }
+    else if (bone->next != nullptr)
+    {
+        return bone->next;
+    }
+    else if (bone->parent != nullptr && bone->parent->next != nullptr)
+    {
+        return bone->parent->next;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
 
 MDL0::Bone::Bone(MDL0* mdl0, const std::string& name) :
     Section(mdl0, name),
@@ -415,16 +452,6 @@ Vector3f MDL0::Bone::getRotation() const
 Vector3f MDL0::Bone::getScale() const
 {
     return scale;
-}
-
-Vector3f MDL0::Bone::getBoxMin() const
-{
-    return boxMin;
-}
-
-Vector3f MDL0::Bone::getBoxMax() const
-{
-    return boxMax;
 }
 
 MDL0::Bone* MDL0::Bone::insertPrivate(Bone* first, Bone* bone)

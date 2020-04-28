@@ -10,7 +10,11 @@
 namespace CTLib
 {
 
+////////////////////////////////////////
+// Constants
+
 constexpr uint32_t NUM_SECTIONS = 14;
+constexpr uint32_t BONE_SECTION_SIZE = 0xD0;
 
 template <class Type>
 void addMDL0SectionsToStringTable(BRRESStringTable* table, MDL0* mdl0)
@@ -37,14 +41,20 @@ uint32_t calculateMDL0SectionSize(Type* instance);
 template <>
 uint32_t calculateMDL0SectionSize<MDL0::Links>(MDL0::Links* instance)
 {
-    // return size of 'NodeTree' links section
-    return padNumber(0x6, 0x10);
+    switch (instance->getLinksType())
+    {
+    case MDL0::Links::Type::NodeTree:
+        return padNumber((instance->getCount() * 0x5) + 0x1, 0x10);
+    
+    default:
+        return 0;
+    }
 }
 
 template <>
 uint32_t calculateMDL0SectionSize<MDL0::Bone>(MDL0::Bone* instance)
 {
-    return 0xD0;
+    return BONE_SECTION_SIZE;
 }
 
 template <>
@@ -153,6 +163,13 @@ struct MDL0Offsets
     std::map<MDL0::Section*, uint32_t> sectionOffs;
 };
 
+struct MDL0SectionIndices
+{
+
+    // indices of all sections
+    std::map<MDL0::Section*, uint32_t> indices;
+};
+
 void createInfo(
     MDL0* mdl0, MDL0Info* info, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff
 )
@@ -202,6 +219,27 @@ void createIndexGroup(MDL0* mdl0, BRRESIndexGroup* groups, MDL0GroupsInfo* info)
     }
 }
 
+template <>
+void createIndexGroup<MDL0::Bone>(MDL0* mdl0, BRRESIndexGroup* groups, MDL0GroupsInfo* info)
+{
+    constexpr uint32_t SECTION = static_cast<uint32_t>(MDL0::SectionType::Bone);
+    if (info->indices.count(SECTION))
+    {
+        BRRESIndexGroup* group = groups + info->indices.at(SECTION);
+
+        MDL0::Bone* bone = mdl0->getRootBone();
+        while (bone != nullptr)
+        {
+            BRRESIndexGroupEntry* entry = group->addEntry(bone->getName());
+            info->sections.insert(
+                std::map<BRRESIndexGroupEntry*, MDL0::Section*>::value_type(entry, bone)
+            );
+
+            bone = MDL0::Bone::flatNext(bone);
+        }
+    }
+}
+
 void createIndexGroups(MDL0* mdl0, BRRESIndexGroup* groups, MDL0GroupsInfo* info)
 {
     createIndexGroup<MDL0::Links>(mdl0, groups, info);
@@ -219,6 +257,19 @@ void createMDL0SectionOffsets(MDL0* mdl0, MDL0Offsets* offsets, uint32_t& pos)
     {
         offsets->sectionOffs.insert(std::map<MDL0::Section*, uint32_t>::value_type(instance, pos));
         pos += calculateMDL0SectionSize<Type>(instance);
+    }
+}
+
+template <>
+void createMDL0SectionOffsets<MDL0::Bone>(MDL0* mdl0, MDL0Offsets* offsets, uint32_t& pos)
+{
+    MDL0::Bone* bone = mdl0->getRootBone();
+    while (bone != nullptr)
+    {
+        offsets->sectionOffs.insert(std::map<MDL0::Section*, uint32_t>::value_type(bone, pos));
+        pos += BONE_SECTION_SIZE;
+
+        bone = MDL0::Bone::flatNext(bone);
     }
 }
 
@@ -251,6 +302,24 @@ void createOffsets(MDL0* mdl0, MDL0Offsets* offsets, BRRESIndexGroup* groups, ui
     createMDL0SectionOffsets<MDL0::NormalArray>(mdl0, offsets, pos);
     createMDL0SectionOffsets<MDL0::ColorArray>(mdl0, offsets, pos);
     createMDL0SectionOffsets<MDL0::TexCoordArray>(mdl0, offsets, pos);
+}
+
+void createMDL0BoneSectionIndices(MDL0* mdl0, MDL0SectionIndices* indices)
+{
+    uint32_t index = 0;
+    MDL0::Bone* bone = mdl0->getRootBone();
+    while (bone != nullptr)
+    {
+        indices->indices.insert(std::map<MDL0::Section*, uint32_t>::value_type(bone, index));
+        ++index;
+
+        bone = MDL0::Bone::flatNext(bone);
+    }
+}
+
+void createMDL0SectionsIndices(MDL0* mdl0, MDL0SectionIndices* indices)
+{
+    createMDL0BoneSectionIndices(mdl0, indices);
 }
 
 void resolveSectionGroupsOffsets(
@@ -304,10 +373,10 @@ void writeMDL0Header(Buffer& out, MDL0* mdl0)
     out.putInt(static_cast<uint32_t>(-0x4C)); // offset to file header
     out.putInt(0); // unknown/unused
     out.putInt(0); // unknown/unused
-    out.putInt(11); // vertex count
+    out.putInt(0); // vertex count
     out.putInt(0); // face count
     out.putInt(0); // unknown/unused
-    out.putInt(0); // bone count
+    out.putInt(mdl0->count<MDL0::Bone>()); // bone count
     out.putInt(0x01000000); // unknown
     out.putInt(0x40); // bone table offset
     out.putFloat(0.f).putFloat(0.f).putFloat(0.f); // box min
@@ -319,7 +388,7 @@ void writeMDL0BoneTable(Buffer& out, MDL0* mdl0)
     out.putInt(mdl0->count<MDL0::Bone>()); // entry count
     for (uint32_t i = 0; i < mdl0->count<MDL0::Bone>(); ++i)
     {
-        out.putInt(0xFFFFFFFF);
+        out.putInt(i);
     }
 }
 
@@ -335,47 +404,82 @@ void writeMDL0Groups(
     }
 }
 
-void writeMDL0LinksSections()
+void writeMDL0NodeTreeSection(Buffer& out, MDL0* mdl0, MDL0SectionIndices* indices)
 {
+    MDL0::Bone* bone = mdl0->getRootBone();
+    while (bone != nullptr)
+    {
+        out.put(static_cast<uint8_t>(MDL0::Links::Type::NodeTree)); // section command
+        out.putShort(static_cast<uint16_t>(indices->indices.at(bone)));
+        out.putShort(bone->getParent() == nullptr ? 0 :
+            static_cast<uint16_t>(indices->indices.at(bone->getParent()))
+        );
 
+        bone = MDL0::Bone::flatNext(bone);
+    }
 }
 
-// TODO: put actual indices for sections with index
-
-void writeMDL0BoneSections(
-    Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, BRRESStringTable* table, uint32_t tableOff
+void writeMDL0LinksSections(
+    Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices
 )
 {
-    uint32_t idx = 0;
-    for (MDL0::Bone* instance : mdl0->getAll<MDL0::Bone>())
+    for (MDL0::Links* links : mdl0->getAll<MDL0::Links>())
     {
-        uint32_t pos = offsets->sectionOffs.at(instance);
+        out.position(offsets->sectionOffs.at(links));
+
+        switch (links->getLinksType())
+        {
+        case MDL0::Links::Type::NodeTree:
+            writeMDL0NodeTreeSection(out, mdl0, indices);
+            break;
+        
+        default:
+            break;
+        }
+
+        out.put(0x1); // end section command
+    }
+}
+
+uint32_t offsetForMDL0Bone(MDL0SectionIndices* indices, MDL0::Bone* base, MDL0::Bone* bone)
+{
+    return bone == nullptr ? 0 :
+        (indices->indices.at(bone) - indices->indices.at(base)) * BONE_SECTION_SIZE;
+}
+
+void writeMDL0BoneSections(
+    Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices,
+    BRRESStringTable* table, uint32_t tableOff
+)
+{
+    MDL0::Bone* bone = mdl0->getRootBone();
+    while (bone != nullptr)
+    {
+        uint32_t pos = offsets->sectionOffs.at(bone);
         int32_t offToMDL0 = -static_cast<int32_t>(pos);
-        uint32_t nameOff = (table->offsets.at(instance->getName()) + tableOff) - pos;
+        uint32_t nameOff = (table->offsets.at(bone->getName()) + tableOff) - pos;
 
-        Vector3f loc = instance->getPosition(), rot = instance->getRotation(),
-            scale = instance->getScale();
-
-        Vector3f boxMin = instance->getBoxMin(), boxMax = instance->getBoxMax();
+        Vector3f loc = bone->getPosition(), rot = bone->getRotation(),
+            scale = bone->getScale();
 
         out.position(pos);
-        out.putInt(calculateMDL0SectionSize<MDL0::Bone>(instance)); // section size
+        out.putInt(BONE_SECTION_SIZE);
         out.putInt(static_cast<uint32_t>(offToMDL0));
         out.putInt(nameOff);
-        out.putInt(idx); // section index
-        out.putInt(idx++); // section id
+        out.putInt(indices->indices.at(bone)); // section index
+        out.putInt(indices->indices.at(bone)); // section id
         out.putInt(0x31F); // unknown flags
         out.putInt(0); // billboard settings
         out.putInt(0); // unknown/unused
         scale.put(out); // scale
         rot.put(out); // rotation
         loc.put(out); // position
-        boxMin.put(out);
-        boxMax.put(out);
-        out.putInt(0); // parent offset
-        out.putInt(0); // first child offset
-        out.putInt(0); // next sibling offset
-        out.putInt(0); // previous sibling offset
+        out.putFloat(0).putFloat(0).putFloat(0); // box minimum
+        out.putFloat(0).putFloat(0).putFloat(0); // box maximum
+        out.putInt(offsetForMDL0Bone(indices, bone, bone->getParent()));
+        out.putInt(offsetForMDL0Bone(indices, bone, bone->getFirstChild()));
+        out.putInt(offsetForMDL0Bone(indices, bone, bone->getNext()));
+        out.putInt(offsetForMDL0Bone(indices, bone, bone->getPrevious())); // previous sibling offset
         out.putInt(0); // unknown
 
         // 2 unused matrices 4x3
@@ -386,6 +490,8 @@ void writeMDL0BoneSections(
         out.putInt(0).putInt(0).putInt(0).putInt(0)
             .putInt(0).putInt(0).putInt(0).putInt(0)
             .putInt(0).putInt(0).putInt(0).putInt(0); // inverse tranformation matrix
+
+        bone = MDL0::Bone::flatNext(bone);
     }
 }
 
@@ -513,10 +619,12 @@ void writeMDL0TextureCoordsSections(
 }
 
 void writeMDL0Data(
-    Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, BRRESStringTable* table, uint32_t tableOff
+    Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices,
+    BRRESStringTable* table, uint32_t tableOff
 )
 {
-    writeMDL0BoneSections(out, mdl0, offsets, table, tableOff);
+    writeMDL0LinksSections(out, mdl0, offsets, indices);
+    writeMDL0BoneSections(out, mdl0, offsets, indices, table, tableOff);
     writeMDL0VerticesSections(out, mdl0, offsets, table, tableOff);
     writeMDL0NormalsSections(out, mdl0, offsets, table, tableOff);
     writeMDL0ColorsSections(out, mdl0, offsets, table, tableOff);
@@ -542,6 +650,9 @@ void writeMDL0(
     MDL0Offsets offsets;
     createOffsets(mdl0, &offsets, groups.get(), groupsInfo.count);
 
+    MDL0SectionIndices indices;
+    createMDL0SectionsIndices(mdl0, &indices);
+
     ////////////////////////////////////
     /// Resolve offsets
 
@@ -556,6 +667,6 @@ void writeMDL0(
     writeMDL0Header(out, mdl0);
     writeMDL0BoneTable(out, mdl0);
     writeMDL0Groups(out, groups.get(), groupsInfo.count, &offsets, table, tableOff);
-    writeMDL0Data(out, mdl0, &offsets, table, tableOff);
+    writeMDL0Data(out, mdl0, &offsets, &indices, table, tableOff);
 }
 }
