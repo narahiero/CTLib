@@ -174,10 +174,7 @@ enum class ImageFormat
     /*! @brief 14 bits per pixel image with palette. **NOT YET SUPPORTED** */
     C14X2 = 0xA,
 
-    /*! @brief 4 bits per pixel 'lossy-ly' compressed RGB image with alpha.
-     *
-     *  **WARNING**: Encoding yields incorrect result and is mostly unreliable.
-     */
+    /*! @brief 4 bits per pixel 'lossy-ly' compressed RGB image with alpha. */
     CMPR = 0xE
 };
 

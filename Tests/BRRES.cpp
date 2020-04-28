@@ -133,6 +133,90 @@ TEST(BRRESTests, Errors)
     EXPECT_THROW(brres.get<CTLib::TEX0>("texture"), CTLib::BRRESError);
 }
 
+TEST(MDL0Tests, AddHasAndRemove)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::VertexArray>("vertices"));
+
+    mdl0->add<CTLib::MDL0::VertexArray>("vertices");
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::VertexArray>("vertices"));
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::ColorArray>("vertices"));
+
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#0");
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::TexCoordArray>("#0"));
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::TexCoordArray>("#1"));
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::NormalArray>("#0"));
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::VertexArray>("vertices"));
+
+    mdl0->add<CTLib::MDL0::ColorArray>("#0");
+    mdl0->add<CTLib::MDL0::ColorArray>("#1");
+    mdl0->add<CTLib::MDL0::ColorArray>("#2");
+    mdl0->add<CTLib::MDL0::ColorArray>("#3");
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::ColorArray>("#1"));
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::ColorArray>("#2"));
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::ColorArray>("#4"));
+
+    mdl0->remove<CTLib::MDL0::ColorArray>("#0");
+    mdl0->remove<CTLib::MDL0::ColorArray>("#2");
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::ColorArray>("#0"));
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::ColorArray>("#1"));
+    EXPECT_FALSE(mdl0->has<CTLib::MDL0::ColorArray>("#2"));
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::ColorArray>("#3"));
+    EXPECT_TRUE(mdl0->has<CTLib::MDL0::TexCoordArray>("#0"));
+}
+
+TEST(MDL0Tests, GetGetAllAndCount)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    EXPECT_EQ(0, mdl0->count<CTLib::MDL0::VertexArray>());
+    EXPECT_EQ(0, mdl0->count<CTLib::MDL0::ColorArray>());
+
+    CTLib::MDL0::ColorArray* colors = mdl0->add<CTLib::MDL0::ColorArray>("colors");
+    EXPECT_EQ(0, mdl0->count<CTLib::MDL0::VertexArray>());
+    EXPECT_EQ(1, mdl0->count<CTLib::MDL0::ColorArray>());
+    EXPECT_EQ(colors, mdl0->get<CTLib::MDL0::ColorArray>("colors"));
+
+    CTLib::MDL0::VertexArray* vertices = mdl0->add<CTLib::MDL0::VertexArray>("vertices");
+    EXPECT_EQ(1, mdl0->count<CTLib::MDL0::VertexArray>());
+    EXPECT_EQ(1, mdl0->count<CTLib::MDL0::ColorArray>());
+    EXPECT_EQ(vertices, mdl0->get<CTLib::MDL0::VertexArray>("vertices"));
+
+    EXPECT_EQ(0, mdl0->count<CTLib::MDL0::TexCoordArray>());
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#0");
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#1");
+    EXPECT_EQ(2, mdl0->count<CTLib::MDL0::TexCoordArray>());
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#2");
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#3");
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#4");
+    EXPECT_EQ(5, mdl0->count<CTLib::MDL0::TexCoordArray>());
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#5");
+    EXPECT_EQ(6, mdl0->count<CTLib::MDL0::TexCoordArray>());
+    mdl0->remove<CTLib::MDL0::TexCoordArray>("#3");
+    mdl0->remove<CTLib::MDL0::TexCoordArray>("#1");
+    EXPECT_EQ(4, mdl0->count<CTLib::MDL0::TexCoordArray>());
+    mdl0->remove<CTLib::MDL0::TexCoordArray>("#4");
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#6");
+    mdl0->add<CTLib::MDL0::TexCoordArray>("#7");
+    EXPECT_EQ(5, mdl0->count<CTLib::MDL0::TexCoordArray>());
+
+    std::vector<CTLib::MDL0::TexCoordArray*> vector = mdl0->getAll<CTLib::MDL0::TexCoordArray>();
+    EXPECT_EQ(5, vector.size());
+
+    mdl0->remove<CTLib::MDL0::TexCoordArray>("#0");
+    EXPECT_EQ(5, vector.size());
+    EXPECT_EQ(4, mdl0->count<CTLib::MDL0::TexCoordArray>());
+}
+
+TEST(MDL0Tests, Errors)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+
+    EXPECT_THROW(mdl0->add<CTLib::MDL0::Links>("links"), CTLib::BRRESError);
+}
+
 TEST(TEX0Tests, SetData)
 {
     CTLib::BRRES brres;

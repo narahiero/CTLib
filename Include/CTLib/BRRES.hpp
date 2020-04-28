@@ -73,11 +73,38 @@ class MDL0 final : public BRRESSubFile
 
     friend class BRRES;
 
+    friend class Bone;
+
 private:
 
     template <class Type> class SectionContainer;
 
 public:
+
+    /*! @brief Enumeration of the MDL0 sections. */
+    enum class SectionType
+    {
+        /*! @brief Links section (#0) */
+        Links = 0x0,
+
+        /*! @brief Bone section (#1) */
+        Bone = 0x1,
+
+        /*! @brief VertexArray section (#2) */
+        VertexArray = 0x2,
+
+        /*! @brief NormalArray section (#3) */
+        NormalArray = 0x3,
+
+        /*! @brief ColorArray section (#4) */
+        ColorArray = 0x4,
+
+        /*! @brief TexCoordArray section (#5) */
+        TexCoordArray = 0x5,
+
+        /*! @brief An instance of one of the section superclasses. */
+        NONE = ~0x0
+    };
 
     /*! @brief The superclass of all sections in a MDL0. */
     class Section
@@ -87,41 +114,31 @@ public:
 
         virtual ~Section();
 
-    protected:
-
-        //! constructs a section for the specified MDL0
-        Section(MDL0* mdl0);
-
-    private:
-
-        Section(const Section&) = delete;
-        Section(Section&&) = delete;
-
-        // pointer to the MDL0 owning this section object
-        MDL0* mdl0;
-    };
-
-    class NamedSection : public Section
-    {
-
-    public:
-
-        ~NamedSection();
+        /*! @brief Returns the SectionType of this section. */
+        virtual SectionType getType() const;
 
         /*! @brief Returns the name of this section. */
         std::string getName() const;
 
     protected:
 
-        //! constructs a named section for the specified MDL0
-        NamedSection(MDL0* mdl0, const std::string& name);
+        //! constructs a section for the specified MDL0
+        Section(MDL0* mdl0, const std::string& name);
+
+        //! pointer to the MDL0 owning this section object
+        MDL0* mdl0;
 
         //! name of this section
         std::string name;
+
+    private:
+
+        Section(const Section&) = delete;
+        Section(Section&&) = delete;
     };
 
     /*! @brief The superclass of sections containing only an array of data. */
-    class ArraySection : public NamedSection
+    class ArraySection : public Section
     {
 
     public:
@@ -146,6 +163,211 @@ public:
         Buffer data;
     };
 
+    ////////////////////////////////////////////////////////
+    ///  Actual section classes
+    ////////////////////////////////////////////////////////
+
+    /*! @brief MDL0 sections links. (Section #0) */
+    class Links final : public Section
+    {
+
+        friend class MDL0;
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief Enumeration of the possible Links type. */
+        enum class Type
+        {
+            /*! @brief Specifies bone hierarchy. */
+            NodeTree = 0x02
+        };
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::Links;
+
+        /*! @brief Returns the section name for the specified type. */
+        static std::string nameForType(Type type);
+
+        ~Links();
+
+        /*! @brief Returns SectionType::Links. */
+        SectionType getType() const override;
+
+        /*! @brief Returns the Type of this links section. */
+        Type getLinksType() const;
+
+    private:
+
+        Links(MDL0* mdl0, const std::string& name);
+
+        // private ctor used internally
+        Links(MDL0* mdl0, Type type);
+
+        const Type linksType;
+    };
+
+    /*! @brief A single bone of a MDL0. (Section #1) */
+    class Bone final : public Section
+    {
+
+        friend class MDL0;
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::Bone;
+
+        ~Bone();
+
+        /*! @brief Returns SectionType::Bone. */
+        SectionType getType() const override;
+
+        /*! @brief Creates, inserts, and returns a bone with the specified name
+         *  as a child of this bone.
+         * 
+         *  The created bone will also be added to the MDL0 owning this bone.
+         *  
+         *  **Note**: The bone hierarchy (next and previous of childs) will be
+         *  modified by this method, as childs are ordered alphabetically.
+         * 
+         *  @param[in] name The name of the bone to be created
+         * 
+         *  @throw CTLib::BRRESError If another bone with the specified name
+         *  exists in the MDL0 owning this bone.
+         * 
+         *  @return The newly created bone
+         */
+        Bone* insert(const std::string& name);
+
+        /*! @brief Moves this bone as a child of the specified bone, `nullptr`
+         *  to move at root level.
+         * 
+         *  This bone will keep its children, and its children will not be
+         *  modified, but this bone's siblings will be changed.
+         *  
+         *  @param[in] bone The new parent of this bone
+         * 
+         *  @throw CTLib::BRRESError If the specified bone is a child of this
+         *  bone.
+         */
+        void moveTo(Bone* bone);
+
+        /*! @brief Returns the parent bone, or `nullptr` if none. */
+        Bone* getParent() const;
+
+        /*! @brief Returns whether the specified bone is a child of this. */
+        bool isChild(Bone* bone) const;
+
+        /*! @brief Returns whether the specified bone is a direct child of this.
+         */
+        bool isDirectChild(Bone* bone) const;
+
+        /*! @brief Returns whether this bone has a child with the specified 
+         *  name.
+         * 
+         *  @param[in] name The bone name to check
+         */
+        bool hasChild(const std::string& name) const;
+
+        /*! @brief Returns whethter this bone has a direct child with the
+         *  specified name.
+         *  
+         *  @param[in] name The bone name to check
+         */
+        bool hasDirectChild(const std::string& name) const;
+
+        /*! @brief Returns the **direct** child bone with the specified name.
+         *  
+         *  @param[in] name The child bone name
+         * 
+         *  @throw CTLib::BRRESError If this bone has no direct child with the
+         *  specified name.
+         */
+        Bone* getChild(const std::string& name) const;
+
+        /*! @brief Returns the first child bone, or `nullptr` if none. */
+        Bone* getFirstChild() const;
+
+        /*! @brief Returns the next sibling bone, or `nullptr` if none. */
+        Bone* getNext() const;
+
+        /*! @brief Returns the previous sibling bone, or `nullptr` if none. */
+        Bone* getPrevious() const;
+
+        /*! @brief Returns the position of this bone. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this bone. */
+        Vector3f getRotation() const;
+
+        /*! @brief Returns the scale of this bone. */
+        Vector3f getScale() const;
+
+        /*! @brief Returns the box minimum of this bone. */
+        Vector3f getBoxMin() const;
+
+        /*! @brief Returns the box maximum of this bone. */
+        Vector3f getBoxMax() const;
+
+    private:
+
+        // inserts 'bone' at the appropriate location in 'first' bone chain
+        // returns the entry 'bone' was inserted after, or nullptr if first
+        static Bone* insertPrivate(Bone* first, Bone* bone);
+
+        // called when MDL0::remove<MDL0::Bone>() is called
+        static void removePrivate(MDL0* mdl0, Bone* bone);
+
+        // removes 'bone' from the 'first' bone chain
+        // returns the entry before 'bone', or nullptr if none
+        static Bone* removePrivate(Bone* first, Bone* bone);
+
+        Bone(MDL0* mdl0, const std::string& name);
+
+        // throws if the MDL0 owning this bone does not own the specified bone
+        void assertSameMDL0(Bone* bone) const;
+
+        // throws if the specified bone is this
+        void assertNotThis(Bone* bone) const;
+
+        // throws if the specified bone is a child of this bone
+        void assertNotChild(Bone* bone) const;
+
+        // throws if this bone has no direct child with the specified name
+        void assertHasDirectChild(const std::string& name) const;
+
+        // pointer to parent bone; nullptr if none
+        Bone* parent;
+
+        // pointer to first child bone; nullptr if none
+        Bone* child;
+
+        // pointer to next sibling bone; nullptr if none
+        Bone* next;
+
+        // pointer to previous sibling bone; nullptr if none
+        Bone* prev;
+
+        // position
+        Vector3f pos;
+
+        // rotation (Euler, degrees)
+        Vector3f rot;
+
+        // scale
+        Vector3f scale;
+
+        // box minimum
+        Vector3f boxMin;
+
+        // box maximum
+        Vector3f boxMax;
+    };
+
     /*! @brief Contains vertex data of a MDL0. (Section #2) */
     class VertexArray final : public ArraySection
     {
@@ -153,6 +375,9 @@ public:
         template <class> friend class SectionContainer;
 
     public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::VertexArray;
 
         /*! @brief Enumeration of the valid vertex components type. */
         enum class Components
@@ -166,6 +391,11 @@ public:
 
         /*! @brief Returns the number of components for the specified type. */
         static uint8_t componentCount(Components comps);
+
+        ~VertexArray();
+
+        /*! @brief Returns SectionType::VertexArray. */
+        SectionType getType() const override;
 
         /*! @brief Sets the vertex data and components type of this vertex
          *  section.
@@ -206,6 +436,9 @@ public:
 
     public:
 
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::NormalArray;
+
         /*! @brief Enumeration of the possible normal component types. */
         enum class Components
         {
@@ -224,6 +457,9 @@ public:
 
         ~NormalArray();
 
+        /*! @brief Returns SectionType::NormalArray. */
+        SectionType getType() const override;
+
         /*! @brief Sets the normal data and components type of this normal
          *  section.
          *  
@@ -241,6 +477,130 @@ public:
 
         // the components type
         Components comps;
+    };
+
+    /*! @brief Contains color data of a MDL0. (Section #4) */
+    class ColorArray : public ArraySection
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::ColorArray;
+
+        /*! @brief Enumeration of the possible color formats. */
+        enum class Format
+        {
+            /*! @brief 16 bits (5 for red, 6 for green, 5 for blue). */
+            RGB565 = 0x0,
+
+            /*! @brief 24 bits (8 for red, 8 for green, 8 for blue). */
+            RGB8 = 0x1,
+
+            /*! @brief 32 bits (8 for red, 8 for green, 8 for blue, 8 ignored). */
+            RGBX8 = 0x2,
+
+            /*! @brief 16 bits (4 for red, 4 for green, 4 for blue, 4 for alpha). */
+            RGBA4 = 0x3,
+
+            /*! @brief 24 bits (6 for red, 6 for green, 6 for blue, 6 for alpha). */
+            RGBA6 = 0x4,
+
+            /*! @brief 32 bits (8 for red, 8 for green, 8 for blue, 8 for alpha). */
+            RGBA8 = 0x5
+        };
+
+        /*! @brief Returns the number of bytes per color for the specified
+         *  format.
+         */
+        static uint8_t byteCount(Format format);
+
+        /*! @brief Returns the number of components for the specified format. */
+        static uint8_t componentCount(Format format);
+
+        ~ColorArray();
+
+        /*! @brief Returns SectionType::ColorArray. */
+        SectionType getType() const override;
+
+        /*! @brief Sets the color data and format of this color section.
+         *  
+         *  @param[in] data The color data, formatted as specified
+         *  @param[in] format The color format
+         */
+        void setData(Buffer& data, Format format = Format::RGBA8);
+
+        /*! @brief Returns the color format of this color section. */
+        Format getFormat() const;
+
+    private:
+
+        ColorArray(MDL0* mdl0, const std::string& name);
+
+        // color format
+        Format format;
+    };
+
+    /*! @brief Contains texture coord data of a MDL0. (Section #5) */
+    class TexCoordArray : public ArraySection
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::TexCoordArray;
+
+        /*! @brief Enumeration of the possible texture coord components type. */
+        enum class Components
+        {
+            /*! @brief 1 value per coord (1 for S). */
+            S = 0x0,
+
+            /*! @brief 2 values per coord (1 for S, 1 for T). */
+            ST = 0x1
+        };
+
+        /*! @brief Returns the number of components for the specified type. */
+        static uint8_t componentCount(Components comps);
+
+        ~TexCoordArray();
+
+        /*! @brief Returns SectionType::TexCoordArray. */
+        SectionType getType() const override;
+
+        /*! @brief Sets the texture coord data and components type of this
+         *  texture coord section.
+         *  
+         *  @param[in] data The texture coord data, containing floats
+         *  @param[in] comps The texture coord components type
+         */
+        void setData(Buffer& data, Components comps = Components::ST);
+
+        /*! @brief Returns the components type of this texture coord section. */
+        Components getComponentsType() const;
+
+        /*! @brief Returns the box minimum of this texture coord section. */
+        Vector2f getBoxMin() const;
+
+        /*! @brief Returns the box maximum of this texture coord section. */
+        Vector2f getBoxMax() const;
+
+    private:
+
+        TexCoordArray(MDL0* mdl0, const std::string& name);
+
+        // components type
+        Components comps;
+
+        // vec2f of box min
+        Vector2f boxMin;
+
+        // vec2f of box max
+        Vector2f boxMax;
     };
 
     ~MDL0();
@@ -267,13 +627,41 @@ public:
      * 
      *  @param[in] name The section name
      * 
-     *  @throw CTLib::BRRESError If no section of the same type has the
+     *  @throw CTLib::BRRESError If no section of the specified type has the
      *  specified name.
      * 
      *  @return The section with the specified name
      */
     template <class Type>
     Type* get(const std::string& name) const;
+
+    /*! @brief Returns whether a section of the specified template type with
+     *  the specified name exists.
+     * 
+     *  @tparam Type The section type
+     * 
+     *  @param[in] name The section name
+     * 
+     *  @return Whether a section with the specified name exists
+     */
+    template <class Type>
+    bool has(const std::string& name) const;
+
+    /*! @brief Removes and _deletes_ the section of the specified template type
+     *  with the specified name.
+     *  
+     *  If you have any reference to this section pointer left, _**DO NOT USE
+     *  IT**_, as it will have been `delete`d when this function returns.
+     * 
+     *  @tparam Type The section type
+     * 
+     *  @param[in] name The section name
+     * 
+     *  @throw CTLib::BRRESError If no section of the specified type has the
+     *  specified name.
+     */
+    template <class Type>
+    void remove(const std::string& name);
 
     /*! @brief Returns a std::vector containing all section entries of the
      *  specified template type.
@@ -290,6 +678,13 @@ public:
      */
     template <class Type>
     uint16_t count() const;
+
+    /// Section-specific methods ///////
+
+    /*! @brief Returns the first (root) bone in the bone hierarchy, or nullptr
+     *  if this MDL0 has no bone.
+     */
+    Bone* getRootBone() const;
 
 private:
 
@@ -316,10 +711,19 @@ private:
         // returns the instance with the specified name
         Type* get(const std::string& name) const;
 
+        // returns whether an instance with the specified name exists
+        bool has(const std::string& name) const;
+
+        // removes the instance with the specified name
+        void remove(const std::string& name);
+
         // removes and _delete_ all instances in this container
         void deleteAll();
 
     private:
+
+        // used by MDL0 to add Links sections
+        void directAdd(Type* instance);
 
         // throws if this container contains an entry with the specified name
         void assertUniqueName(const std::string& name) const;
@@ -339,8 +743,21 @@ private:
 
     MDL0(BRRES* brres, const std::string& name);
 
+    // called when a section instance is added
+    void sectionAdded(Section* instance);
+
+    // called when a section instance is removed
+    void sectionRemoved(Section* instance);
+
+    SectionContainer<Links> linksSections;
+    SectionContainer<Bone> boneSections;
     SectionContainer<VertexArray> verticesSections;
     SectionContainer<NormalArray> normalsSections;
+    SectionContainer<ColorArray> colorsSections;
+    SectionContainer<TexCoordArray> texCoordsSections;
+
+    // pointer to first (root) bone
+    Bone* rootBone;
 };
 
 /*! @brief A texture within a BRRES. */

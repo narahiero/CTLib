@@ -16,6 +16,8 @@
 #include <cstdint>
 #include <type_traits>
 
+#include <CTLib/Memory.hpp>
+
 
 namespace CTLib
 {
@@ -139,12 +141,77 @@ bool operator!=(const Vector<Type, Size>& lhs, const Vector<Type, Size>& rhs)
     return !(lhs == rhs);
 }
 
-class Vector3f final : public Vector<float, 3>
+template <uint32_t Size>
+class Vectorf : public Vector<float, Size>
+{
+
+public:
+
+    Vectorf() : Vector()
+    {
+
+    }
+
+    ~Vectorf() = default;
+
+    /*! @brief Puts `Size` floats on the specified buffer.
+     *  
+     *  @param[in] buffer The buffer to write to
+     * 
+     *  @throw CTLib::BufferError If there is less than `Size * 4` bytes
+     *  remaining in the output buffer.
+     * 
+     *  @return `this`
+     */
+    Vectorf& put(Buffer& buffer)
+    {
+        for (uint32_t i = 0; i < Size; ++i)
+        {
+            buffer.putFloat(array[i]);
+        }
+        return *this;
+    }
+
+    /*! @brief Gets `Size` floats from the specified buffer, and set the
+     *  components of this vector to the read values.
+     * 
+     *  @param[in] buffer The buffer to read from
+     * 
+     *  @throw CTLib::BufferError If there is less than `Size * 4` bytes
+     *  remaining in the input buffer.
+     * 
+     *  @return `this`
+     */
+    Vectorf& get(Buffer& buffer)
+    {
+        for (uint32_t i = 0; i < Size; ++i)
+        {
+            array[i] = buffer.getFloat();
+        }
+        return *this;
+    }
+};
+
+class Vector2f final : public Vectorf<2>
+{
+
+public:
+
+    Vector2f();
+
+    Vector2f(float x, float y);
+
+    ~Vector2f();
+};
+
+class Vector3f final : public Vectorf<3>
 {
 
 public:
 
     Vector3f();
+
+    Vector3f(float x, float y, float z);
 
     ~Vector3f();
 };
