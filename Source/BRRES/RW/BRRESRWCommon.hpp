@@ -31,6 +31,8 @@ namespace CTLib
 
 uint32_t padNumber(uint32_t num, uint8_t pad);
 
+uint32_t flipBits(uint32_t num, uint8_t lowI, uint8_t highI);
+
 std::string readString(Buffer& in, uint32_t off);
 
 struct BRRESStringTable

@@ -17,7 +17,8 @@ namespace CTLib
 
 BRRES::BRRES() :
     mdl0s{},
-    tex0s{}
+    tex0s{},
+    callbacks{}
 {
 
 }
@@ -144,6 +145,23 @@ CT_LIB_DEFINE_ALL_BRRES(TEX0, tex0s)
 #undef CT_LIB_DEFINE_BRRES_GET_ALL
 #undef CT_LIB_DEFINE_BRRES_COUNT
 
+void BRRES::registerCallback(BRRESSubFileCallback* cb)
+{
+    callbacks.push_back(cb);
+}
+
+void BRRES::unregisterCallback(BRRESSubFileCallback* cb)
+{
+    for (size_t i = 0; i < callbacks.size(); ++i)
+    {
+        if (callbacks.at(i) == cb)
+        {
+            callbacks.erase(callbacks.begin() + i);
+            --i;
+        }
+    }
+}
+
 
 //////////////////////////////
 ///  class BRRESSubFile
@@ -156,6 +174,11 @@ BRRESSubFile::BRRESSubFile(BRRES* brres, const std::string& name) :
 }
 
 BRRESSubFile::~BRRESSubFile() = default;
+
+BRRES* BRRESSubFile::getBRRES() const
+{
+    return brres;
+}
 
 std::string BRRESSubFile::getName() const
 {

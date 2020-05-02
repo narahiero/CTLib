@@ -36,6 +36,9 @@ namespace CTLib
 
 class BRRES;
 
+class MDL0;
+class TEX0;
+
 /*! @brief Superclass of all BRRES sub files. */
 class BRRESSubFile
 {
@@ -46,7 +49,10 @@ public:
 
     virtual ~BRRESSubFile();
 
-    /*! @brief Returns the name of this sub file. */
+    /*! @brief Returns the BRRES owning this subfile. */
+    BRRES* getBRRES() const;
+
+    /*! @brief Returns the name of this subfile. */
     std::string getName() const;
 
 protected:
@@ -67,19 +73,48 @@ private:
     BRRESSubFile(BRRESSubFile&&) = delete;
 };
 
+/*! @brief Called when a BRRES subfile is added or removed. */
+class BRRESSubFileCallback
+{
+
+    friend class BRRES;
+
+protected:
+
+    /*! @brief Called when a subfile is added. */
+    virtual void subfileAdded(BRRESSubFile* subfile) = 0;
+
+    /*! @brief Called when a subfile is removed. */
+    virtual void subfileRemoved(BRRESSubFile* subfile) = 0;
+};
+
 /*! @brief A model within a BRRES. */
 class MDL0 final : public BRRESSubFile
 {
 
     friend class BRRES;
 
+    friend class Links;
     friend class Bone;
+    friend class Object;
+    friend class TextureLink;
 
 private:
 
     template <class Type> class SectionContainer;
 
 public:
+
+    class Links;
+    class Bone;
+    class VertexArray;
+    class NormalArray;
+    class ColourArray;
+    class TexCoordArray;
+    class Material;
+    class Shader;
+    class Object;
+    class TextureLink;
 
     /*! @brief Enumeration of the MDL0 sections. */
     enum class SectionType
@@ -96,11 +131,23 @@ public:
         /*! @brief NormalArray section (#3) */
         NormalArray = 0x3,
 
-        /*! @brief ColorArray section (#4) */
-        ColorArray = 0x4,
+        /*! @brief ColourArray section (#4) */
+        ColourArray = 0x4,
 
         /*! @brief TexCoordArray section (#5) */
         TexCoordArray = 0x5,
+
+        /*! @brief Material section (#8) */
+        Material = 0x8,
+
+        /*! @brief Shader section (#9) */
+        Shader = 0x9,
+
+        /*! @brief Object section (#10) */
+        Object = 0xA,
+
+        /*! @brief TextureLink section (#11) */
+        TextureLink = 0xB,
 
         /*! @brief An instance of one of the section superclasses. */
         NONE = ~0x0
@@ -116,6 +163,9 @@ public:
 
         /*! @brief Returns the SectionType of this section. */
         virtual SectionType getType() const;
+
+        /*! @brief Returns the MDL0 owning this section. */
+        MDL0* getMDL0() const;
 
         /*! @brief Returns the name of this section. */
         std::string getName() const;
@@ -163,12 +213,28 @@ public:
         Buffer data;
     };
 
+    /*! @brief Superclass of sections that needs an entry callback. */
+    class SectionCallback
+    {
+
+        friend class MDL0;
+
+    public:
+
+        virtual ~SectionCallback();
+
+    protected:
+
+        //! entry callback
+        virtual void entryCallback(Section* instance, bool add) = 0;
+    };
+
     ////////////////////////////////////////////////////////
     ///  Actual section classes
     ////////////////////////////////////////////////////////
 
     /*! @brief MDL0 sections links. (Section #0) */
-    class Links final : public Section
+    class Links final : public Section, public SectionCallback
     {
 
         friend class MDL0;
@@ -181,7 +247,23 @@ public:
         enum class Type
         {
             /*! @brief Specifies bone hierarchy. */
-            NodeTree = 0x02
+            NodeTree = 0x02,
+
+            /*! @brief Links Objects, Materials, and Bones. */
+            DrawOpa = 0x04,
+        };
+
+        /*! @brief A link in the DrawOpa section. */
+        struct DrawOpaLink
+        {
+            /*! @brief The Object linked. */
+            Object* obj;
+
+            /*! @brief The Material linked. */
+            Material* mat;
+
+            /*! @brief The Bone linked. */
+            Bone* bone;
         };
 
         /*! @brief The SectionType of this class. */
@@ -201,6 +283,24 @@ public:
         /*! @brief Returns the command count of this links section. */
         uint32_t getCount() const;
 
+        /*! @brief Links the specified Object, Material, and Bone together.
+         *  
+         *  @param[in] obj The Object to link
+         *  @param[in] mat The Material to link
+         *  @param[in] bone The Bone to link
+         * 
+         *  @throw CTLib::BRRESError If this section is not of type
+         *  Type::DrawOpa.
+         */
+        void link(Object* obj, Material* mat, Bone* bone);
+
+        /*! @brief Returns a std::vector containing all DrawOpaLinks.
+         *  
+         *  @throw CTLib::BRRESError If this section is not of type
+         *  Type::DrawOpa.
+         */
+        std::vector<DrawOpaLink> getLinks() const;
+
     private:
 
         Links(MDL0* mdl0, const std::string& name);
@@ -208,7 +308,16 @@ public:
         // private ctor used internally
         Links(MDL0* mdl0, Type type);
 
+        // called when a section entry is added/removed
+        void entryCallback(Section* instance, bool add) override;
+
+        // throws if 'linksType' is not Type::DrawOpa
+        void assertDrawOpaSection() const;
+
         const Type linksType;
+
+        // vector containing the links of the DrawOpa section
+        std::vector<DrawOpaLink> drawOpaLinks;
     };
 
     /*! @brief A single bone of a MDL0. (Section #1) */
@@ -325,6 +434,15 @@ public:
 
         /*! @brief Returns the previous sibling bone, or `nullptr` if none. */
         Bone* getPrevious() const;
+
+        /*! @brief Sets the position of this bone. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this bone. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Sets the scale of this bone. */
+        void setScale(Vector3f scale);
 
         /*! @brief Returns the position of this bone. */
         Vector3f getPosition() const;
@@ -445,7 +563,7 @@ public:
     };
 
     /*! @brief Contains normal data of a MDL0. (Section #3) */
-    class NormalArray : public ArraySection
+    class NormalArray final : public ArraySection
     {
 
         template <class> friend class SectionContainer;
@@ -495,8 +613,8 @@ public:
         Components comps;
     };
 
-    /*! @brief Contains color data of a MDL0. (Section #4) */
-    class ColorArray : public ArraySection
+    /*! @brief Contains colour data of a MDL0. (Section #4) */
+    class ColourArray final : public ArraySection
     {
 
         template <class> friend class SectionContainer;
@@ -504,9 +622,9 @@ public:
     public:
 
         /*! @brief The SectionType of this class. */
-        constexpr static SectionType TYPE = SectionType::ColorArray;
+        constexpr static SectionType TYPE = SectionType::ColourArray;
 
-        /*! @brief Enumeration of the possible color formats. */
+        /*! @brief Enumeration of the possible colour formats. */
         enum class Format
         {
             /*! @brief 16 bits (5 for red, 6 for green, 5 for blue). */
@@ -528,7 +646,7 @@ public:
             RGBA8 = 0x5
         };
 
-        /*! @brief Returns the number of bytes per color for the specified
+        /*! @brief Returns the number of bytes per colour for the specified
          *  format.
          */
         static uint8_t byteCount(Format format);
@@ -536,31 +654,31 @@ public:
         /*! @brief Returns the number of components for the specified format. */
         static uint8_t componentCount(Format format);
 
-        ~ColorArray();
+        ~ColourArray();
 
-        /*! @brief Returns SectionType::ColorArray. */
+        /*! @brief Returns SectionType::ColourArray. */
         SectionType getType() const override;
 
-        /*! @brief Sets the color data and format of this color section.
+        /*! @brief Sets the colour data and format of this colour section.
          *  
-         *  @param[in] data The color data, formatted as specified
-         *  @param[in] format The color format
+         *  @param[in] data The colour data, formatted as specified
+         *  @param[in] format The colour format
          */
         void setData(Buffer& data, Format format = Format::RGBA8);
 
-        /*! @brief Returns the color format of this color section. */
+        /*! @brief Returns the colour format of this colour section. */
         Format getFormat() const;
 
     private:
 
-        ColorArray(MDL0* mdl0, const std::string& name);
+        ColourArray(MDL0* mdl0, const std::string& name);
 
-        // color format
+        // colour format
         Format format;
     };
 
     /*! @brief Contains texture coord data of a MDL0. (Section #5) */
-    class TexCoordArray : public ArraySection
+    class TexCoordArray final : public ArraySection
     {
 
         template <class> friend class SectionContainer;
@@ -617,6 +735,602 @@ public:
 
         // vec2f of box max
         Vector2f boxMax;
+    };
+
+    /*! @brief A material within a MDL0. (Section #8) */
+    class Material final : public Section, public SectionCallback
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::Material;
+
+        /*! @brief A material layer. */
+        class Layer final
+        {
+
+            friend class Material;
+
+        public:
+
+            /*! @brief Enumeration of the possible texture wrap modes. */
+            enum class TextureWrap
+            {
+                /*! @brief Clamp on edges. */
+                Clamp = 0x0,
+
+                /*! @brief Repeat on edges. */
+                Repeat = 0x1,
+
+                /*! @brief Mirror on edges. */
+                Mirror = 0x2
+            };
+
+            /*! @brief Enumeration of the possible min filter values. */
+            enum class MinFilter
+            {
+                /*! @brief Use nearest pixel colour. */
+                Nearest = 0x0,
+
+                /*! @brief Linear interpolation of pixel colours. */
+                Linear = 0x1,
+
+                /*! @brief Use nearest mipmap and nearest pixel colour. */
+                Nearest_Mipmap_Nearest = 0x2,
+
+                /*! @brief Use nearest mipmap and linear interpolation of pixel
+                 *  colours.
+                 */
+                Linear_Mipmap_Nearest = 0x3,
+
+                /*! @brief Use linear interpolation of closest mipmaps and
+                 *  nearest pixel colour.
+                 */
+                Nearest_Mipmap_Linear = 0x4,
+
+                /*! @brief Use linear interpolation of closest mipmaps and
+                 *  linear interpolation of pixel colours.
+                 */
+                Linear_Mipmap_Linear = 0x5
+            };
+
+            /*! @brief Enumeration of the possible mag filter values. */
+            enum class MagFilter
+            {
+                /*! @brief Use nearest pixel colour. */
+                Nearest = 0x0,
+
+                /*! @brief Linear interpolation of nearest pixel colours. */
+                Linear = 0x1
+            };
+
+            ~Layer();
+
+            /*! @brief Returns the material owning this Layer. */
+            Material* getMaterial() const;
+
+            /*! @brief Returns the texture used by this Layer. */
+            TextureLink* getTextureLink() const;
+
+            /*! @brief Sets the TextureWrap mode of this Layer. */
+            void setTextureWrapMode(TextureWrap mode);
+
+            /*! @brief Sets the MinFilter of this layer. */
+            void setMinFilter(MinFilter filter);
+
+            /*! @brief Sets the MagFilter of this layer. */
+            void setMagFilter(MagFilter filter);
+
+            /*! @brief Returns the TextureWrap mode of this layer. */
+            TextureWrap getTextureWrapMode() const;
+
+            /*! @brief Returns the MinFilter of this layer. */
+            MinFilter getMinFilter() const;
+
+            /*! @brief Returns the MagFilter of this layer. */
+            MagFilter getMagFilter() const;
+
+        private:
+
+            Layer(Material* material, TextureLink* link);
+
+            // reference to the Material owning this Layer
+            Material* mat;
+
+            // the texture used by this layer
+            TextureLink* link;
+
+            TextureWrap wrapMode;
+
+            MinFilter minFilter;
+
+            MagFilter magFilter;
+        };
+
+        /*! @brief Enumeration of the possible cull modes. */
+        enum class CullMode
+        {
+            /*! @brief No side of face culled. */
+            None = 0x0,
+
+            /*! @brief Outer (front) side of face culled. */
+            Outside = 0x1,
+
+            /*! @brief Inner (back) side of face culled. */
+            Inside = 0x2,
+
+            /*! @brief Both sides of face culled. */
+            All = 0x3
+        };
+
+        /*! @brief Maximum amount of layers per material. */
+        constexpr static uint32_t MAX_LAYER_COUNT = 8;
+
+        ~Material();
+
+        /*! @brief Returns SectionType::Material. */
+        SectionType getType() const override;
+
+        /*! @brief Creates, adds, and returns a newly created Layer with the
+         *  specified texture.
+         * 
+         *  @param[in] link The link to the TEX0
+         *  
+         *  @throw CTLib::BRRESError If this Material already has
+         *  `MAX_LAYER_COUNT` layers.
+         */
+        Layer* addLayer(TextureLink* link);
+
+        /*! @brief Returns a std::vector containing all layers. */
+        std::vector<Layer*> getLayers() const;
+
+        /*! @brief Returns the Layer count of this Material. */
+        uint32_t getLayerCount() const;
+
+        /*! @brief Sets whether this material is translucent (XLU). */
+        void setIsXLU(bool xlu);
+
+        /*! @brief Sets the CullMode of this material. */
+        void setCullMode(CullMode mode);
+
+        /*! @brief Sets the Shader used by this Material. */
+        void setShader(Shader* shader);
+
+        /*! @brief Returns whether this material is translucent (XLU). */
+        bool isXLU() const;
+
+        /*! @brief Returns the CullMode of this material. */
+        CullMode getCullMode() const;
+
+        /*! @brief Returns the Shader used by this Material. */
+        Shader* getShader() const;
+
+    protected:
+
+        //! entry callback
+        void entryCallback(Section* instance, bool add) override;
+
+    private:
+
+        Material(MDL0* mdl0, const std::string& name);
+
+        // throws if the specified section is not owned by the same MDL0 as this
+        void assertSameMDL0(Section* instance) const;
+
+        // throws if 'layers.size() == MAX_LAYER_COUNT'
+        void assertHasRemainingLayers() const;
+
+        // whether material is translucent (XLU)
+        bool xlu;
+
+        // cull mode of this material
+        CullMode cullMode;
+
+        // vector containing all layers in this Material
+        std::vector<Layer*> layers;
+
+        // the Shader used by this material
+        Shader* shader;
+    };
+
+    /*! @brief A shader within a MDL0. (Section #9) */
+    class Shader final : public Section
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::Shader;
+
+        ~Shader();
+
+        /*! @brief Returns SectionType::Shader. */
+        SectionType getType() const override;
+
+    private:
+
+        Shader(MDL0* mdl0, const std::string& name);
+    };
+
+    /*! @brief An object within a MDL0. (Section #10) */
+    class Object final : public Section, public SectionCallback
+    {
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::Object;
+
+        /*! @brief The maximum number of colour arrays that an Object section
+         *  can reference.
+         */
+        constexpr static uint32_t COLOUR_ARRAY_COUNT = 2;
+
+        /*! @brief The maximum number of texture coord arrays that an Object
+         *  section can reference. 
+         */
+        constexpr static uint32_t TEX_COORD_ARRAY_COUNT = 8;
+
+        /*! @brief Enumeration of the possible primitive types. */
+        enum class PrimitiveType : uint8_t
+        {
+            /*! @brief Draw quads (4 vertices per face). */
+            QUADS = 0x80,
+
+            /*! @brief Draw triangles (3 vertices per face). */
+            TRIANGLES = 0x90,
+
+            /*! @brief Draw triangle strip (First 3 vertices makes a triangle,
+             *  remaining triangles are made up of vertices at index _N - 2_,
+             *  _N - 1_, and _N_). 
+             */
+            TRIANGLE_STRIP = 0x98,
+
+            /*! @brief Draw triangle fan (First 3 vertices makes a triangle,
+             *  remaining triangles are made up of vertices at index _N - 1_,
+             *  _N_, and _0_).
+             */
+            TRIANGLE_FAN = 0xA0,
+
+            /*! @brief Draw lines (2 vertices per line). */
+            LINES = 0xA8,
+
+            /*! @brief Draw line strip (First 2 vertices makes a line,
+             *  remaining lines are made up of vertices at index _N - 1_ and
+             *  _N_). */
+            LINE_STRIP = 0xB0,
+
+            /*! @brief Draw points (1 vertex per point). */
+            POINTS = 0xB8
+        };
+
+        /*! @brief Returns the recommended size of indices for the specified
+         *  ArraySection.
+         * 
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         */
+        static uint8_t indexSizeFor(ArraySection* instance);
+
+        ~Object();
+
+        /*! @brief Returns SectionType::Object. */
+        SectionType getType() const override;
+
+        /*! @brief Sets the bone reference of this object.
+         *  
+         *  **Note**: Only single bone references are supported at the moment.
+         * 
+         *  @param[in] bone The Bone reference
+         */
+        void setBone(Bone* bone);
+
+        /*! @brief Sets this Object's VertexArray with the specified one. */
+        void setVertexArray(VertexArray* array);
+
+        /*! @brief Sets the size of the VertexArray indices.
+         *  
+         *  `0`: auto \n
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] size The indices size
+         * 
+         *  @throw CTLib::BRRESError If the specified size is more than 2.
+         */
+        void setVertexArrayIndexSize(uint8_t size);
+
+        /*! @brief Sets this Object's NormalArray with the specified one. */
+        void setNormalArray(NormalArray* array);
+
+        /*! @brief Sets the size of the NormalArray indices.
+         *  
+         *  `0`: auto \n
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] size The indices size
+         * 
+         *  @throw CTLib::BRRESError If the specified size is more than 2.
+         */
+        void setNormalArrayIndexSize(uint8_t size);
+
+        /*! @brief Sets this Object's ColourArray at the specified index.
+         *  
+         *  @param[in] array The ColourArray
+         *  @param[in] index The ColourArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to COLOUR_ARRAY_COUNT.
+         */
+        void setColourArray(ColourArray* array, uint32_t index);
+
+        /*! @brief Sets the size of the ColourArray indices.
+         *  
+         *  `0`: auto \n
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] index The ColourArray index
+         *  @param[in] size The indices size
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to COLOUR_ARRAY_COUNT, or the specified size is more than
+         *  2.
+         */
+        void setColourArrayIndexSize(uint32_t index, uint8_t size);
+
+        /*! @brief Sets this Object's TexCoordArray at the specified index.
+         *  
+         *  @param[in] array The TexCoordArray
+         *  @param[in] index The TexCoordArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to TEX_COORD_ARRAY_COUNT.
+         */
+        void setTexCoordArray(TexCoordArray* array, uint32_t index);
+
+        /*! @brief Sets the size of the TexCoordArray indices.
+         *  
+         *  `0`: auto \n
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] index The TexCoordArray index
+         *  @param[in] size The indices size
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to TEX_COORD_ARRAY_COUNT, or the specified size is more than
+         *  2.
+         */
+        void setTexCoordArrayIndexSize(uint32_t index, uint8_t size);
+
+        /*! @brief Sets the geometry data of this Object.
+         *  
+         *  **Important Note**: All array sections used by the geometry data
+         *  must be set _before_ calling this method.
+         *  
+         *  @param[in] data The geometry data
+         *  
+         *  @throw CTLib::BRRESError If the VertexArray of this Object is not
+         *  set, or the specified geometry data is invalid.
+         */
+        void setGeometryData(const Buffer& data);
+
+        /*! @brief Returns the bone reference of this Object. */
+        Bone* getBone() const;
+
+        /*! @brief Returns this Object's VertexArray. */
+        VertexArray* getVertexArray() const;
+
+        /*! @brief Returns the size of the VertexArray indices.
+         *  
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         * 
+         *  @throw CTLib::BRRESError If the VertexArray of this Object is not
+         *  set.
+         */
+        uint8_t getVertexArrayIndexSize() const;
+
+        /*! @brief Returns this Object's NormalArray. */
+        NormalArray* getNormalArray() const;
+
+        /*! @brief Returns the size of the NormalArray indices.
+         *  
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         * 
+         *  @throw CTLib::BRRESError If the NormalArray of this Object is not
+         *  set.
+         */
+        uint8_t getNormalArrayIndexSize() const;
+
+        /*! @brief Returns this Object's ColourArray at the specified index.
+         *  
+         *  @param[in] index The ColourArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to COLOUR_ARRAY_COUNT.
+         * 
+         *  @return The ColourArray at the specified index
+         */
+        ColourArray* getColourArray(uint32_t index) const;
+
+        /*! @brief Returns the size of the ColourArray indices.
+         *  
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] index The ColourArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to COLOUR_ARRAY_COUNT, or the ColourArray at the specified
+         *  index is not set.
+         */
+        uint8_t getColourArrayIndexSize(uint32_t index) const;
+
+        /*! @brief Returns this Object's TexCoordArray at the specified index.
+         *  
+         *  @param[in] index The TexCoordArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to TEX_COORD_ARRAY_COUNT.
+         * 
+         *  @return The TexCoordArray at the specified index
+         */
+        TexCoordArray* getTexCoordArray(uint32_t index) const;
+
+        /*! @brief Returns the size of the TexCoordArray indices.
+         *  
+         *  `1`: 8 bits \n
+         *  `2`: 16 bits
+         *  
+         *  @param[in] index The TexCoordArray index
+         * 
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to TEX_COORD_ARRAY_COUNT, or the TexCoordArray at the
+         *  specified index is not set.
+         */
+        uint8_t getTexCoordArrayIndexSize(uint32_t index) const;
+
+        /*! @brief Returns the geometry data of this Object.
+         *  
+         *  **See**: @link MDL0::Object::setGeometryData(const Buffer&)
+         *  setGeometryData()'s documentation@endlink for more information on
+         *  the format of the returned data.
+         */
+        Buffer getGeometryData() const;
+
+        /*! @brief Returns the geometry data size of this Object. */
+        uint32_t getGeometryDataSize() const;
+
+        /*! @brief Returns the vertex count of the geometry in this Object. */
+        uint32_t getVertexCount() const;
+
+        /*! @brief Returns the face count of the geometry in this Object. */
+        uint32_t getFaceCount() const;
+
+        /*! @brief Returns the size of each vertex of the geometry data. */
+        uint32_t getVertexSize() const;
+
+    private:
+
+        Object(MDL0* mdl0, const std::string& name);
+
+        // called when a section entry is added/removed
+        void entryCallback(Section* instance, bool add) override;
+
+        // throws if 'instance' is `null`
+        void assertNotNull(Section* instance) const;
+
+        // throws if 'index' is >= COLOUR_ARRAY_COUNT
+        void assertValidColourArrayIndex(uint32_t index) const;
+
+        // throws if 'index' is >= TEX_COORD_ARRAY_COUNT
+        void assertValidTexCoordArrayIndex(uint32_t index) const;
+
+        // throws if 'vertexArray' is `nullptr`
+        void assertVertexArraySet() const;
+
+        // throws if 'normalArray' is `nullptr`
+        void assertNormalArraySet() const;
+
+        // throws if 'colourArrays[index]' is `nullptr`
+        void assertColourArraySet(uint32_t index) const;
+
+        // throws if 'texCoordArrays[index] is `nullptr`
+        void assertTexCoordArraySet(uint32_t index) const;
+
+        // throws if 'size' is > 2
+        void assertValidArrayIndexSize(uint8_t size) const;
+
+        // single bone reference
+        Bone* bone;
+
+        // vertex array used by this object
+        VertexArray* vertexArray;
+        uint8_t vertexIndexSize;
+
+        // normal array used by this object
+        NormalArray* normalArray;
+        uint8_t normalIndexSize;
+
+        // colour arrays used by this object
+        ColourArray* colourArrays[COLOUR_ARRAY_COUNT];
+        uint8_t colourIndexSizes[COLOUR_ARRAY_COUNT];
+
+        // texture coord arrays used by this object
+        TexCoordArray* texCoordArrays[TEX_COORD_ARRAY_COUNT];
+        uint8_t texCoordIndexSizes[TEX_COORD_ARRAY_COUNT];
+
+        // compiled geometry data
+        Buffer data;
+        uint32_t vertexCount;
+        uint32_t faceCount;
+    };
+
+    /*! @brief Links a TEX0 to a MDL0. (Section #11) */
+    class TextureLink final : public Section, public BRRESSubFileCallback, public SectionCallback
+    {
+
+        friend class MDL0;
+
+        friend class Material;
+
+        template <class> friend class SectionContainer;
+
+    public:
+
+        /*! @brief The SectionType of this class. */
+        constexpr static SectionType TYPE = SectionType::TextureLink;
+
+        ~TextureLink();
+
+        /*! @brief Returns the TEX0 linked by this TextureLink instance. */
+        TEX0* getTEX0() const;
+
+        /*! @brief Returns the number of reference to this TextureLink. */
+        uint32_t getCount() const;
+
+        /*! @brief Returns a std::vector containing all Material layers
+         *  referencing this TextureLink instance.
+         */
+        std::vector<Material::Layer*> getReferences() const;
+
+    protected:
+
+        //! does nothing
+        void subfileAdded(BRRESSubFile* subfile) override;
+
+        //! removes this section if 'subfile == tex0'
+        void subfileRemoved(BRRESSubFile* subfile) override;
+
+        //! removes deleted reference
+        void entryCallback(Section* instance, bool add) override;
+
+    private:
+
+        TextureLink(MDL0* mdl0, const std::string& name);
+
+        // used by MDL0::linkTEX0()
+        TextureLink(MDL0* mdl0, TEX0* tex0);
+
+        // called by Material::addLayer()
+        void addReference(Material::Layer* layer);
+
+        // the TEX0 linked
+        TEX0* tex0;
+
+        // vector containing all Material Layer referencing to this
+        std::vector<Material::Layer*> references;
     };
 
     ~MDL0();
@@ -697,10 +1411,27 @@ public:
 
     /// Section-specific methods ///////
 
+    /*! @brief Returns the DrawOpa Links section instance. */
+    Links* getDrawOpaSection() const;
+
     /*! @brief Returns the first (root) bone in the bone hierarchy, or nullptr
      *  if this MDL0 has no bone.
      */
     Bone* getRootBone() const;
+
+    /*! @brief Links the specified TEX0 to this MDL0.
+     *  
+     *  **Warning**: If the specified TEX0 instance is removed from its BRRES,
+     *  _THE RETURNED TextureLink INSTANCE WILL GET REMOVED AND **DELETED**!!!_
+     * 
+     *  @param[in] tex0 The TEX0 to link
+     * 
+     *  @throw CTLib::BRRESError If the specified TEX0 is not owned by the same
+     *  BRRES as this MDL0, or the specified TEX0 is `nullptr`.
+     * 
+     *  @return A TextureLink instance
+     */
+    TextureLink* linkTEX0(TEX0* tex0);
 
 private:
 
@@ -759,18 +1490,33 @@ private:
 
     MDL0(BRRES* brres, const std::string& name);
 
+    // registers the specified entry callback
+    void addCallback(SectionCallback* cb);
+
+    // unregisters the specified entry callback
+    void removeCallback(SectionCallback* cb);
+
     // called when a section instance is added
     void sectionAdded(Section* instance);
 
     // called when a section instance is removed
     void sectionRemoved(Section* instance);
 
+    // throws if subfile is not owned by the same BRRES as this
+    void assertSameBRRES(BRRESSubFile* subfile) const;
+
     SectionContainer<Links> linksSections;
     SectionContainer<Bone> boneSections;
     SectionContainer<VertexArray> verticesSections;
     SectionContainer<NormalArray> normalsSections;
-    SectionContainer<ColorArray> colorsSections;
+    SectionContainer<ColourArray> coloursSections;
     SectionContainer<TexCoordArray> texCoordsSections;
+    SectionContainer<Material> materialSections;
+    SectionContainer<Shader> shaderSections;
+    SectionContainer<Object> objectSections;
+    SectionContainer<TextureLink> textureLinkSections;
+
+    std::vector<SectionCallback*> entryCallbacks;
 
     // pointer to first (root) bone
     Bone* rootBone;
@@ -1045,6 +1791,12 @@ public:
     template <class Type>
     uint16_t count() const;
 
+    /*! @brief Registers the specified subfile callback. */
+    void registerCallback(BRRESSubFileCallback* cb);
+
+    /*! @brief Unregisters the specified subfile callback. */
+    void unregisterCallback(BRRESSubFileCallback* cb);
+
 private:
 
     // map of <name, MDL0> containing all MDL0s in this BRRES
@@ -1052,6 +1804,8 @@ private:
 
     // map of <name, TEX0> containing all TEX0s in this BRRES
     std::map<std::string, TEX0*> tex0s;
+
+    std::vector<BRRESSubFileCallback*> callbacks;
 };
 
 /*! @brief BRRESError is the error class used by the methods in this header. */

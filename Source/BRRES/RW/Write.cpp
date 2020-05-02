@@ -249,7 +249,7 @@ void writeSubfilesData(
         out.position(pos);
 
         writeSubfile(
-            out.slice(), instance, static_cast<int32_t>(pos), table, offsets->tableOff - pos
+            out.slice(), instance, -static_cast<int32_t>(pos), table, offsets->tableOff - pos
         );
     }
 }

@@ -23,6 +23,21 @@ uint32_t padNumber(uint32_t num, uint8_t pad)
     return (num & ~(pad - 1)) + ((num & (pad - 1)) > 0 ? pad : 0);
 }
 
+uint32_t shift(uint32_t num, uint8_t shift)
+{
+    return shift >= 0 ? num << shift : num >> -shift;
+}
+
+uint32_t flipBits(uint32_t num, uint8_t lowI, uint8_t highI)
+{
+    uint32_t out = 0;
+    for (uint8_t i = 0; i < highI - lowI; ++i)
+    {
+        out |= shift(num & (1 << (i + lowI)), (highI - 1 - lowI) - (i * 2));
+    }
+    return out;
+}
+
 std::string readBRRESString(Buffer& in, uint32_t off)
 {
     if (off > in.capacity())
