@@ -340,8 +340,8 @@ public:
          * 
          *  If the specified bone has any child, return the first child.
          *  Else, if the specified bone has a 'next' sibling, return it.
-         *  Else, if the specified bone has parent, and that parent has a 'next'
-         *  sibling, return it.
+         *  Else, if the specified bone has at least one parent, returns the
+         *  'next' sibling of the first parent to have one, if any.
          *  Else return `nullptr`.
          * 
          *  If the root bone of a MDL0 is passed and this method is repeatedly
@@ -479,6 +479,9 @@ public:
 
         // throws if this bone has no direct child with the specified name
         void assertHasDirectChild(const std::string& name) const;
+
+        // throws if 'bone' is `nullptr`
+        void assertNotNull(Bone* bone) const;
 
         // pointer to parent bone; nullptr if none
         Bone* parent;

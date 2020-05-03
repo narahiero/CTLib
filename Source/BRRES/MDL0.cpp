@@ -7,6 +7,8 @@
 
 #include <CTLib/BRRES.hpp>
 
+#include <limits>
+
 #include <CTLib/Utilities.hpp>
 
 namespace CTLib
@@ -230,7 +232,9 @@ std::string MDL0::Section::getName() const
 }
 
 MDL0::ArraySection::ArraySection(MDL0* mdl0, const std::string& name) :
-    Section(mdl0, name)
+    Section(mdl0, name),
+    count{0},
+    data{}
 {
 
 }
@@ -377,14 +381,18 @@ MDL0::Bone* MDL0::Bone::flatNext(Bone* bone)
     {
         return bone->next;
     }
-    else if (bone->parent != nullptr && bone->parent->next != nullptr)
+
+    Bone* parent = bone->parent;
+    while (parent != nullptr)
     {
-        return bone->parent->next;
+        if (parent->next != nullptr)
+        {
+            return parent->next;
+        }
+        parent = parent->parent;
     }
-    else
-    {
-        return nullptr;
-    }
+
+    return nullptr;
 }
 
 MDL0::Bone::Bone(MDL0* mdl0, const std::string& name) :
@@ -430,9 +438,12 @@ MDL0::Bone* MDL0::Bone::insert(const std::string& name)
 
 void MDL0::Bone::moveTo(Bone* bone)
 {
-    assertSameMDL0(bone);
-    assertNotThis(bone);
-    assertNotChild(bone);
+    if (bone != nullptr)
+    {
+        assertSameMDL0(bone);
+        assertNotThis(bone);
+        assertNotChild(bone);
+    }
 
     if (parent == bone)
     {
@@ -458,7 +469,7 @@ void MDL0::Bone::moveTo(Bone* bone)
 
     if (bone != nullptr)
     {
-        if (bone->child == nullptr || insertPrivate(bone->child, this) == nullptr)
+        if (insertPrivate(bone->child, this) == nullptr)
         {
             bone->child = this;
         }
@@ -498,6 +509,8 @@ bool MDL0::Bone::isChild(Bone* bone) const
 
 bool MDL0::Bone::isDirectChild(Bone* bone) const
 {
+    assertNotNull(bone);
+
     Bone* curr = child;
     while (curr != nullptr)
     {
@@ -669,6 +682,7 @@ MDL0::Bone* MDL0::Bone::removePrivate(Bone* first, Bone* bone)
     {
         curr->next->prev = curr;
     }
+    bone->prev = nullptr;
 
     return curr;
 }
@@ -689,7 +703,8 @@ void MDL0::Bone::assertNotThis(Bone* bone) const
     if (bone == this)
     {
         throw BRRESError(Strings::format(
-            "MDL0: "
+            "MDL0: The specified bone is the same as this (%s)!",
+            name.c_str()
         ));
     }
 }
@@ -713,6 +728,14 @@ void MDL0::Bone::assertHasDirectChild(const std::string& name) const
             "MDL0: This bone (%s) has no direct child bone named: %s!",
             this->name.c_str(), name.c_str()
         ));
+    }
+}
+
+void MDL0::Bone::assertNotNull(Bone* bone) const
+{
+    if (bone == nullptr)
+    {
+        throw BRRESError("MDL0: The specified bone is `nullptr`!");
     }
 }
 
@@ -757,6 +780,12 @@ void MDL0::VertexArray::setData(Buffer& buffer, Components comps)
     const uint8_t compCount = componentCount(comps);
     const uint8_t elemSize = compCount * 4;
     count = static_cast<uint16_t>(buffer.remaining() / elemSize);
+
+    const float min = count == 0 ? 0 : std::numeric_limits<float>::lowest();
+    const float max = count == 0 ? 0 : std::numeric_limits<float>::max();
+
+    boxMin = Vector3f(max, max, max);
+    boxMax = Vector3f(min, min, min);
 
     data = Buffer(count * elemSize);
     while (buffer.remaining() >= elemSize)
@@ -972,6 +1001,12 @@ void MDL0::TexCoordArray::setData(Buffer& buffer, Components comps)
     const uint8_t compCount = componentCount(comps);
     const uint8_t elemSize = compCount * 4;
     count = static_cast<uint16_t>(buffer.remaining() / elemSize);
+
+    const float min = count == 0 ? 0 : std::numeric_limits<float>::lowest();
+    const float max = count == 0 ? 0 : std::numeric_limits<float>::max();
+
+    boxMin = Vector2f(max, max);
+    boxMax = Vector2f(min, min);
 
     data = Buffer(count * elemSize);
     while (buffer.remaining() >= elemSize)

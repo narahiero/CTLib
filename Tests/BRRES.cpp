@@ -216,6 +216,492 @@ TEST(MDL0Tests, Errors)
 
     EXPECT_THROW(mdl0->add<CTLib::MDL0::Links>("links"), CTLib::BRRESError);
     EXPECT_THROW(mdl0->add<CTLib::MDL0::TextureLink>("link"), CTLib::BRRESError);
+
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::VertexArray>("vertices"));
+    EXPECT_THROW(mdl0->add<CTLib::MDL0::VertexArray>("vertices"), CTLib::BRRESError);
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::ColourArray>("vertices"));
+    EXPECT_THROW(mdl0->add<CTLib::MDL0::ColourArray>("vertices"), CTLib::BRRESError);
+
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#0"));
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#1"));
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#2"));
+    EXPECT_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#1"), CTLib::BRRESError);
+    EXPECT_NO_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#3"));
+    EXPECT_THROW(mdl0->add<CTLib::MDL0::TexCoordArray>("#3"), CTLib::BRRESError);
+
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("normals"), CTLib::BRRESError);
+    mdl0->add<CTLib::MDL0::NormalArray>("normals");
+    EXPECT_NO_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("normals"));
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("normals"), CTLib::BRRESError);
+
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::ColourArray>("array"), CTLib::BRRESError);
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("array"), CTLib::BRRESError);
+    mdl0->add<CTLib::MDL0::ColourArray>("array");
+    mdl0->add<CTLib::MDL0::NormalArray>("array");
+    EXPECT_NO_THROW(mdl0->remove<CTLib::MDL0::ColourArray>("array"));
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::ColourArray>("array"), CTLib::BRRESError);
+    EXPECT_NO_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("array"));
+    EXPECT_THROW(mdl0->remove<CTLib::MDL0::NormalArray>("array"), CTLib::BRRESError);
+
+    EXPECT_THROW(mdl0->get<CTLib::MDL0::VertexArray>("array"), CTLib::BRRESError);
+    mdl0->add<CTLib::MDL0::VertexArray>("array");
+    EXPECT_NO_THROW(mdl0->get<CTLib::MDL0::VertexArray>("array"));
+    EXPECT_THROW(mdl0->get<CTLib::MDL0::TexCoordArray>("array"), CTLib::BRRESError);
+    mdl0->remove<CTLib::MDL0::VertexArray>("array");
+    EXPECT_THROW(mdl0->get<CTLib::MDL0::VertexArray>("array"), CTLib::BRRESError);
+}
+
+TEST(MDL0BoneTests, MDL0AddBone)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    EXPECT_EQ(nullptr, mdl0->getRootBone());
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+
+    CTLib::MDL0::Bone* b1 = mdl0->add<CTLib::MDL0::Bone>("b1");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(nullptr, b1->getParent());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(b1, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(b0, b1->getPrevious());
+
+    CTLib::MDL0::Bone* a0 = mdl0->add<CTLib::MDL0::Bone>("a0");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, a0->getParent());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(nullptr, b1->getParent());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(b0, a0->getNext());
+    EXPECT_EQ(b1, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(a0, b0->getPrevious());
+    EXPECT_EQ(b0, b1->getPrevious());
+}
+
+TEST(MDL0BoneTests, Insert)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    CTLib::MDL0::Bone* c0 = b0->insert("c0");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, c0->getParent());
+    EXPECT_EQ(c0, b0->getFirstChild());
+    EXPECT_EQ(nullptr, c0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, c0->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(nullptr, c0->getPrevious());
+
+    CTLib::MDL0::Bone* a0 = b0->insert("a0");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(b0, a0->getParent());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, c0->getParent());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(a0, b0->getFirstChild());
+    EXPECT_EQ(nullptr, c0->getFirstChild());
+    EXPECT_EQ(c0, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, c0->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(a0, c0->getPrevious());
+
+    CTLib::MDL0::Bone* c1 = c0->insert("c1");
+    CTLib::MDL0::Bone* b1 = b0->insert("b1");
+    CTLib::MDL0::Bone* c2 = c0->insert("c2");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(b0, a0->getParent());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, b1->getParent());
+    EXPECT_EQ(b0, c0->getParent());
+    EXPECT_EQ(c0, c1->getParent());
+    EXPECT_EQ(c0, c2->getParent());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(a0, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(c1, c0->getFirstChild());
+    EXPECT_EQ(nullptr, c1->getFirstChild());
+    EXPECT_EQ(nullptr, c2->getFirstChild());
+    EXPECT_EQ(b1, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(c0, b1->getNext());
+    EXPECT_EQ(nullptr, c0->getNext());
+    EXPECT_EQ(c2, c1->getNext());
+    EXPECT_EQ(nullptr, c2->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(a0, b1->getPrevious());
+    EXPECT_EQ(b1, c0->getPrevious());
+    EXPECT_EQ(nullptr, c1->getPrevious());
+    EXPECT_EQ(c1, c2->getPrevious());
+}
+
+TEST(MDL0BoneTests, MoveTo)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    CTLib::MDL0::Bone* b1 = mdl0->add<CTLib::MDL0::Bone>("b1");
+
+    b1->moveTo(b0);
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, b1->getParent());
+    EXPECT_EQ(b1, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(nullptr, b1->getPrevious());
+
+    CTLib::MDL0::Bone* a0 = mdl0->add<CTLib::MDL0::Bone>("a0");
+    b1->moveTo(a0);
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, a0->getParent());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(a0, b1->getParent());
+    EXPECT_EQ(b1, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(b0, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(a0, b0->getPrevious());
+    EXPECT_EQ(nullptr, b1->getPrevious());
+
+    CTLib::MDL0::Bone* c0 = mdl0->add<CTLib::MDL0::Bone>("c0");
+    a0->moveTo(c0);
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(c0, a0->getParent());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(a0, b1->getParent());
+    EXPECT_EQ(nullptr, c0->getParent());
+    EXPECT_EQ(b1, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(a0, c0->getFirstChild());
+    EXPECT_EQ(nullptr, a0->getNext());
+    EXPECT_EQ(c0, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, c0->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(nullptr, b1->getPrevious());
+    EXPECT_EQ(b0, c0->getPrevious());
+
+    b0->moveTo(c0);
+    EXPECT_EQ(c0, mdl0->getRootBone());
+    EXPECT_EQ(c0, a0->getParent());
+    EXPECT_EQ(c0, b0->getParent());
+    EXPECT_EQ(a0, b1->getParent());
+    EXPECT_EQ(nullptr, c0->getParent());
+    EXPECT_EQ(b1, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(a0, c0->getFirstChild());
+    EXPECT_EQ(b0, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(nullptr, b1->getNext());
+    EXPECT_EQ(nullptr, c0->getNext());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+    EXPECT_EQ(a0, b0->getPrevious());
+    EXPECT_EQ(nullptr, b1->getPrevious());
+    EXPECT_EQ(nullptr, c0->getPrevious());
+}
+
+TEST(MDL0BoneTests, MDL0RemoveBone)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    CTLib::MDL0::Bone* b1 = b0->insert("b1");
+    CTLib::MDL0::Bone* b2 = b0->insert("b2");
+    CTLib::MDL0::Bone* b3 = b2->insert("b3");
+    CTLib::MDL0::Bone* a0 = b2->insert("a0");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, b1->getParent());
+    EXPECT_EQ(b0, b2->getParent());
+    EXPECT_EQ(b2, b3->getParent());
+    EXPECT_EQ(b2, a0->getParent());
+    EXPECT_EQ(b1, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(a0, b2->getFirstChild());
+    EXPECT_EQ(nullptr, b3->getFirstChild());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(b2, b1->getNext());
+    EXPECT_EQ(nullptr, b2->getNext());
+    EXPECT_EQ(nullptr, b3->getNext());
+    EXPECT_EQ(b3, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(nullptr, b1->getPrevious());
+    EXPECT_EQ(b1, b2->getPrevious());
+    EXPECT_EQ(a0, b3->getPrevious());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+
+    mdl0->remove<CTLib::MDL0::Bone>("b2");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b0->getParent());
+    EXPECT_EQ(b0, b1->getParent());
+    EXPECT_EQ(b0, b3->getParent());
+    EXPECT_EQ(b0, a0->getParent());
+    EXPECT_EQ(a0, b0->getFirstChild());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(nullptr, b3->getFirstChild());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(nullptr, b0->getNext());
+    EXPECT_EQ(b3, b1->getNext());
+    EXPECT_EQ(nullptr, b3->getNext());
+    EXPECT_EQ(b1, a0->getNext());
+    EXPECT_EQ(nullptr, b0->getPrevious());
+    EXPECT_EQ(a0, b1->getPrevious());
+    EXPECT_EQ(b1, b3->getPrevious());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+
+    mdl0->remove<CTLib::MDL0::Bone>("b0");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, b1->getParent());
+    EXPECT_EQ(nullptr, b3->getParent());
+    EXPECT_EQ(nullptr, a0->getParent());
+    EXPECT_EQ(nullptr, b1->getFirstChild());
+    EXPECT_EQ(nullptr, b3->getFirstChild());
+    EXPECT_EQ(nullptr, a0->getFirstChild());
+    EXPECT_EQ(b3, b1->getNext());
+    EXPECT_EQ(nullptr, b3->getNext());
+    EXPECT_EQ(b1, a0->getNext());
+    EXPECT_EQ(a0, b1->getPrevious());
+    EXPECT_EQ(b1, b3->getPrevious());
+    EXPECT_EQ(nullptr, a0->getPrevious());
+}
+
+TEST(MDL0BoneTests, FlatNext)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(nullptr));
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    EXPECT_EQ(b0, mdl0->getRootBone());
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(b0));
+
+    CTLib::MDL0::Bone* a0 = mdl0->add<CTLib::MDL0::Bone>("a0");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(b0, CTLib::MDL0::Bone::flatNext(a0));
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(b0));
+
+    CTLib::MDL0::Bone* b1 = b0->insert("b1");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(b0, CTLib::MDL0::Bone::flatNext(a0));
+    EXPECT_EQ(b1, CTLib::MDL0::Bone::flatNext(b0));
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(b1));
+
+    CTLib::MDL0::Bone* a1 = a0->insert("a1");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(a1, CTLib::MDL0::Bone::flatNext(a0));
+    EXPECT_EQ(b0, CTLib::MDL0::Bone::flatNext(a1));
+    EXPECT_EQ(b1, CTLib::MDL0::Bone::flatNext(b0));
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(b1));
+
+    CTLib::MDL0::Bone* c0 = mdl0->add<CTLib::MDL0::Bone>("c0");
+    CTLib::MDL0::Bone* c1 = c0->insert("c1");
+    CTLib::MDL0::Bone* a2 = a1->insert("a2");
+    CTLib::MDL0::Bone* a3 = a2->insert("a3");
+    CTLib::MDL0::Bone* b2 = b1->insert("b2");
+    CTLib::MDL0::Bone* b3 = b0->insert("b3");
+    EXPECT_EQ(a0, mdl0->getRootBone());
+    EXPECT_EQ(a1, CTLib::MDL0::Bone::flatNext(a0));
+    EXPECT_EQ(a2, CTLib::MDL0::Bone::flatNext(a1));
+    EXPECT_EQ(a3, CTLib::MDL0::Bone::flatNext(a2));
+    EXPECT_EQ(b0, CTLib::MDL0::Bone::flatNext(a3));
+    EXPECT_EQ(b1, CTLib::MDL0::Bone::flatNext(b0));
+    EXPECT_EQ(b2, CTLib::MDL0::Bone::flatNext(b1));
+    EXPECT_EQ(b3, CTLib::MDL0::Bone::flatNext(b2));
+    EXPECT_EQ(c0, CTLib::MDL0::Bone::flatNext(b3));
+    EXPECT_EQ(c1, CTLib::MDL0::Bone::flatNext(c0));
+    EXPECT_EQ(nullptr, CTLib::MDL0::Bone::flatNext(c1));
+}
+
+TEST(MDL0BoneTests, Errors)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+
+    CTLib::MDL0::Bone* b0 = mdl0->add<CTLib::MDL0::Bone>("b0");
+    EXPECT_THROW(b0->insert("b0"), CTLib::BRRESError);
+
+    CTLib::MDL0::Bone* b1 = b0->insert("b1");
+    EXPECT_THROW(b1->insert("b0"), CTLib::BRRESError);
+
+    EXPECT_THROW(b0->moveTo(b1), CTLib::BRRESError);
+    EXPECT_NO_THROW(b1->moveTo(b0));
+
+    b1->moveTo(nullptr);
+    EXPECT_NO_THROW(b0->moveTo(b1));
+    EXPECT_THROW(b1->moveTo(b0), CTLib::BRRESError);
+
+    EXPECT_THROW(b0->getChild("b1"), CTLib::BRRESError);
+    EXPECT_THROW(b0->getChild("bone"), CTLib::BRRESError);
+
+    EXPECT_NO_THROW(b1->getChild("b0"));
+    b0->moveTo(nullptr);
+    EXPECT_THROW(b1->getChild("b0"), CTLib::BRRESError);
+}
+
+TEST(MDL0VertexArrayTests, SetData)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    CTLib::MDL0::VertexArray* va = mdl0->add<CTLib::MDL0::VertexArray>("vertices");
+
+    EXPECT_EQ(0, va->getCount());
+    EXPECT_EQ(CTLib::Buffer(), va->getData());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMin());
+    EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMax());
+
+    CTLib::Buffer buffer(7 * 4 * 3);
+    buffer.putFloat(3.5f).putFloat(1.f).putFloat(0.f);
+    buffer.putFloat(-.5f).putFloat(0.f).putFloat(4.f);
+    buffer.putFloat(1.f).putFloat(.5f).putFloat(-3.5f);
+    buffer.putFloat(2.f).putFloat(1.5f).putFloat(-1.f);
+    buffer.putFloat(-2.5f).putFloat(-1.f).putFloat(.5f);
+    buffer.putFloat(.5f).putFloat(-2.f).putFloat(1.5f);
+    buffer.putFloat(0.f).putFloat(3.f).putFloat(-.5f);
+    buffer.flip();
+
+    va->setData(buffer);
+    EXPECT_EQ(7, va->getCount());
+    EXPECT_EQ(buffer, va->getData());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::Vector3f(-2.5f, -2.f, -3.5f), va->getBoxMin());
+    EXPECT_EQ(CTLib::Vector3f(3.5f, 3.f, 4.f), va->getBoxMax());
+
+    va->setData(CTLib::Buffer(), CTLib::MDL0::VertexArray::Components::XY);
+    EXPECT_EQ(0, va->getCount());
+    EXPECT_EQ(CTLib::Buffer(), va->getData());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XY, va->getComponentsType());
+    EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMin());
+    EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMax());
+}
+
+TEST(MDL0NormalArrayTests, SetData)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    CTLib::MDL0::NormalArray* na = mdl0->add<CTLib::MDL0::NormalArray>("normals");
+
+    EXPECT_EQ(0, na->getCount());
+    EXPECT_EQ(CTLib::Buffer(), na->getData());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal, na->getComponentsType());
+
+    CTLib::Buffer buffer(4 * 4 * 3);
+    buffer.putFloat(0.f).putFloat(1.f).putFloat(0.f);
+    buffer.putFloat(1.f).putFloat(0.f).putFloat(0.f);
+    buffer.putFloat(0.f).putFloat(-1.f).putFloat(0.f);
+    buffer.putFloat(0.f).putFloat(0.f).putFloat(-1.f);
+    buffer.flip();
+
+    na->setData(buffer);
+    EXPECT_EQ(4, na->getCount());
+    EXPECT_EQ(buffer, na->getData());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal, na->getComponentsType());
+
+    na->setData(CTLib::Buffer(), CTLib::MDL0::NormalArray::Components::Normal_BiNormal_Tangent);
+    EXPECT_EQ(0, na->getCount());
+    EXPECT_EQ(CTLib::Buffer(), na->getData());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal_BiNormal_Tangent, na->getComponentsType());
+}
+
+TEST(MDL0ColourArrayTests, SetData)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    CTLib::MDL0::ColourArray* ca = mdl0->add<CTLib::MDL0::ColourArray>("colours");
+
+    EXPECT_EQ(0, ca->getCount());
+    EXPECT_EQ(CTLib::Buffer(), ca->getData());
+    EXPECT_EQ(CTLib::MDL0::ColourArray::Format::RGBA8, ca->getFormat());
+
+    CTLib::Buffer buffer(11 * 3);
+    buffer.put(0xFF).put(0x00).put(0x00);
+    buffer.put(0x00).put(0xFF).put(0x00);
+    buffer.put(0x00).put(0x00).put(0xFF);
+    buffer.put(0xFF).put(0xFF).put(0x00);
+    buffer.put(0xFF).put(0x7F).put(0x00);
+    buffer.put(0xFF).put(0x00).put(0xFF);
+    buffer.put(0x7F).put(0x00).put(0xFF);
+    buffer.put(0x00).put(0xFF).put(0xFF);
+    buffer.put(0x00).put(0x00).put(0x00);
+    buffer.put(0x7F).put(0x7F).put(0x7F);
+    buffer.put(0xFF).put(0xFF).put(0xFF);
+    buffer.flip();
+
+    ca->setData(buffer, CTLib::MDL0::ColourArray::Format::RGB8);
+    EXPECT_EQ(11, ca->getCount());
+    EXPECT_EQ(buffer, ca->getData());
+    EXPECT_EQ(CTLib::MDL0::ColourArray::Format::RGB8, ca->getFormat());
+
+    ca->setData(CTLib::Buffer(), CTLib::MDL0::ColourArray::Format::RGB565);
+    EXPECT_EQ(0, ca->getCount());
+    EXPECT_EQ(CTLib::Buffer(), ca->getData());
+    EXPECT_EQ(CTLib::MDL0::ColourArray::Format::RGB565, ca->getFormat());
+}
+
+TEST(MDL0TexCoordArrayTests, SetData)
+{
+    CTLib::BRRES brres;
+    CTLib::MDL0* mdl0 = brres.add<CTLib::MDL0>("model");
+    CTLib::MDL0::TexCoordArray* tca = mdl0->add<CTLib::MDL0::TexCoordArray>("#0");
+
+    EXPECT_EQ(0, tca->getCount());
+    EXPECT_EQ(CTLib::Buffer(), tca->getData());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::ST, tca->getComponentsType());
+    EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMin());
+    EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMax());
+
+    CTLib::Buffer buffer(6 * 4 * 2);
+    buffer.putFloat(0.f).putFloat(.85f);
+    buffer.putFloat(.25f).putFloat(.35f);
+    buffer.putFloat(.675f).putFloat(.4f);
+    buffer.putFloat(.875f).putFloat(.5f);
+    buffer.putFloat(.125f).putFloat(.25f);
+    buffer.putFloat(.45f).putFloat(.6f);
+    buffer.flip();
+
+    tca->setData(buffer);
+    EXPECT_EQ(6, tca->getCount());
+    EXPECT_EQ(buffer, tca->getData());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::ST, tca->getComponentsType());
+    EXPECT_EQ(CTLib::Vector2f(0.f, .25f), tca->getBoxMin());
+    EXPECT_EQ(CTLib::Vector2f(.875f, .85f), tca->getBoxMax());
+
+    tca->setData(buffer, CTLib::MDL0::TexCoordArray::Components::S);
+    EXPECT_EQ(0, tca->getCount());
+    EXPECT_EQ(CTLib::Buffer(), tca->getData());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::S, tca->getComponentsType());
+    EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMin());
+    EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMax());
 }
 
 TEST(TEX0Tests, SetData)
