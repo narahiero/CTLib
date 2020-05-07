@@ -403,7 +403,8 @@ MDL0::Bone::Bone(MDL0* mdl0, const std::string& name) :
     prev{nullptr},
     pos{0, 0, 0},
     rot{0, 0, 0},
-    scale{1, 1, 1}
+    scale{1, 1, 1},
+    visible{true}
 {
     if (insertPrivate(mdl0->rootBone, this) == nullptr)
     {
@@ -587,6 +588,11 @@ void MDL0::Bone::setScale(Vector3f scale)
     this->scale = scale;
 }
 
+void MDL0::Bone::setVisible(bool visible)
+{
+    visible = true;
+}
+
 Vector3f MDL0::Bone::getPosition() const
 {
     return pos;
@@ -600,6 +606,11 @@ Vector3f MDL0::Bone::getRotation() const
 Vector3f MDL0::Bone::getScale() const
 {
     return scale;
+}
+
+bool MDL0::Bone::isVisible() const
+{
+    return visible;
 }
 
 MDL0::Bone* MDL0::Bone::insertPrivate(Bone* first, Bone* bone)

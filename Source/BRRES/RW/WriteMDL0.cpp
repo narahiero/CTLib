@@ -541,6 +541,24 @@ void writeMDL0LinksSections(
     }
 }
 
+uint32_t calcMDL0BoneFlags(MDL0::Bone* bone)
+{
+    uint32_t flags = 0;
+
+    flags |= bone->getPosition() == Vector3f() ? 1 << 1 : 0; // no translation
+    flags |= bone->getRotation() == Vector3f() ? 1 << 2 : 0; // no rotation
+    flags |= bone->getScale() == Vector3f() ? 1 << 3 : 0; // no scale
+    flags |= flags == 0 ? 1 : 0; // no transform
+
+    Vector3f scale = bone->getScale();
+    flags |= (scale[0] == scale[1] && scale[0] == scale[2]) ? 1 << 4 : 0; // scale equal
+
+    flags |= bone->isVisible() ? 1 << 8 : 0; // visible
+    flags |= 1 << 9; // has geometry
+    
+    return flags;
+}
+
 uint32_t offsetForMDL0Bone(MDL0SectionIndices* indices, MDL0::Bone* base, MDL0::Bone* bone)
 {
     return bone == nullptr ? 0 :
@@ -568,7 +586,7 @@ void writeMDL0BoneSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(bone)); // section index
         out.putInt(indices->indices.at(bone)); // section id
-        out.putInt(0x31F); // unknown flags
+        out.putInt(calcMDL0BoneFlags(bone)); // unknown flags
         out.putInt(0); // billboard settings
         out.putInt(0); // unknown/unused
         scale.put(out); // scale
@@ -750,8 +768,8 @@ void writeMDL0MaterialSections(
         out.put(1); // shader stages
         out.put(0); // indirect textures
         out.putInt(static_cast<uint32_t>(instance->getCullMode()));
-        out.put(0); // alpha function
-        out.put(0); // lightset
+        out.put(1); // alpha function
+        out.put(~0); // lightset
         out.put(0); // fogset
         out.put(0); // unknown/unused
         out.putInt(0); // indirect methods
@@ -789,14 +807,17 @@ void writeMDL0MaterialSections(
                 .putFloat(0.f).putFloat(0.f).putFloat(1.f).putFloat(0.f);
         }
 
-        for (uint32_t i = 0; i < 2; ++i) // lighting channels
-        {
-            out.putInt(0x3F); // flags (only last 6 bits are used)
-            out.putInt(0xFFFFFFFF); // material colour
-            out.putInt(0xFFFFFFFF); // ambient colour
-            out.putInt(0);
-            out.putInt(0);
-        }
+        out.putInt(0x3F); // flags (only last 6 bits are used)
+        out.putInt(0xFFFFFFFF); // material colour
+        out.putInt(0xFFFFFFFF); // ambient colour
+        out.putInt(0x00000703);
+        out.putInt(0x00000703);
+
+        out.putInt(0x0F);
+        out.putInt(0x000000FF);
+        out.putInt(0x00000000);
+        out.putInt(0x00000000);
+        out.putInt(0x00000000);
 
         ////// Layers //////////////////
 
@@ -837,29 +858,38 @@ void writeMDL0MaterialSections(
 
         out.put(0x61).put(0x42).put(0x00).put(0x00).put(0x00); // unknown BP instruction
 
-        // Shader registers (0x80)
+        // Shader colors (0x40)
         out.position(pos + displayListOff + 0x20);
 
-        out.put(0x61).put(0xE2).put(0x00).put(0x00).put(0x00); // shader color0 alpha/red
-        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00); // shader color0 green/blue
+        out.put(0x61).put(0xE2).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
 
-        out.put(0x61).put(0xE4).put(0x00).put(0x00).put(0x00); // shader color1 alpha/red
-        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00); // shader color1 green/blue
+        out.put(0x61).put(0xE4).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
 
-        out.put(0x61).put(0xE6).put(0x00).put(0x00).put(0x00); // shader color2 alpha/red
-        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00); // shader color3 green/blue
+        out.put(0x61).put(0xE6).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
+        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
 
-        out.put(0x61).put(0xE0).put(0x80).put(0x00).put(0x00); // shader constant color0 alpha/red
-        out.put(0x61).put(0xE1).put(0x80).put(0x00).put(0x00); // shader constant color0 green/blue
+        // Shader constant colors (0x40)
+        out.position(pos + displayListOff + 0x60);
 
-        out.put(0x61).put(0xE2).put(0x80).put(0x00).put(0x00); // shader constant color1 alpha/red
-        out.put(0x61).put(0xE3).put(0x80).put(0x00).put(0x00); // shader constant color1 green/blue
+        out.put(0x61).put(0xE0).put(0x80).put(0x00).put(0x00);
+        out.put(0x61).put(0xE1).put(0x80).put(0x00).put(0x00);
 
-        out.put(0x61).put(0xE4).put(0x80).put(0x00).put(0x00); // shader constant color2 alpha/red
-        out.put(0x61).put(0xE5).put(0x80).put(0x00).put(0x00); // shader constant color2 green/blue
+        out.put(0x61).put(0xE2).put(0x80).put(0x00).put(0x00);
+        out.put(0x61).put(0xE3).put(0x80).put(0x00).put(0x00);
 
-        out.put(0x61).put(0xE6).put(0x80).put(0x00).put(0x00); // shader constant color3 alpha/red
-        out.put(0x61).put(0xE7).put(0x80).put(0x00).put(0x00); // shader constant color3 green/blue
+        out.put(0x61).put(0xE4).put(0x80).put(0x00).put(0x00);
+        out.put(0x61).put(0xE5).put(0x80).put(0x00).put(0x00);
+
+        out.put(0x61).put(0xE6).put(0x80).put(0x00).put(0x00);
+        out.put(0x61).put(0xE7).put(0x80).put(0x00).put(0x00);
 
         // Texture tranformations (0x40)
         out.position(pos + displayListOff + 0xA0);
@@ -936,11 +966,12 @@ void writeMDL0ShaderSections(
         out.position(pos + 0x80);
 
         out.put(0x61).put(0xFE).put(0xFF).put(0xFF).put(0xF0); // set BP mask
-        out.put(0x61).put(0xF6).put(0x00).put(0x00).put(0x00); // BP swap mode
+        out.put(0x61).put(0xF6).put(0x00).put(0x38).put(0xC0); // BP swap mode
 
         out.put(0x61).put(0x28).put(0x3B).put(0xF0).put(0x40); // BP texture reading flags
 
         out.put(0x61).put(0xC0).put(0x18).put(0xFF).put(0xF8); // BP colour shader operation
+        out.put(0x00).put(0x00).put(0x00).put(0x00).put(0x00);
         out.put(0x61).put(0xC1).put(0x08).put(0xF2).put(0xF0); // BP alpha shader operation
 
         out.put(0x61).put(0x10).put(0x00).put(0x00).put(0x00); // unknown BP instruction

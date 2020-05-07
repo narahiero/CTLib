@@ -444,6 +444,9 @@ public:
         /*! @brief Sets the scale of this bone. */
         void setScale(Vector3f scale);
 
+        /*! @brief Sets whether this bone is visible. */
+        void setVisible(bool visible);
+
         /*! @brief Returns the position of this bone. */
         Vector3f getPosition() const;
 
@@ -452,6 +455,9 @@ public:
 
         /*! @brief Returns the scale of this bone. */
         Vector3f getScale() const;
+
+        /*! @brief Returns whether this bone is visible. */
+        bool isVisible() const;
 
     private:
 
@@ -503,6 +509,9 @@ public:
 
         // scale
         Vector3f scale;
+
+        // visibility flag
+        bool visible;
     };
 
     /*! @brief Contains vertex data of a MDL0. (Section #2) */
