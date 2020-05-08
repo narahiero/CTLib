@@ -44,7 +44,7 @@
  *  @note The version macros represents the version of the headers and **NOT**
  *  the binaries.
  */
-#define CT_LIB_VERSION_MINOR 1
+#define CT_LIB_VERSION_MINOR 2
 
 /*! @brief CT Lib headers' version patch.
  * 
