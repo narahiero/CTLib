@@ -959,14 +959,88 @@ public:
         /*! @brief The SectionType of this class. */
         constexpr static SectionType TYPE = SectionType::Shader;
 
+        class Stage final
+        {
+
+            friend class Shader;
+
+        public:
+
+            ~Stage();
+
+        private:
+
+            Stage(Shader* shader);
+        };
+
+        /*! @brief Max number of texture references per shader. */
+        constexpr static uint8_t MAX_TEX_REF = 8;
+
+        /*! @brief Represents an unused material layer index. */
+        constexpr static uint8_t UNUSED = 0xFF;
+
         ~Shader();
 
         /*! @brief Returns SectionType::Shader. */
         SectionType getType() const override;
 
+        /*! @brief Creates and returns a new Shader Stage instance. */
+        Stage* addStage();
+
+        /*! @brief Sets the material layer to use for the texture ref at the
+         *  specified index.
+         *  
+         *  @param[in] index The texture ref index (0-7)
+         *  @param[in] layer The material layer index
+         *  
+         *  @throw CTLib::BRRESError If the specified texture ref index is more
+         *  than or equal to Shader::MAX_TEX_REF, or the specified material
+         *  layer index is more than or equal to Material::MAX_LAYER_COUNT and
+         *  not equal to Shader::UNUSED.
+         */
+        void setTexRef(uint8_t index, uint8_t layer);
+
+        /*! @brief Returns the Shader Stage at the specified index.
+         *  
+         *  @throw CTLib::BRRESError If the specified index is more than or
+         *  equal to the stage count.
+         */
+        Stage* getStage(uint8_t index) const;
+
+        /*! @brief Returns a std::vector containing all stages. */
+        std::vector<Stage*> getStages() const;
+
+        /*! @brief Returns the number of stages in this shader. */
+        uint8_t getStageCount() const;
+
+        /*! @brief Returns the materal layer index for the texture ref at the
+         *  specified index, or Shader::UNUSED if not set.
+         * 
+         *  @param[in] index The texture ref index (0-7)
+         * 
+         *  @throw CTLib::BRRESError If the specified texture ref index is more
+         *  than or equal to Shader::MAX_TEX_REF.
+         */
+        uint8_t getTexRef(uint8_t index) const;
+
     private:
 
         Shader(MDL0* mdl0, const std::string& name);
+
+        // throws if 'index' >= 'getStageCount()'
+        void assertValidStageIndex(uint8_t index) const;
+
+        // throws if 'index' >= 'MAX_TEX_REF'
+        void assertValidTexRefIndex(uint8_t index) const;
+
+        // throws if 'layer' >= 'Material::MAX_LAYER_COUNT' and != 'UNUSED'
+        void assertValidLayerRef(uint8_t layer) const;
+
+        // material layer references
+        uint8_t texRefs[MAX_TEX_REF];
+
+        // vector containing all stages in this shader
+        std::vector<Stage*> stages;
     };
 
     /*! @brief An object within a MDL0. (Section #10) */

@@ -586,7 +586,7 @@ void writeMDL0BoneSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(bone)); // section index
         out.putInt(indices->indices.at(bone)); // section id
-        out.putInt(calcMDL0BoneFlags(bone)); // unknown flags
+        out.putInt(calcMDL0BoneFlags(bone)); // flags
         out.putInt(0); // billboard settings
         out.putInt(0); // unknown/unused
         scale.put(out); // scale
@@ -598,9 +598,9 @@ void writeMDL0BoneSections(
         out.putInt(offsetForMDL0Bone(indices, bone, bone->getFirstChild()));
         out.putInt(offsetForMDL0Bone(indices, bone, bone->getNext()));
         out.putInt(offsetForMDL0Bone(indices, bone, bone->getPrevious())); // previous sibling offset
-        out.putInt(0); // unknown
+        out.putInt(0); // unknown/unused
 
-        // 2 unused matrices 4x3
+        // 2 unused matrices 4x3 (calculated at runtime)
         out.putInt(0).putInt(0).putInt(0).putInt(0)
             .putInt(0).putInt(0).putInt(0).putInt(0)
             .putInt(0).putInt(0).putInt(0).putInt(0); // transformation matrix
@@ -765,7 +765,7 @@ void writeMDL0MaterialSections(
         out.putInt(instance->isXLU() ? 0x80000000 : 0x0); // flags
         out.put(1); // texgens
         out.put(1); // light channels
-        out.put(1); // shader stages
+        out.put(instance->getShader()->getStageCount());
         out.put(0); // indirect textures
         out.putInt(static_cast<uint32_t>(instance->getCullMode()));
         out.put(1); // alpha function
@@ -807,12 +807,14 @@ void writeMDL0MaterialSections(
                 .putFloat(0.f).putFloat(0.f).putFloat(1.f).putFloat(0.f);
         }
 
+        // light channel 0
         out.putInt(0x3F); // flags (only last 6 bits are used)
         out.putInt(0xFFFFFFFF); // material colour
         out.putInt(0xFFFFFFFF); // ambient colour
-        out.putInt(0x00000703);
-        out.putInt(0x00000703);
+        out.putInt(0x00000703); // color control
+        out.putInt(0x00000703); // alpha control
 
+        // light channel 1
         out.putInt(0x0F);
         out.putInt(0x000000FF);
         out.putInt(0x00000000);
@@ -918,18 +920,18 @@ void writeMDL0ShaderSections(
         out.putInt(calculateMDL0SectionSize<MDL0::Shader>(instance));
         out.putInt(static_cast<uint32_t>(offToMDL0));
         out.putInt(indices->indices.at(instance)); // section index
-        out.put(0x1); // layer enable flags
+        out.put(instance->getStageCount()); // stage count
         out.put(0); // unused in MKW
         out.put(0); // unused in MKW
         out.put(0); // unused in MKW
-        out.put(0); // layer index [TexRef0]
-        out.put(0xFF); // layer index [TexRef1]
-        out.put(0xFF); // layer index [TexRef2]
-        out.put(0xFF); // layer index [TexRef3]
-        out.put(0xFF); // layer index [TexRef4]
-        out.put(0xFF); // layer index [TexRef5]
-        out.put(0xFF); // layer index [TexRef6]
-        out.put(0xFF); // layer index [TexRef7]
+        out.put(instance->getTexRef(0)); // material layer index
+        out.put(instance->getTexRef(1)); // material layer index
+        out.put(instance->getTexRef(2)); // material layer index
+        out.put(instance->getTexRef(3)); // material layer index
+        out.put(instance->getTexRef(4)); // material layer index
+        out.put(instance->getTexRef(5)); // material layer index
+        out.put(instance->getTexRef(6)); // material layer index
+        out.put(instance->getTexRef(7)); // material layer index
         out.putInt(0); // unknown/unused
         out.putInt(0); // unknown/unused
 
@@ -965,16 +967,30 @@ void writeMDL0ShaderSections(
         // Stages
         out.position(pos + 0x80);
 
-        out.put(0x61).put(0xFE).put(0xFF).put(0xFF).put(0xF0); // set BP mask
-        out.put(0x61).put(0xF6).put(0x00).put(0x38).put(0xC0); // BP swap mode
+        for (uint8_t i = 0; i < instance->getStageCount(); i += 2)
+        {
+            uint32_t stgPos = pos + 0x80 + ((i >> 1) * 0x30);
 
-        out.put(0x61).put(0x28).put(0x3B).put(0xF0).put(0x40); // BP texture reading flags
+            out.position(stgPos);
+            out.put(0x61).put(0xFE).put(0xFF).put(0xFF).put(0xF0); // set BP mask
+            out.put(0x61).put(0xF6 + (i >> 1)).put(0x00).put(0x38).put(0xC0); // BP swap mode
+            out.put(0x61).put(0x28 + (i >> 1)).put(0x3B).put(0xF0).put(0x40); // BP texture reading flags
 
-        out.put(0x61).put(0xC0).put(0x18).put(0xFF).put(0xF8); // BP colour shader operation
-        out.put(0x00).put(0x00).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xC1).put(0x08).put(0xF2).put(0xF0); // BP alpha shader operation
+            for (uint8_t j = 0; j < 2 && i + j < instance->getStageCount(); ++j)
+            {
+                // BP colour shader operation
+                out.position(stgPos + 0xF + ((j % 2) * 0x5));
+                out.put(0x61).put(0xC0 + ((i + j) << 1)).put(0x08).put(0xFF).put(0xF8);
 
-        out.put(0x61).put(0x10).put(0x00).put(0x00).put(0x00); // unknown BP instruction
+                // BP alpha shader operation
+                out.position(stgPos + 0x19 + ((j % 2) * 0x5));
+                out.put(0x61).put(0xC1 + ((i + j) << 1)).put(0x08).put(0xF2).put(0xF0);
+
+                // unknown BP instruction
+                out.position(stgPos + 0x23 + ((j % 2) * 0x5));
+                out.put(0x61).put(0x10 + i + j).put(0x00).put(0x00).put(0x00);
+            }
+        }
     }
 }
 

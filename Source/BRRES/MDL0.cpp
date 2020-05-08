@@ -1229,17 +1229,106 @@ MDL0::Material::Layer::MagFilter MDL0::Material::Layer::getMagFilter() const
 ////
 
 MDL0::Shader::Shader(MDL0* mdl0, const std::string& name) :
-    Section(mdl0, name)
+    Section(mdl0, name),
+    stages{}
 {
-
+    for (uint8_t i = 0; i < MAX_TEX_REF; ++i)
+    {
+        texRefs[i] = UNUSED;
+    }
 }
 
-MDL0::Shader::~Shader() = default;
+MDL0::Shader::~Shader()
+{
+    for (Stage* stage : stages)
+    {
+        delete stage;
+    }
+}
 
 MDL0::SectionType MDL0::Shader::getType() const
 {
     return SectionType::Shader;
 }
+
+MDL0::Shader::Stage* MDL0::Shader::addStage()
+{
+    Stage* stage = new Stage(this);
+    stages.push_back(stage);
+    return stage;
+}
+
+void MDL0::Shader::setTexRef(uint8_t index, uint8_t layer)
+{
+    assertValidTexRefIndex(index);
+    assertValidLayerRef(layer);
+
+    texRefs[index] = layer;
+}
+
+MDL0::Shader::Stage* MDL0::Shader::getStage(uint8_t index) const
+{
+    assertValidStageIndex(index);
+    return stages.at(index);
+}
+
+std::vector<MDL0::Shader::Stage*> MDL0::Shader::getStages() const
+{
+    return stages;
+}
+
+uint8_t MDL0::Shader::getStageCount() const
+{
+    return static_cast<uint8_t>(stages.size());
+}
+
+uint8_t MDL0::Shader::getTexRef(uint8_t index) const
+{
+    assertValidTexRefIndex(index);
+    return texRefs[index];
+}
+
+void MDL0::Shader::assertValidStageIndex(uint8_t index) const
+{
+    if (index >= getStageCount())
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: The specified stage index is out of bounds! (%d >= %d)",
+            index, getStageCount()
+        ));
+    }
+}
+
+void MDL0::Shader::assertValidTexRefIndex(uint8_t index) const
+{
+    if (index >= MAX_TEX_REF)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: The specified texture ref index is invalid! (%d >= %d)",
+            index, MAX_TEX_REF
+        ));
+    }
+}
+
+void MDL0::Shader::assertValidLayerRef(uint8_t layer) const
+{
+    if (layer >= Material::MAX_LAYER_COUNT && layer != UNUSED)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: The specified material layer index is invalid! (%d)",
+            layer
+        ));
+    }
+}
+
+////// Stage class /////////////////////
+
+MDL0::Shader::Stage::Stage(Shader* shader)
+{
+
+}
+
+MDL0::Shader::Stage::~Stage() = default;
 
 
 ////////////////////////////////////////////////////////////////////////////////

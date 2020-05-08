@@ -9,9 +9,16 @@ used by Mario Kart Wii. It is licensed under GPLv3+.
 ## Format Support
 
 | **Format**      | **Status**         |
-| --------------- |:------------------:|
+|:--------------- |:------------------:|
 | Yaz0/Yaz1       | Fully Supported    |
 | U8              | Fully Supported    |
-| BRRES           | In Progress        |
+| BRRES           | Basic Support      |
 | KCL             | Not Supported Yet  |
 | KMP             | Not Supported Yet  |
+
+### BRRES Subfiles Support
+
+| **Subfile**     | **Status**         |
+|:--------------- |:------------------:|
+| MDL0            | Basic Support      |
+| TEX0            | Mostly Supported   |
