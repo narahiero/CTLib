@@ -742,6 +742,19 @@ uint32_t getMDL0ShaderSectionOffset(MDL0::Material* instance, MDL0Offsets* offse
         : offsets->sectionOffs.at(instance->getShader()) - offsets->sectionOffs.at(instance);
 }
 
+uint32_t calcMDL0MaterialAlphaMode(MDL0::Material* instance)
+{
+    uint32_t alphaMode = 0x41 << 24;
+
+    MDL0::Material::AlphaMode mode = instance->getAlphaMode();
+    alphaMode |= mode.enabled ? 1 : 0;
+    alphaMode |= (static_cast<uint8_t>(mode.dest  ) & 0x7) << 5;
+    alphaMode |= (static_cast<uint8_t>(mode.source) & 0x7) << 8;
+    alphaMode |= 3 << 12;
+
+    return alphaMode;
+}
+
 void writeMDL0MaterialSections(
     Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices,
     BRRESStringTable* table, uint32_t tableOff
@@ -763,13 +776,13 @@ void writeMDL0MaterialSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(instance)); // section index
         out.putInt(instance->isXLU() ? 0x80000000 : 0x0); // flags
-        out.put(1); // texgens
+        out.put(static_cast<uint8_t>(instance->getLayerCount())); // texgens
         out.put(1); // light channels
         out.put(instance->getShader()->getStageCount());
         out.put(0); // indirect textures
         out.putInt(static_cast<uint32_t>(instance->getCullMode()));
         out.put(1); // alpha function
-        out.put(~0); // lightset
+        out.put(0xFF); // lightset
         out.put(0); // fogset
         out.put(0); // unknown/unused
         out.putInt(0); // indirect methods
@@ -823,6 +836,7 @@ void writeMDL0MaterialSections(
 
         ////// Layers //////////////////
 
+        uint32_t texID = 0;
         for (MDL0::Material::Layer* layer : instance->getLayers())
         {
             uint32_t layerPos = offsets->layerOffs.at(layer);
@@ -834,16 +848,16 @@ void writeMDL0MaterialSections(
             out.putInt(0); // name of palette link
             out.putInt(0); // offset to texture data; calculated at runtime
             out.putInt(0); // offset to palette data; calculated at runtime
-            out.putInt(0); // texture ID
+            out.putInt(texID++); // texture ID
             out.putInt(0); // palette ID
             out.putInt(static_cast<uint32_t>(layer->getTextureWrapMode())); // texture wrap S
             out.putInt(static_cast<uint32_t>(layer->getTextureWrapMode())); // texture wrap T
             out.putInt(static_cast<uint32_t>(layer->getMinFilter())); // min filter
             out.putInt(static_cast<uint32_t>(layer->getMagFilter())); // mag filter
-            out.putInt(0); // lod bias
-            out.putInt(0); // max anisotropy filtering
-            out.put(0); // clamp bias
-            out.put(0); // texel interpolate
+            out.putFloat(layer->getLODBias());
+            out.putInt(static_cast<uint32_t>(layer->getMaxAnisotropyFiltering()));
+            out.put(layer->isClampBiasEnabled() ? 1 : 0); // clamp bias
+            out.put(layer->usesTexelInterpolate() ? 1 : 0); // texel interpolate
             out.putShort(0); // unknown/unused
         }
 
@@ -856,7 +870,7 @@ void writeMDL0MaterialSections(
         out.put(0x61).put(0x40).put(0x00).put(0x00).put(0x17); // unknown BP instruction
 
         out.put(0x61).put(0xFE).put(0x00).put(0xFF).put(0xE3); // set BP mask
-        out.put(0x61).put(0x41).put(0x00).put(0x34).put(0xA0); // BP alpha blending settings
+        out.put(0x61).putInt(calcMDL0MaterialAlphaMode(instance)); // BP alpha blending mode
 
         out.put(0x61).put(0x42).put(0x00).put(0x00).put(0x00); // unknown BP instruction
 
@@ -902,8 +916,11 @@ void writeMDL0MaterialSections(
         // Texture matrices (0xA0)
         out.position(pos + displayListOff + 0xE0);
 
-        out.put(0x10).putShort(0).putShort(0x1040).putInt(0x00005280); // XF texture matrix0
-        out.put(0x10).putShort(0).putShort(0x1050).putInt(0x00000000); // XF posteffect matrix0
+        for (uint8_t i = 0; i < instance->getLayerCount(); ++i)
+        {
+            out.put(0x10).putShort(0).putShort(0x1040 + i).putInt(0x00005280); // XF tex matrix0
+            out.put(0x10).putShort(0).putShort(0x1050 + i).putInt(i * 0x3); // XF posteffect matrix0
+        }
     }
 }
 

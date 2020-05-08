@@ -1068,7 +1068,9 @@ MDL0::Material::Material(MDL0* mdl0, const std::string& name) :
     Section(mdl0, name),
     xlu{false},
     cullMode{CullMode::Inside},
-    layers{}
+    alphaMode{false, AlphaMode::Source::SourceAlpha, AlphaMode::Dest::InverseSourceAlpha},
+    layers{},
+    shader{nullptr}
 {
 
 }
@@ -1114,6 +1116,11 @@ void MDL0::Material::setCullMode(CullMode mode)
     cullMode = mode;
 }
 
+void MDL0::Material::setAlphaMode(AlphaMode mode)
+{
+    alphaMode = mode;
+}
+
 void MDL0::Material::setShader(Shader* shader)
 {
     assertSameMDL0(shader);
@@ -1128,6 +1135,11 @@ bool MDL0::Material::isXLU() const
 MDL0::Material::CullMode MDL0::Material::getCullMode() const
 {
     return cullMode;
+}
+
+MDL0::Material::AlphaMode MDL0::Material::getAlphaMode() const
+{
+    return alphaMode;
 }
 
 MDL0::Shader* MDL0::Material::getShader() const
@@ -1174,7 +1186,11 @@ MDL0::Material::Layer::Layer(Material* material, TextureLink* link) :
     link{link},
     wrapMode{TextureWrap::Repeat},
     minFilter{MinFilter::Linear},
-    magFilter{MagFilter::Linear}
+    magFilter{MagFilter::Linear},
+    lodBias{0.f},
+    anisotropyFiltering{AnisotropyFiltering::One},
+    clampBias{false},
+    texelInterpolate{false}
 {
 
 }
@@ -1206,6 +1222,26 @@ void MDL0::Material::Layer::setMagFilter(MagFilter filter)
     magFilter = filter;
 }
 
+void MDL0::Material::Layer::setLODBias(float bias)
+{
+    lodBias = bias;
+}
+
+void MDL0::Material::Layer::setMaxAnisotropyFiltering(AnisotropyFiltering val)
+{
+    anisotropyFiltering = val;
+}
+
+void MDL0::Material::Layer::setClampBiasEnabled(bool enable)
+{
+    clampBias = enable;
+}
+
+void MDL0::Material::Layer::setUsesTexelInterpolate(bool enable)
+{
+    texelInterpolate = enable;
+}
+
 MDL0::Material::Layer::TextureWrap MDL0::Material::Layer::getTextureWrapMode() const
 {
     return wrapMode;
@@ -1219,6 +1255,26 @@ MDL0::Material::Layer::MinFilter MDL0::Material::Layer::getMinFilter() const
 MDL0::Material::Layer::MagFilter MDL0::Material::Layer::getMagFilter() const
 {
     return magFilter;
+}
+
+float MDL0::Material::Layer::getLODBias() const
+{
+    return lodBias;
+}
+
+MDL0::Material::Layer::AnisotropyFiltering MDL0::Material::Layer::getMaxAnisotropyFiltering() const
+{
+    return anisotropyFiltering;
+}
+
+bool MDL0::Material::Layer::isClampBiasEnabled() const
+{
+    return clampBias;
+}
+
+bool MDL0::Material::Layer::usesTexelInterpolate() const
+{
+    return texelInterpolate;
 }
 
 

@@ -819,6 +819,17 @@ public:
                 Linear = 0x1
             };
 
+            /*! @brief Enumeration of the possible anisotropy filtering values. */
+            enum class AnisotropyFiltering
+            {
+                /*! @brief `1` (aka none). */
+                One = 0x0,
+
+                Two = 0x1,
+
+                Four = 0x2
+            };
+
             ~Layer();
 
             /*! @brief Returns the material owning this Layer. */
@@ -836,6 +847,18 @@ public:
             /*! @brief Sets the MagFilter of this layer. */
             void setMagFilter(MagFilter filter);
 
+            /*! @brief Sets the LOD bias of this layer. */
+            void setLODBias(float bias);
+
+            /*! @brief Sets the maximum AnisotropyFiltering of this layer. */
+            void setMaxAnisotropyFiltering(AnisotropyFiltering val);
+
+            /*! @brief Sets whether clamp bias is enabled for this layer. */
+            void setClampBiasEnabled(bool enable);
+
+            /*! @brief Sets whether this layer uses texel interpolate. */
+            void setUsesTexelInterpolate(bool enable);
+
             /*! @brief Returns the TextureWrap mode of this layer. */
             TextureWrap getTextureWrapMode() const;
 
@@ -844,6 +867,18 @@ public:
 
             /*! @brief Returns the MagFilter of this layer. */
             MagFilter getMagFilter() const;
+
+            /*! @brief Returns the LOD bias of this layer. */
+            float getLODBias() const;
+
+            /*! @brief Returns the maximum AnisotropyFiltering of this layer. */
+            AnisotropyFiltering getMaxAnisotropyFiltering() const;
+
+            /*! @brief Returns whether clamp bias is enabled for this layer. */
+            bool isClampBiasEnabled() const;
+
+            /*! @brief Returns whether this layer uses texel interpolate. */
+            bool usesTexelInterpolate() const;
 
         private:
 
@@ -860,6 +895,14 @@ public:
             MinFilter minFilter;
 
             MagFilter magFilter;
+
+            float lodBias;
+
+            AnisotropyFiltering anisotropyFiltering;
+
+            bool clampBias;
+
+            bool texelInterpolate;
         };
 
         /*! @brief Enumeration of the possible cull modes. */
@@ -876,6 +919,46 @@ public:
 
             /*! @brief Both sides of face culled. */
             All = 0x3
+        };
+
+        /*! @brief Alpha blending settings. */
+        struct AlphaMode final
+        {
+
+            /*! @brief Enumeration of the possible source values. */
+            enum class Source : uint8_t
+            {
+                Zero = 0x0,
+                One = 0x1,
+                SourceColour = 0x2,
+                InverseSourceColour = 0x3,
+                SourceAlpha = 0x4,
+                InverseSourceAlpha = 0x5,
+                DestAlpha = 0x6,
+                InverseDestAlpha = 0x7
+            };
+
+            /*! @brief Enumeration of the possible destination values. */
+            enum class Dest : uint8_t
+            {
+                Zero = 0x0,
+                One = 0x1,
+                DestColour = 0x2,
+                InverseDestColour = 0x3,
+                SourceAlpha = 0x4,
+                InverseSourceAlpha = 0x5,
+                DestAlpha = 0x6,
+                InverseDestAlpha = 0x7
+            };
+
+            /*! @brief Whether alpha blending is enabled. */
+            bool enabled;
+
+            /*! @brief Alpha blending source. */
+            Source source;
+
+            /*! @brief Alpha blending destination. */
+            Dest dest;
         };
 
         /*! @brief Maximum amount of layers per material. */
@@ -908,6 +991,9 @@ public:
         /*! @brief Sets the CullMode of this material. */
         void setCullMode(CullMode mode);
 
+        /*! @brief Sets the AlphaMode of this material. */
+        void setAlphaMode(AlphaMode mode);
+
         /*! @brief Sets the Shader used by this Material. */
         void setShader(Shader* shader);
 
@@ -916,6 +1002,9 @@ public:
 
         /*! @brief Returns the CullMode of this material. */
         CullMode getCullMode() const;
+
+        /*! @brief Returns the AlphaMode of this material. */
+        AlphaMode getAlphaMode() const;
 
         /*! @brief Returns the Shader used by this Material. */
         Shader* getShader() const;
@@ -940,6 +1029,9 @@ public:
 
         // cull mode of this material
         CullMode cullMode;
+
+        // alpha mode of this material
+        AlphaMode alphaMode;
 
         // vector containing all layers in this Material
         std::vector<Layer*> layers;
@@ -1011,7 +1103,7 @@ public:
             };
 
             /*! @brief The colour operation of a Shader Stage. */
-            struct ColourOp
+            struct ColourOp final
             {
 
                 /*! @brief Enumeration of the possible stage argument types. */
@@ -1064,7 +1156,7 @@ public:
             };
 
             /*! @brief The alpha operation of a Shader Stage. */
-            struct AlphaOp
+            struct AlphaOp final
             {
 
                 /*! @brief Enumeration of the possible arg values. */
