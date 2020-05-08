@@ -966,12 +966,209 @@ public:
 
         public:
 
+            /*! @brief Enumeration of the possible raster input values. */
+            enum class RasterInput : uint8_t
+            {
+                Color0 = 0x0,
+                Color1 = 0x1,
+                AlphaBump = 0x4,
+                NormalizedAlphaBump = 0x5,
+                Zero = 0x7
+            };
+
+            /*! @brief Enumeration of the possible bias values. */
+            enum class Bias : uint8_t
+            {
+                Zero = 0x0,
+                Half = 0x1,
+                MinusHalf = 0x2,
+                Unknown = 0x3
+            };
+
+            /*! @brief Enumeration of the possible op values. */
+            enum class Op : uint8_t
+            {
+                Add = 0x0,
+                Sub = 0x1
+            };
+
+            /*! @brief Enumeration of the possible scale values. */
+            enum class Scale : uint8_t
+            {
+                MultiplyBy1 = 0x0,
+                MultiplyBy2 = 0x1,
+                MultiplyBy4 = 0x2,
+                DivideBy2 = 0x3
+            };
+
+            /*! @brief Enumeration of the possible destination values. */
+            enum class Dest : uint8_t
+            {
+                PixelOutput = 0x0,
+                Temp0 = 0x1,
+                Temp1 = 0x2,
+                Temp2 = 0x3
+            };
+
+            /*! @brief The colour operation of a Shader Stage. */
+            struct ColourOp
+            {
+
+                /*! @brief Enumeration of the possible stage argument types. */
+                enum class Arg : uint8_t
+                {
+                    PixelOutput = 0x0,
+                    PixelOutputAlpha = 0x1,
+                    Temp0 = 0x2,
+                    Temp0Alpha = 0x3,
+                    Temp1 = 0x4,
+                    Temp1Alpha = 0x5,
+                    Temp2 = 0x6,
+                    Temp2Alpha = 0x7,
+                    Texture = 0x8,
+                    TextureAlpha = 0x9,
+                    Raster = 0xA,
+                    RasterAlpha = 0xB,
+                    One = 0xC,
+                    Half = 0xD,
+                    Constant = 0xE,
+                    Zero = 0xF
+                };
+
+                /*! @brief Argument A in colour operation. */
+                Arg argA;
+
+                /*! @brief Argument B in colour operation. */
+                Arg argB;
+
+                /*! @brief Argument C in colour operation. */
+                Arg argC;
+
+                /*! @brief Argument D in colour operation. */
+                Arg argD;
+
+                /*! @brief Bias in colour operation. */
+                Bias bias;
+
+                /*! @brief Op in colour operation. */
+                Op op;
+
+                /*! @brief Whether clamp output between `0.0` and `1.0`. */
+                bool clamp;
+
+                /*! @brief Scale in colour operation. */
+                Scale scale;
+
+                /*! @brief Dest in colour operation. */
+                Dest dest;
+            };
+
+            /*! @brief The alpha operation of a Shader Stage. */
+            struct AlphaOp
+            {
+
+                /*! @brief Enumeration of the possible arg values. */
+                enum class Arg : uint8_t
+                {
+                    PixelOutput = 0x0,
+                    Temp0 = 0x1,
+                    Temp1 = 0x2,
+                    Temp2 = 0x3,
+                    Texture = 0x4,
+                    Raster = 0x5,
+                    Constant = 0x6,
+                    Zero = 0x7
+                };
+
+                /*! @brief Argument A in alpha operation. */
+                Arg argA;
+
+                /*! @brief Argument B in alpha operation. */
+                Arg argB;
+
+                /*! @brief Argument C in alpha operation. */
+                Arg argC;
+
+                /*! @brief Argument D in alpha operation. */
+                Arg argD;
+
+                /*! @brief Bias in alpha operation. */
+                Bias bias;
+
+                /*! @brief Op in alpha operation. */
+                Op op;
+
+                /*! @brief Whether clamp output between `0.0` and `1.0`. */
+                bool clamp;
+
+                /*! @brief Scale in alpha operation. */
+                Scale scale;
+
+                /*! @brief Dest in alpha operation. */
+                Dest dest;
+            };
+
             ~Stage();
+
+            /*! @brief Sets whether this Shader Stage uses a texture. */
+            void setUsesTexture(bool enable);
+
+            /*! @brief Sets the texture coord index of this Shader Stage.
+             *  
+             *  @throw CTLib::BRRESError If the specified index is more than or
+             *  equal to Object::TEX_COORD_ARRAY_COUNT.
+             */
+            void setTexCoordIndex(uint8_t index);
+
+            /*! @brief Sets the raster input of this Shader Stage. */
+            void setRasterInput(RasterInput in);
+
+            /*! @brief Sets the colour operation of this Shader Stage. */
+            void setColourOp(ColourOp op);
+
+            /*! @brief Sets the alpha operation of this Shader Stage. */
+            void setAlphaOp(AlphaOp op);
+
+            /*! @brief Returns whether this Shader Stage uses a texture. */
+            bool usesTexture() const;
+
+            /*! @brief Returns the texture coord index of this Shader Stage. */
+            uint8_t getTexCoordIndex() const;
+
+            /*! @brief Returns the raster input of this Shader Stage. */
+            RasterInput getRasterInput() const;
+
+            /*! @brief Returns the colour operation of this Shader Stage. */
+            ColourOp getColourOp() const;
+
+            /*! @brief Returns the alpha operation of this Shader Stage. */
+            AlphaOp getAlphaOp() const;
 
         private:
 
             Stage(Shader* shader);
+
+            // throws if 'index' >= 'Object::TEX_COORD_ARRAY_COUNT'
+            void assertValidTexCoordIndex(uint8_t index) const;
+
+            // pointer to the Shader owning this Stage
+            Shader* shader;
+
+            // whether this stage uses a texture
+            bool useTex;
+
+            // texture coord index
+            uint8_t texCoordIdx;
+
+            // raster input loc
+            RasterInput rasIn;
+
+            ColourOp colourOp;
+            AlphaOp alphaOp;
         };
+
+        /*! @brief Max number of stages per shader. */
+        constexpr static uint8_t MAX_STAGE_COUNT = 8;
 
         /*! @brief Max number of texture references per shader. */
         constexpr static uint8_t MAX_TEX_REF = 8;
@@ -984,7 +1181,11 @@ public:
         /*! @brief Returns SectionType::Shader. */
         SectionType getType() const override;
 
-        /*! @brief Creates and returns a new Shader Stage instance. */
+        /*! @brief Creates and returns a new Shader Stage instance.
+         *  
+         *  @throw CTLib::BRRESError If the current Shader Stage count is
+         *  `Shader::MAX_SHADER_COUNT - 1`.
+         */
         Stage* addStage();
 
         /*! @brief Sets the material layer to use for the texture ref at the
@@ -1026,6 +1227,9 @@ public:
     private:
 
         Shader(MDL0* mdl0, const std::string& name);
+
+        // throws if 'getStageCount()' == 'MAX_STAGE_COUNT' - 1
+        void assertCanAddStage() const;
 
         // throws if 'index' >= 'getStageCount()'
         void assertValidStageIndex(uint8_t index) const;

@@ -907,6 +907,77 @@ void writeMDL0MaterialSections(
     }
 }
 
+uint32_t calcMDL0ShaderStageSwapMode(MDL0::Shader* instance, uint8_t stage, bool two)
+{
+    uint32_t swapMode = (0xF6 + (stage >> 1)) << 24;
+
+    swapMode |= two ? 0xFFFFF0 : 0x003FF0;
+
+    return swapMode;
+}
+
+uint16_t calcMDL0ShaderStageFragSources(MDL0::Shader* instance, uint8_t stageIdx)
+{
+    uint16_t fragSources = 0;
+
+    MDL0::Shader::Stage* stage = instance->getStage(stageIdx);
+    fragSources |= (stage->getTexCoordIndex() & 0x7);
+    fragSources |= (stage->getTexCoordIndex() & 0x7) << 3;
+    fragSources |= (stage->usesTexture() ? 1 : 0) << 6;
+    fragSources |= (static_cast<uint8_t>(stage->getRasterInput()) & 0x7) << 7;
+
+    return fragSources;
+}
+
+uint32_t calcMDL0ShaderStageFragSources(MDL0::Shader* instance, uint8_t stage, bool two)
+{
+    uint32_t fragSources = (0x28 + (stage >> 1)) << 24;
+
+    fragSources |= calcMDL0ShaderStageFragSources(instance, stage);
+    if (two)
+    {
+        fragSources |= calcMDL0ShaderStageFragSources(instance, stage + 1) << 12;
+    }
+
+    return fragSources;
+}
+
+uint32_t calcMDL0ShaderStageColourOp(MDL0::Shader* instance, uint8_t stage)
+{
+    uint32_t colourOp = (0xC0 + (stage << 1)) << 24;
+
+    MDL0::Shader::Stage::ColourOp op = instance->getStage(stage)->getColourOp();
+    colourOp |= (static_cast<uint8_t>(op.argD ) & 0xF);
+    colourOp |= (static_cast<uint8_t>(op.argC ) & 0xF) <<  4;
+    colourOp |= (static_cast<uint8_t>(op.argB ) & 0xF) <<  8;
+    colourOp |= (static_cast<uint8_t>(op.argA ) & 0xF) << 12;
+    colourOp |= (static_cast<uint8_t>(op.bias ) & 0x3) << 16;
+    colourOp |= (static_cast<uint8_t>(op.op   ) & 0x1) << 18;
+    colourOp |= (static_cast<uint8_t>(op.clamp) & 0x1) << 19;
+    colourOp |= (static_cast<uint8_t>(op.scale) & 0x3) << 20;
+    colourOp |= (static_cast<uint8_t>(op.dest ) & 0x3) << 22;
+
+    return colourOp;
+}
+
+uint32_t calcMDL0ShaderStageAlphaOp(MDL0::Shader* instance, uint8_t stage)
+{
+    uint32_t alphaOp = (0xC1 + (stage << 1)) << 24;
+
+    MDL0::Shader::Stage::AlphaOp op = instance->getStage(stage)->getAlphaOp();
+    alphaOp |= (static_cast<uint8_t>(op.argD ) & 0x7) <<  4;
+    alphaOp |= (static_cast<uint8_t>(op.argC ) & 0x7) <<  7;
+    alphaOp |= (static_cast<uint8_t>(op.argB ) & 0x7) << 10;
+    alphaOp |= (static_cast<uint8_t>(op.argA ) & 0x7) << 13;
+    alphaOp |= (static_cast<uint8_t>(op.bias ) & 0x3) << 16;
+    alphaOp |= (static_cast<uint8_t>(op.op   ) & 0x1) << 18;
+    alphaOp |= (static_cast<uint8_t>(op.clamp) & 0x1) << 19;
+    alphaOp |= (static_cast<uint8_t>(op.scale) & 0x3) << 20;
+    alphaOp |= (static_cast<uint8_t>(op.dest ) & 0x3) << 22;
+
+    return alphaOp;
+}
+
 void writeMDL0ShaderSections(
     Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices
 )
@@ -970,21 +1041,24 @@ void writeMDL0ShaderSections(
         for (uint8_t i = 0; i < instance->getStageCount(); i += 2)
         {
             uint32_t stgPos = pos + 0x80 + ((i >> 1) * 0x30);
+            bool two = i < instance->getStageCount() - 1;
 
             out.position(stgPos);
             out.put(0x61).put(0xFE).put(0xFF).put(0xFF).put(0xF0); // set BP mask
-            out.put(0x61).put(0xF6 + (i >> 1)).put(0x00).put(0x38).put(0xC0); // BP swap mode
-            out.put(0x61).put(0x28 + (i >> 1)).put(0x3B).put(0xF0).put(0x40); // BP texture reading flags
+            out.put(0x61).putInt(calcMDL0ShaderStageSwapMode(instance, i, two)); // BP swap mode
+
+            // BP fragment sources
+            out.put(0x61).putInt(calcMDL0ShaderStageFragSources(instance, i, two));
 
             for (uint8_t j = 0; j < 2 && i + j < instance->getStageCount(); ++j)
             {
                 // BP colour shader operation
                 out.position(stgPos + 0xF + ((j % 2) * 0x5));
-                out.put(0x61).put(0xC0 + ((i + j) << 1)).put(0x08).put(0xFF).put(0xF8);
+                out.put(0x61).putInt(calcMDL0ShaderStageColourOp(instance, i + j));
 
                 // BP alpha shader operation
                 out.position(stgPos + 0x19 + ((j % 2) * 0x5));
-                out.put(0x61).put(0xC1 + ((i + j) << 1)).put(0x08).put(0xF2).put(0xF0);
+                out.put(0x61).putInt(calcMDL0ShaderStageAlphaOp(instance, i + j));
 
                 // unknown BP instruction
                 out.position(stgPos + 0x23 + ((j % 2) * 0x5));

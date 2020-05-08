@@ -5,16 +5,21 @@
 // Refer to the `License.txt` file included.
 //////////////////////////////////////////////////
 
-#include <stdio.h>
-
 #include <gtest/gtest.h>
+
+#include <stdio.h>
 
 #include <CTLib/CTLib.hpp>
 
-/* Test the following functions:
- *      getVersion(int*, int*, int*)
- *      binariesVersionMatches(int, int, int)
- */
+#include "Tests.hpp"
+
+TEST(VersionTests, CMakeVersionMatches)
+{
+    EXPECT_EQ(CT_LIB_VERSION_MAJOR, CT_LIB_CMAKE_VERSION_MAJOR);
+    EXPECT_EQ(CT_LIB_VERSION_MINOR, CT_LIB_CMAKE_VERSION_MINOR);
+    EXPECT_EQ(CT_LIB_VERSION_PATCH, CT_LIB_CMAKE_VERSION_PATCH);
+}
+
 TEST(VersionTests, HeaderMatchesBinaries)
 {
     int major = 0, minor = 0, patch = 0;
@@ -31,10 +36,6 @@ TEST(VersionTests, HeaderMatchesBinaries)
     );
 }
 
-/* Test the following functions:
- *      getVersionString()
- *      getVersionCString()
- */
 TEST(VersionTests, VersionStrings)
 {
     char expectedVersion[6];
