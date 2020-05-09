@@ -14,11 +14,13 @@ used by Mario Kart Wii. It is licensed under GPLv3+.
 | U8              | Fully Supported    |
 | BRRES           | Basic Support      |
 | KCL             | Not Supported Yet  |
-| KMP             | Not Supported Yet  |
+| KMP             | In Progress        |
 
 ### BRRES Subfiles Support
 
 | **Subfile**     | **Status**         |
 |:--------------- |:------------------:|
 | MDL0            | Basic Support      |
-| TEX0            | Mostly Supported   |
+| TEX0            | Mostly Supported\* |
+
+\* The image formats C4, C8, and C14X2 are not supported.

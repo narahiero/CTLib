@@ -65,6 +65,19 @@ TEST(StringsTests, Format)
     );
 }
 
+TEST(CollectionsTests, Remove)
+{
+    std::vector<int> vec{0, 32, 54, 0, 32, 0, 3, 2, 9, 32, 0, 0};
+    EXPECT_EQ(1, CTLib::Collections::removeFirst(vec, 32));
+    EXPECT_EQ(8, CTLib::Collections::removeLast(vec, 32));
+    EXPECT_EQ(3, CTLib::Collections::removeFirst(vec, 32));
+    EXPECT_EQ(CTLib::Collections::NPOS, CTLib::Collections::removeFirst(vec, 32));
+    EXPECT_EQ(CTLib::Collections::NPOS, CTLib::Collections::removeLast(vec, 32));
+
+    EXPECT_EQ(5, CTLib::Collections::removeAll(vec, 0));
+    EXPECT_EQ(0, CTLib::Collections::removeAll(vec, 0));
+}
+
 TEST(BytesTests, Matches)
 {
     uint8_t bytes[] = {

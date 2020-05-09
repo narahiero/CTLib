@@ -32,7 +32,7 @@ namespace CTLib
 {
 
 /*! @brief Utility class containing various methods to work with strings. */
-class Strings
+class Strings final
 {
 
 public:
@@ -78,7 +78,7 @@ static std::vector<std::string> split(const std::string& str, const char c);
  * 
  *  @return The formatted string
  */
-template<typename ... Args>
+template <typename ... Args>
 static std::string format(const std::string& fmt, Args ... args)
 {
     size_t size = snprintf(nullptr, 0, fmt.c_str(), args ...) + 1;
@@ -94,9 +94,95 @@ static std::string format(const std::string& fmt, Args ... args)
 };
 
 /*! @brief Utility class containing various methods to analyse and modify
+ *  STL containers.
+ */
+class Collections final
+{
+
+public:
+
+    /*! @brief Value used to represent 'not a position'. */
+    static constexpr size_t NPOS = ~static_cast<size_t>(0);
+
+    /*! @brief Removes the first occurrence of the specified value from the
+     *  specified std::vector.
+     * 
+     *  @tparam V The value type
+     * 
+     *  @param[in] vec The std::vector
+     *  @param[in] value The value to be removed
+     * 
+     *  @return The index of the removed element, or NPOS if not found
+     */
+    template <class V>
+    static size_t removeFirst(std::vector<V>& vec, const V& value)
+    {
+        for (size_t i = 0; i < vec.size(); ++i)
+        {
+            if (vec.at(i) == value)
+            {
+                vec.erase(vec.begin() + i);
+                return i;
+            }
+        }
+        return NPOS;
+    }
+
+    /*! @brief Removes the last occurrence of the specified value from the
+     *  specified std::vector.
+     * 
+     *  @tparam V The value type
+     * 
+     *  @param[in] vec The std::vector
+     *  @param[in] value The value to be removed
+     * 
+     *  @return The index of the removed element, or NPOS if not found
+     */
+    template <class V>
+    static size_t removeLast(std::vector<V>& vec, const V& value)
+    {
+        for (size_t i = vec.size(); i > 0; --i)
+        {
+            if (vec.at(i - 1) == value)
+            {
+                vec.erase(vec.begin() + (i - 1));
+                return i - 1;
+            }
+        }
+        return NPOS;
+    }
+
+    /*! @brief Removes all occurrences of the specified value from the
+     *  specified std::vector.
+     * 
+     *  @tparam V The value type
+     * 
+     *  @param[in] vec The std::vector
+     *  @param[in] value The value to be removed
+     * 
+     *  @return The number of entries removed from the std::vector
+     */
+    template <class V>
+    static size_t removeAll(std::vector<V>& vec, const V& value)
+    {
+        size_t count = 0;
+        for (size_t i = 0; i < vec.size(); ++i)
+        {
+            if (vec.at(i) == value)
+            {
+                ++count;
+                vec.erase(vec.begin() + i);
+                --i;
+            }
+        }
+        return count;
+    }
+};
+
+/*! @brief Utility class containing various methods to analyse and modify
  *  sequences of bytes.
  */
-class Bytes
+class Bytes final
 {
 
 public:
@@ -138,7 +224,7 @@ public:
 
 /*! @brief Utility class containing various methods to perform I/O operations. 
  */
-class IO
+class IO final
 {
 
 public:
@@ -185,7 +271,7 @@ public:
 };
 
 /*! @brief Utility class used to iterate over the values of a map. */
-template<class K, class V>
+template <class K, class V>
 class MapValueIterator final
 {
 

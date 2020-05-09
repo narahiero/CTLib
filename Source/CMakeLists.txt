@@ -68,3 +68,11 @@ if(CT_LIB_MODULE_BRRES)
         BRRES/TEX0.cpp
     )
 endif()
+
+# KMP module
+if(CT_LIB_MODULE_KMP)
+    target_sources(CTLib PRIVATE
+        "${CT_LIB_INCLUDE_DIR}/CTLib/KMP.hpp"
+        KMP/KMP.cpp
+    )
+endif()

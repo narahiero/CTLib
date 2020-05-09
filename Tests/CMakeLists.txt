@@ -87,3 +87,8 @@ endif()
 if(CT_LIB_MODULE_BRRES)
     ct_lib_add_test(BRRESTest SOURCES BRRES.cpp)
 endif()
+
+# Tests for KMP module
+if(CT_LIB_MODULE_KMP)
+    ct_lib_add_test(MDL0Test SOURCES KMP.cpp)
+endif()
