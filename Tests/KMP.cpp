@@ -117,7 +117,7 @@ TEST(KMPENPTTests, Errors)
 {
     CTLib::KMP kmp;
 
-    for (uint16_t i = 0; i < CTLib::KMP::ENPT::MAX_ENPT_ENTRY_COUNT; ++i)
+    for (uint16_t i = 0; i < CTLib::KMP::ENPT::MAX_ENTRY_COUNT; ++i)
     {
         kmp.add<CTLib::KMP::ENPT>();
     }
@@ -205,13 +205,13 @@ TEST(KMPENPHTests, Errors)
     EXPECT_NO_THROW(enph->removePrevious(enph2));
     EXPECT_THROW(enph->removePrevious(enph2), CTLib::KMPError);
 
-    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_ENPH_LINKS; ++i)
+    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
     {
         enph->addNext(enph2);
     }
     EXPECT_THROW(enph->addNext(enph2), CTLib::KMPError);
 
-    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_ENPH_LINKS; ++i)
+    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
     {
         enph->addPrevious(enph2);
     }
@@ -233,4 +233,51 @@ TEST(KMPENPHTests, OtherKMPErrors)
     EXPECT_THROW(enph->addPrevious(enphFromKMP2), CTLib::KMPError);
     EXPECT_THROW(enphFromKMP2->addNext(enph), CTLib::KMPError);
     EXPECT_THROW(enphFromKMP2->addPrevious(enph), CTLib::KMPError);
+}
+
+TEST(KMPITPTTests, Errors)
+{
+    CTLib::KMP kmp;
+
+    for (uint16_t i = 0; i < CTLib::KMP::ITPT::MAX_ENTRY_COUNT; ++i)
+    {
+        kmp.add<CTLib::KMP::ITPT>();
+    }
+    EXPECT_THROW(kmp.add<CTLib::KMP::ITPT>(), CTLib::KMPError);
+}
+
+TEST(KMPCKPTTests, RemoveJGPT)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::CKPT* ckpt = kmp.add<CTLib::KMP::CKPT>();
+    EXPECT_EQ(nullptr, ckpt->getRespawn());
+
+    CTLib::KMP::JGPT* jgpt = kmp.add<CTLib::KMP::JGPT>();
+    ckpt->setRespawn(jgpt);
+    EXPECT_EQ(jgpt, ckpt->getRespawn());
+
+    kmp.remove<CTLib::KMP::JGPT>(kmp.indexOf(jgpt));
+    EXPECT_EQ(nullptr, ckpt->getRespawn());
+}
+
+TEST(KMPCKPTTests, Errors)
+{
+    CTLib::KMP kmp;
+
+    for (uint16_t i = 0; i < CTLib::KMP::CKPT::MAX_ENTRY_COUNT; ++i)
+    {
+        kmp.add<CTLib::KMP::CKPT>();
+    }
+    EXPECT_THROW(kmp.add<CTLib::KMP::CKPT>(), CTLib::KMPError);
+}
+
+TEST(KMPCKPTTests, OtherKMPErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::CKPT* ckpt = kmp.add<CTLib::KMP::CKPT>();
+
+    CTLib::KMP kmp2;
+    CTLib::KMP::JGPT* jgpt = kmp2.add<CTLib::KMP::JGPT>();
+
+    EXPECT_THROW(ckpt->setRespawn(jgpt), CTLib::KMPError);
 }
