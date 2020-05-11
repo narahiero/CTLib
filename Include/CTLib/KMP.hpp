@@ -325,14 +325,15 @@ public:
         /*! @brief Sets the player index of this KTPT entry.
          *  
          *  For race tracks, there must be only one KTPT entry and the player
-         *  index must be -1.
+         *  index must be 0.
          * 
          *  For battle tracks, there must be 12 KTPT entries (each with unique
          *  index), with indices 0 to 5 for red team and indices 6 to 11 for
          *  blue team.
          * 
-         *  An additional 13th KTPT entry can be added for battle tracks with
-         *  index -1 to specify start line position if using LE-CODE.
+         *  An additional KTPT entry can be added with index -1 to specify start
+         *  line position if using LE-CODE. This additional entry **MUST** be
+         *  added to the KMP **after** the default one (index 0).
          *  
          *  @param[in] index The player index
          * 
@@ -631,6 +632,7 @@ public:
         ITPH(KMP* kmp);
     };
 
+    /*! @brief Checkpoints. */
     class CKPT final : public Section, public SectionCallback
     {
 
@@ -850,17 +852,40 @@ public:
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::JGPT;
 
+        /*! @brief Maximum number of JGPT entries per KMP. */
+        static constexpr uint16_t MAX_ENTRY_COUNT = 256;
+
         ~JGPT();
 
         /*! @brief Returns SectionType::JGPT. */
         SectionType getType() const override;
 
+        /*! @brief Sets the position of this respawn point. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this respawn point. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Returns the position of this respawn point. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this respawn point. */
+        Vector3f getRotation() const;
+
     private:
 
-        // does nothing
+        // throws if specified KMP already has 'MAX_ENTRY_COUNT' JGPTs
         static void assertCanAdd(KMP* kmp);
 
         JGPT(KMP* kmp);
+
+        // position
+        Vector3f pos;
+
+        // rotation
+        Vector3f rot;
+
+        float range;
     };
 
     /*! @brief Cannon points. */
@@ -871,6 +896,22 @@ public:
 
     public:
 
+        /*! @brief Enumeration of the possible cannon type values. */
+        enum class CannonType : int16_t
+        {
+            /*! @brief Fast cannon shooting straight. */
+            Default = 0,
+
+            /*! @brief Fast cannon shooting curved. */
+            Curved = 1,
+
+            /*! @brief Slow cannon shooting curved. */
+            Slow = 2,
+
+            /*! @brief Custom value. (Same as Default) */
+            Custom = -1
+        };
+
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::CNPT;
 
@@ -879,15 +920,69 @@ public:
         /*! @brief Returns SectionType::CNPT. */
         SectionType getType() const override;
 
+        /*! @brief Sets the destination of this cannon. */
+        void setDestination(Vector3f destination);
+
+        /*! @brief Sets the direction of this cannon.
+         *  
+         *  **Note**: Only the Y axis is required. The X and Z axes are used to
+         *  rotate the vehicle in the landing area.
+         */
+        void setDirection(Vector3f direction);
+
+        /*! @brief Sets the CannonType of this cannon.
+         *  
+         *  **Note**: This method sets the same property as the method
+         *  `setTypeID(int16_t)`.
+         */
+        void setCannonType(CannonType type);
+
+        /*! @brief Sets the type ID of this cannon. (Useful if using LE-CODE)
+         *  
+         *  Setting the type ID to a value higher than 2 requires LE-CODE and
+         *  will make the track incompatible with distributions without LE-CODE.
+         * 
+         *  A negative type ID will be clamped to 0 (Default) by the game.
+         *  
+         *  **Note**: This method sets the same property as the method
+         *  `setCannonType(CannonType)`.
+         */
+        void setTypeID(int16_t type);
+
+        /*! @brief Returns the destination of this cannon. */
+        Vector3f getDestination() const;
+
+        /*! @brief Returns the direction of this cannon. */
+        Vector3f getDirection() const;
+
+        /*! @brief Returns the CannonType of this cannon.
+         *  
+         *  **Note**: The value CannonType::Custom is returned if type was set
+         *  to a non-convertible value using `setTypeID(int16_6)`.
+         */
+        CannonType getCannonType() const;
+
+        /*! @brief Returns the type ID of this cannon. */
+        int16_t getTypeID() const;
+
     private:
 
         // does nothing
         static void assertCanAdd(KMP* kmp);
 
         CNPT(KMP* kmp);
+
+        // cannon destination
+        Vector3f dest;
+
+        // cannon direction
+        Vector3f rot;
+
+        // cannon type
+        int16_t type;
     };
 
-    /*! @brief Position of racers on battle end. */
+    /*! @brief Position of racers on battle and competition end. */
     class MSPT final : public Section
     {
 
@@ -903,12 +998,30 @@ public:
         /*! @brief Returns SectionType::MSPT. */
         SectionType getType() const override;
 
+        /*! @brief Sets the position of this battle end point. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this battle end point. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Returns the position of this battle end point. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this battle end point. */
+        Vector3f getRotation() const;
+
     private:
 
         // does nothing
         static void assertCanAdd(KMP* kmp);
 
         MSPT(KMP* kmp);
+
+        // position
+        Vector3f pos;
+
+        // rotation
+        Vector3f rot;
     };
 
     /*! @brief Stage information. */
@@ -919,20 +1032,125 @@ public:
 
     public:
 
+        /*! @brief Enumeration of the possible race start side values. */
+        enum class StartSide : uint8_t
+        {
+            /*! @brief First place starts on the left side of the finish line. */
+            Left = 0x0,
+
+            /*! @brief First place starts on the right side of the finish line. */
+            Right = 0x1
+        };
+
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::STGI;
+
+        /*! @brief Maximum number of STGI entries per KMP. */
+        static constexpr uint16_t MAX_ENTRY_COUNT = 1;
+
+        /*! @brief The maximum number of laps. */
+        static constexpr uint8_t MAX_LAP_COUNT = 9;
 
         ~STGI();
 
         /*! @brief Returns SectionType::STGI. */
         SectionType getType() const override;
 
+        /*! @brief Sets the lap count of the race track.
+         *  
+         *  **Note**: The
+         *  <a href="http://wiki.tockdom.com/wiki/Lap_%26_Speed_Modifier">
+         *  Lap & Speed Modifier</a> cheat code is **required** if using any
+         *  other value than 3.
+         * 
+         *  **Note 2**: Using a lap count of 9 will show 8 laps in-game, but
+         *  the player must still complete 9 laps.
+         *  
+         *  @param[in] count The lap count
+         * 
+         *  @throw CTLib::KMPError If the specified count is less than 1 or
+         *  more than MAX_LAP_COUNT.
+         */
+        void setLapCount(uint8_t count);
+
+        /*! @brief Sets which side of the finish line the racer in first place
+         *  begins the race.
+         */
+        void setStartSide(StartSide side);
+
+        /*! @brief Sets whether the starting positions narrow mode is enabled. */
+        void setNarrowMode(bool enable);
+
+        /*! @brief Sets whether lens flare flashing is enabled. */
+        void setLensFlareEnabled(bool enable);
+
+        /*! @brief Sets lens flare flashing colour, formatted as `0xRRGGBBAA`. */
+        void setLensFlareColour(uint32_t colour);
+
+        /*! @brief Sets the speed factor of the track.
+         *  
+         *  **Note**: The
+         *  <a href="http://wiki.tockdom.com/wiki/Lap_%26_Speed_Modifier">
+         *  Lap & Speed Modifier</a> cheat code is **required** if using any
+         *  other value than `1.0`.
+         * 
+         *  @param[in] factor The speed factor
+         * 
+         *  @throw CTLib::KMPError If the specified speed factor is less than or
+         *  equal to `0.0`.
+         */
+        void setSpeedFactor(float factor);
+
+        /*! @brief Returns the lap count of the race track. */
+        uint8_t getLapCount() const;
+
+        /*! @brief Returns which side of the finish line the racer in first
+         *  place begins the race.
+         */
+        StartSide getStartSide() const;
+
+        /*! @brief Returns whether narrow mode is enabled. */
+        bool isNarrowMode() const;
+
+        /*! @brief Returns whether lens flare flashing is enabled. */
+        bool isLensFlareEnabled() const;
+
+        /*! @brief Returns the lens flare flashing colour. */
+        uint32_t getLensFlareColour() const;
+
+        /*! @brief Returns the speed factor of the track. */
+        float getSpeedFactor() const;
+
     private:
 
-        // does nothing
+        // throws if specified KMP already has a STGI entry
         static void assertCanAdd(KMP* kmp);
 
         STGI(KMP* kmp);
+
+        // throws if 'count' < 1 or > 'MAX_LAP_COUNT'
+        void assertValidLapCount(uint8_t count) const;
+
+        // throws if 'factor' <= 0.f
+        void assertValidSpeedFactor(float factor) const;
+
+        // lap count (CHEAT CODE REQUIRED)
+        uint8_t lapCount;
+
+        // race start side of racers
+        StartSide startSide;
+
+        // whether lens flare flashing is enabled
+        bool lensFlare;
+
+        // lens flare flashing colour, formatted as 0xRRGGBBAA
+        uint32_t lensColour;
+
+        // whether to use narrow starting positions
+        bool narrow;
+
+        // speed factor (CHEAT CODE REQUIRED)
+        float speedFactor;
     };
 
     /*! @brief Constructs an empty KMP object. */

@@ -962,11 +962,19 @@ KMP::SectionType KMP::CAME::getType() const
 
 void KMP::JGPT::assertCanAdd(KMP* kmp)
 {
-
+    if (kmp->count<JGPT>() >= MAX_ENTRY_COUNT)
+    {
+        throw KMPError(Strings::format(
+            "KMP: The maximum amount of JGPT entries was reached for this KMP! (%d)",
+            MAX_ENTRY_COUNT
+        ));
+    }
 }
 
 KMP::JGPT::JGPT(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    pos{},
+    rot{}
 {
 
 }
@@ -976,6 +984,26 @@ KMP::JGPT::~JGPT() = default;
 KMP::SectionType KMP::JGPT::getType() const
 {
     return SectionType::JGPT;
+}
+
+void KMP::JGPT::setPosition(Vector3f position)
+{
+    pos = position;
+}
+
+void KMP::JGPT::setRotation(Vector3f rotation)
+{
+    rot = rotation;
+}
+
+Vector3f KMP::JGPT::getPosition() const
+{
+    return pos;
+}
+
+Vector3f KMP::JGPT::getRotation() const
+{
+    return rot;
 }
 
 
@@ -990,7 +1018,10 @@ void KMP::CNPT::assertCanAdd(KMP* kmp)
 }
 
 KMP::CNPT::CNPT(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    dest{},
+    rot{},
+    type{static_cast<int16_t>(CannonType::Default)}
 {
 
 }
@@ -1000,6 +1031,46 @@ KMP::CNPT::~CNPT() = default;
 KMP::SectionType KMP::CNPT::getType() const
 {
     return SectionType::CNPT;
+}
+
+void KMP::CNPT::setDestination(Vector3f destination)
+{
+    dest = destination;
+}
+
+void KMP::CNPT::setDirection(Vector3f direction)
+{
+    rot = direction;
+}
+
+void KMP::CNPT::setCannonType(CannonType cannonType)
+{
+    type = static_cast<int16_t>(cannonType);
+}
+
+void KMP::CNPT::setTypeID(int16_t type)
+{
+    this->type = type;
+}
+
+Vector3f KMP::CNPT::getDestination() const
+{
+    return dest;
+}
+
+Vector3f KMP::CNPT::getDirection() const
+{
+    return rot;
+}
+
+KMP::CNPT::CannonType KMP::CNPT::getCannonType() const
+{
+    return type >= 0 && type <= 2 ? static_cast<CannonType>(type) : CannonType::Custom;
+}
+
+int16_t KMP::CNPT::getTypeID() const
+{
+    return type;
 }
 
 
@@ -1014,7 +1085,9 @@ void KMP::MSPT::assertCanAdd(KMP* kmp)
 }
 
 KMP::MSPT::MSPT(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    pos{},
+    rot{}
 {
 
 }
@@ -1026,6 +1099,26 @@ KMP::SectionType KMP::MSPT::getType() const
     return SectionType::MSPT;
 }
 
+void KMP::MSPT::setPosition(Vector3f position)
+{
+    pos = position;
+}
+
+void KMP::MSPT::setRotation(Vector3f rotation)
+{
+    rot = rotation;
+}
+
+Vector3f KMP::MSPT::getPosition() const
+{
+    return pos;
+}
+
+Vector3f KMP::MSPT::getRotation() const
+{
+    return rot;
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -1034,11 +1127,20 @@ KMP::SectionType KMP::MSPT::getType() const
 
 void KMP::STGI::assertCanAdd(KMP* kmp)
 {
-
+    if (kmp->count<STGI>() >= MAX_ENTRY_COUNT)
+    {
+        throw KMPError("KMP: More than one STGI entry per KMP is invalid!");
+    }
 }
 
 KMP::STGI::STGI(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    lapCount{3},
+    startSide{StartSide::Left},
+    narrow{false},
+    lensFlare{false},
+    lensColour{0xFFFFFF00},
+    speedFactor{1.f}
 {
 
 }
@@ -1048,6 +1150,90 @@ KMP::STGI::~STGI() = default;
 KMP::SectionType KMP::STGI::getType() const
 {
     return SectionType::STGI;
+}
+
+void KMP::STGI::setLapCount(uint8_t count)
+{
+    assertValidLapCount(count);
+    lapCount = count;
+}
+
+void KMP::STGI::setStartSide(StartSide side)
+{
+    startSide = side;
+}
+
+void KMP::STGI::setNarrowMode(bool enable)
+{
+    narrow = enable;
+}
+
+void KMP::STGI::setLensFlareEnabled(bool enable)
+{
+    lensFlare = enable;
+}
+
+void KMP::STGI::setLensFlareColour(uint32_t colour)
+{
+    lensColour = colour;
+}
+
+void KMP::STGI::setSpeedFactor(float factor)
+{
+    assertValidSpeedFactor(factor);
+    speedFactor = factor;
+}
+
+uint8_t KMP::STGI::getLapCount() const
+{
+    return lapCount;
+}
+
+KMP::STGI::StartSide KMP::STGI::getStartSide() const
+{
+    return startSide;
+}
+
+bool KMP::STGI::isNarrowMode() const
+{
+    return narrow;
+}
+
+bool KMP::STGI::isLensFlareEnabled() const
+{
+    return lensFlare;
+}
+
+uint32_t KMP::STGI::getLensFlareColour() const
+{
+    return lensColour;
+}
+
+float KMP::STGI::getSpeedFactor() const
+{
+    return speedFactor;
+}
+
+void KMP::STGI::assertValidLapCount(uint8_t count) const
+{
+    if (count < 1 || count > MAX_LAP_COUNT)
+    {
+        throw KMPError(Strings::format(
+            "KMP: Invalid STGI lap count! (%d)",
+            count
+        ));
+    }
+}
+
+void KMP::STGI::assertValidSpeedFactor(float factor) const
+{
+    if (factor <= 0.f)
+    {
+        throw KMPError(Strings::format(
+            "KMP: Invalid STGI speed factor! (%.2f <= 0.0)",
+            factor
+        ));
+    }
 }
 
 

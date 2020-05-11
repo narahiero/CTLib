@@ -281,3 +281,56 @@ TEST(KMPCKPTTests, OtherKMPErrors)
 
     EXPECT_THROW(ckpt->setRespawn(jgpt), CTLib::KMPError);
 }
+
+TEST(KMPJGPTTests, Errors)
+{
+    CTLib::KMP kmp;
+
+    for (uint16_t i = 0; i < CTLib::KMP::JGPT::MAX_ENTRY_COUNT; ++i)
+    {
+        kmp.add<CTLib::KMP::JGPT>();
+    }
+    EXPECT_THROW(kmp.add<CTLib::KMP::JGPT>(), CTLib::KMPError);
+}
+
+TEST(KMPCNPTTests, CannonType)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::CNPT* cnpt = kmp.add<CTLib::KMP::CNPT>();
+    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Default, cnpt->getCannonType());
+    EXPECT_EQ(0, cnpt->getTypeID());
+
+    cnpt->setCannonType(CTLib::KMP::CNPT::CannonType::Slow);
+    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Slow, cnpt->getCannonType());
+    EXPECT_EQ(2, cnpt->getTypeID());
+
+    cnpt->setTypeID(1);
+    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Curved, cnpt->getCannonType());
+    EXPECT_EQ(1, cnpt->getTypeID());
+
+    cnpt->setTypeID(4);
+    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
+    EXPECT_EQ(4, cnpt->getTypeID());
+
+    cnpt->setCannonType(CTLib::KMP::CNPT::CannonType::Custom);
+    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
+    EXPECT_EQ(-1, cnpt->getTypeID());
+}
+
+TEST(KMPSTGITests, Errors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::STGI* stgi = kmp.add<CTLib::KMP::STGI>();
+    EXPECT_THROW(kmp.add<CTLib::KMP::STGI>(), CTLib::KMPError);
+
+    EXPECT_THROW(stgi->setLapCount(0), CTLib::KMPError);
+    EXPECT_THROW(stgi->setLapCount(10), CTLib::KMPError);
+    EXPECT_THROW(stgi->setLapCount(23), CTLib::KMPError);
+    EXPECT_THROW(stgi->setLapCount(94), CTLib::KMPError);
+    EXPECT_THROW(stgi->setLapCount(210), CTLib::KMPError);
+
+    EXPECT_THROW(stgi->setSpeedFactor(0.f), CTLib::KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-0.f), CTLib::KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-1.f), CTLib::KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-35.f), CTLib::KMPError);
+}
