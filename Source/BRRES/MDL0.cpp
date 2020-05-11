@@ -1396,7 +1396,7 @@ MDL0::Shader::Stage::Stage(Shader* shader) :
     shader{shader},
     useTex{true},
     texCoordIdx{0},
-    rasIn{RasterInput::Color0},
+    rasIn{RasterInput::Colour0},
     colourOp{
         ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Texture,
         Bias::Zero, Op::Add, true, Scale::MultiplyBy1, Dest::PixelOutput

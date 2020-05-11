@@ -1061,8 +1061,8 @@ public:
             /*! @brief Enumeration of the possible raster input values. */
             enum class RasterInput : uint8_t
             {
-                Color0 = 0x0,
-                Color1 = 0x1,
+                Colour0 = 0x0,
+                Colour1 = 0x1,
                 AlphaBump = 0x4,
                 NormalizedAlphaBump = 0x5,
                 Zero = 0x7

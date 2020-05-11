@@ -174,28 +174,37 @@ public:
 
         /*! @brief Sets the first point that is part of this group.
          *  
+         *  Passing `nullptr` will set the first and last entries of this group
+         *  to that value.
+         *  
          *  If the specified entry is removed from its KMP after this function
-         *  returns, the first entry of this group will be set back to
-         *  `nullptr`.
+         *  returns, the first entry will be replaced by the entry directly
+         *  after it, or `nullptr` if it also was the last entry.
          * 
          *  @param[in] first The first entry
          * 
          *  @throw CTLib::KMPError If the specified entry is not owned by the
-         *  same KMP as this group.
+         *  same KMP as this group, or the specified entry is already owned by
+         *  another group, or the last entry of this group is set and its index
+         *  is lower than the specified entry's.
          */
-        void setFirst(PT* first);
+        virtual void setFirst(PT* first);
 
         /*! @brief Sets the last point that is part of this group.
          *  
          *  If the specified entry is removed from its KMP after this function
-         *  returns, the last entry of this group will be set back to `nullptr`.
+         *  returns, the last entry of this group will be replaced by the entry
+         *  directly before it, or `nullptr` if it also was the first entry.
          * 
          *  @param[in] last The last entry
          * 
          *  @throw CTLib::KMPError If the specified entry is not owned by the
-         *  same KMP as this group.
+         *  same KMP as this group, or the specified entry is already owned by
+         *  another group, or the first entry of this group is not set, or the
+         *  first entry of this group is set and its index is higher than the
+         *  specified entry's.
          */
-        void setLast(PT* last);
+        virtual void setLast(PT* last);
 
         /*! @brief Adds the specified group to the list of previous groups of
          *  this group.
@@ -281,6 +290,18 @@ public:
 
         GroupSection(KMP* kmp);
 
+        // sets the parent of entries between 'first' and 'last' to 'value'
+        void setParent(PT* first, PT* last, PH* value);
+
+        // throws if 'entry->parent' != `nullptr`
+        void assertNoParent(PT* entry) const;
+
+        // throws if 'indexOf(last)' < 'indexOf(first)'
+        void assertValidFirst(PT* first) const;
+
+        // throws if 'first' == `nullptr` or 'indexOf(first)' > 'indexOf(last)'
+        void assertValidLast(PT* last) const;
+
         // throws if 'links.size()' >= 'MAX_LINKS'
         void assertCanAddLink(const std::vector<PH*>& links) const;
 
@@ -295,6 +316,36 @@ public:
 
         // vector containing pointers to all following groups
         std::vector<PH*> nexts;
+    };
+
+    /*! @brief Superclass of ENPT, ITPT, and CKPT, for parent link. */
+    template <class PH>
+    class PointSection : public Section, public SectionCallback
+    {
+
+        friend class KMP;
+
+    public:
+
+        ~PointSection();
+
+        /*! @brief Returns the group owning this entry. */
+        PH* getParent() const;
+
+    protected:
+
+        //! invoked when a section entry is added
+        void sectionAdded(Section* section) override;
+
+        //! invoked when a section entry is removed
+        void sectionRemoved(Section* section) override;
+
+    private:
+
+        PointSection(KMP* kmp);
+
+        // pointer to parent group
+        PH* parent;
     };
 
     /*! @brief Starting positions of racers. */
@@ -372,7 +423,7 @@ public:
     };
 
     /*! @brief Enemy route points. */
-    class ENPT final : public Section
+    class ENPT final : public PointSection<ENPH>
     {
 
         friend class KMP;
@@ -506,7 +557,7 @@ public:
     };
 
     /*! @brief Item route points. */
-    class ITPT final : public Section
+    class ITPT final : public PointSection<ITPH>
     {
 
         friend class KMP;
@@ -633,7 +684,7 @@ public:
     };
 
     /*! @brief Checkpoints. */
-    class CKPT final : public Section, public SectionCallback
+    class CKPT final : public PointSection<CKPH>
     {
 
         friend class KMP;
@@ -668,12 +719,18 @@ public:
          */
         void setRespawn(JGPT* respawn);
 
-        /*! @brief Sets whether this checkpoint is a key checkpoint.
+        /*! @brief Sets the type ID of this checkpoint.
          *  
-         *  The first CKPT entry to be set 'key' will also be the lap trigger
-         *  checkpoint. So the first CKPT entry should always be set as 'key'.
+         *  `0x00`: Lap count trigger checkpoint (using more than one in a
+         *  single track will cause a position glitch online).
+         * 
+         *  `0x01` - `0xFE`: Key checkpoint (all of them must be passed in order
+         *  for the lap count trigger to work).
+         * 
+         *  `0xFF`: Regular checkpoint (can be skipped, used for positioning and
+         *  respawn points).
          */
-        void setIsKey(bool key);
+        void setTypeID(uint8_t type);
 
         /*! @brief Returns the position of the left point of the checkpoint
          *  line.
@@ -690,8 +747,8 @@ public:
          */
         JGPT* getRespawn() const;
 
-        /*! @brief Returns whether this checkpoint is a key checkpoint. */
-        bool isKey() const;
+        /*! @brief Returns the type ID of this checkpoint. */
+        uint8_t getTypeID() const;
 
     protected:
 
@@ -717,8 +774,8 @@ public:
         // respawn point
         JGPT* respawn;
 
-        // key checkpoint; lap trigger if first
-        bool key;
+        // type ID
+        uint8_t type;
     };
 
     /*! @brief Checkpoint groups. */

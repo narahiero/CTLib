@@ -824,7 +824,7 @@ void writeMDL0MaterialSections(
         out.putInt(0x3F); // flags (only last 6 bits are used)
         out.putInt(0xFFFFFFFF); // material colour
         out.putInt(0xFFFFFFFF); // ambient colour
-        out.putInt(0x00000703); // color control
+        out.putInt(0x00000703); // colour control
         out.putInt(0x00000703); // alpha control
 
         // light channel 1
@@ -874,7 +874,7 @@ void writeMDL0MaterialSections(
 
         out.put(0x61).put(0x42).put(0x00).put(0x00).put(0x00); // unknown BP instruction
 
-        // Shader colors (0x40)
+        // Shader colours (0x40)
         out.position(pos + displayListOff + 0x20);
 
         out.put(0x61).put(0xE2).put(0x00).put(0x00).put(0x00);
@@ -892,7 +892,7 @@ void writeMDL0MaterialSections(
         out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
         out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
 
-        // Shader constant colors (0x40)
+        // Shader constant colours (0x40)
         out.position(pos + displayListOff + 0x60);
 
         out.put(0x61).put(0xE0).put(0x80).put(0x00).put(0x00);

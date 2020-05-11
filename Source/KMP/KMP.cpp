@@ -304,8 +304,16 @@ void KMP::GroupSection<PH, PT>::setFirst(PT* first)
     if (first != nullptr)
     {
         assertSameKMP(first);
+        assertNoParent(first);
+        assertValidFirst(first);
     }
+
+    setParent(this->first, this->last, nullptr);
+
     this->first = first;
+    this->last = first == nullptr ? nullptr : this->last;
+
+    setParent(this->first, this->last, (PH*)this);
 }
 
 template <class PH, class PT>
@@ -314,8 +322,15 @@ void KMP::GroupSection<PH, PT>::setLast(PT* last)
     if (last != nullptr)
     {
         assertSameKMP(last);
+        assertNoParent(last);
+        assertValidLast(last);
     }
+
+    setParent(this->first, this->last, nullptr);
+
     this->last = last;
+
+    setParent(this->first, this->last, (PH*)this);
 }
 
 template <class PH, class PT>
@@ -411,18 +426,106 @@ void KMP::GroupSection<PH, PT>::sectionAdded(Section* section)
 template <class PH, class PT>
 void KMP::GroupSection<PH, PT>::sectionRemoved(Section* section)
 {
-    if (section == first)
-    {
-        first = nullptr;
-    }
     if (section == last)
     {
-        last = nullptr;
+        if (last == first)
+        {
+            last = nullptr;
+        }
+        else
+        {
+            last = kmp->get<PT>(kmp->indexOf(last) - 1);
+        }
     }
+    if (section == first)
+    {
+        if (last == nullptr)
+        {
+            first = nullptr;
+        }
+        else
+        {
+            first = kmp->get<PT>(kmp->indexOf(first) + 1);
+        }
+    }
+
     if (section->getType() == PH::TYPE)
     {
         Collections::removeAll(prevs, (PH*)section);
         Collections::removeAll(nexts, (PH*)section);
+    }
+}
+
+template <class PH, class PT>
+void KMP::GroupSection<PH, PT>::setParent(PT* first, PT* last, PH* value)
+{
+    if (first == nullptr)
+    {
+        return;
+    }
+
+    if (last == nullptr)
+    {
+        first->parent = value;
+        return;
+    }
+
+    for (int16_t i = kmp->indexOf(first); i >= 0 && i <= kmp->indexOf(last); ++i)
+    {
+        kmp->get<PT>(i)->parent = value;
+    }
+}
+
+template <class PH, class PT>
+void KMP::GroupSection<PH, PT>::assertNoParent(PT* entry) const
+{
+    if (entry->parent != nullptr && entry->parent != this)
+    {
+        throw KMPError(Strings::format(
+            "KMP: The specified %s entry is already owned by another %s group!",
+            Section::nameForType(PT::TYPE), Section::nameForType(PH::TYPE)
+        ));
+    }
+}
+
+template <class PH, class PT>
+void KMP::GroupSection<PH, PT>::assertValidFirst(PT* first) const
+{
+    if (first == nullptr || last == nullptr)
+    {
+        return;
+    }
+
+    if (kmp->indexOf(first) > kmp->indexOf(last))
+    {
+        throw KMPError(Strings::format(
+            "KMP: The specified %s entry index cannot be higher than the last entry's! (%d > %d)",
+            Section::nameForType(PT::TYPE), kmp->indexOf(first), kmp->indexOf(last)
+        ));
+    }
+}
+
+template <class PH, class PT>
+void KMP::GroupSection<PH, PT>::assertValidLast(PT* last) const
+{
+    if (last == nullptr)
+    {
+        return;
+    }
+
+    if (first == nullptr)
+    {
+        throw KMPError(Strings::format(
+            "KMP: Cannot set last %s entry if the first entry of this %s group is not set!",
+            Section::nameForType(PT::TYPE), Section::nameForType(PH::TYPE)
+        ));
+    }
+    if (kmp->indexOf(last) < kmp->indexOf(first))
+    {
+        throw KMPError(Strings::format(
+            "KMP: The specified %s entry index cannot be lower than the first entry's! (%d < %d)",
+            Section::nameForType(PT::TYPE), kmp->indexOf(last), kmp->indexOf(first)
+        ));
     }
 }
 
@@ -432,8 +535,8 @@ void KMP::GroupSection<PH, PT>::assertCanAddLink(const std::vector<PH*>& links) 
     if (links.size() >= MAX_LINKS)
     {
         throw KMPError(Strings::format(
-            "KMP: The maximum number of links was reached by this group! (%d)",
-            MAX_LINKS
+            "KMP: The maximum number of links was reached by this %s group! (%d)",
+            Section::nameForType(PH::TYPE), MAX_LINKS
         ));
     }
 }
@@ -455,6 +558,10 @@ template uint8_t KMP::GroupSection<KMP::PH, KMP::PT>::getNextCount() const; \
 template std::vector<KMP::PH*> KMP::GroupSection<KMP::PH, KMP::PT>::getNext() const; \
 template void KMP::GroupSection<KMP::PH, KMP::PT>::sectionAdded(Section*); \
 template void KMP::GroupSection<KMP::PH, KMP::PT>::sectionRemoved(Section*); \
+template void KMP::GroupSection<KMP::PH, KMP::PT>::setParent(PT*, PT*, PH*); \
+template void KMP::GroupSection<KMP::PH, KMP::PT>::assertNoParent(PT*) const; \
+template void KMP::GroupSection<KMP::PH, KMP::PT>::assertValidFirst(PT*) const; \
+template void KMP::GroupSection<KMP::PH, KMP::PT>::assertValidLast(PT*) const; \
 template void KMP::GroupSection<KMP::PH, KMP::PT>::assertCanAddLink(const std::vector<PH*>&) const;
 
 CT_LIB_DECLARE_GROUP_SECTION_METHODS(ENPH, ENPT)
@@ -462,6 +569,53 @@ CT_LIB_DECLARE_GROUP_SECTION_METHODS(ITPH, ITPT)
 CT_LIB_DECLARE_GROUP_SECTION_METHODS(CKPH, CKPT)
 
 #undef CT_LIB_DECLARE_GROUP_SECTION_METHODS
+
+////// PointSection class //////////////
+
+template <class PH>
+KMP::PointSection<PH>::PointSection(KMP* kmp) :
+    Section(kmp),
+    parent{nullptr}
+{
+
+}
+
+template <class PH>
+KMP::PointSection<PH>::~PointSection() = default;
+
+template <class PH>
+PH* KMP::PointSection<PH>::getParent() const
+{
+    return parent;
+}
+
+template <class PH>
+void KMP::PointSection<PH>::sectionAdded(Section* section)
+{
+
+}
+
+template <class PH>
+void KMP::PointSection<PH>::sectionRemoved(Section* section)
+{
+    if (section == parent)
+    {
+        parent = nullptr;
+    }
+}
+
+#define CT_LIB_DECLARE_POINT_SECTION_METHODS(PH) \
+template KMP::PointSection<KMP::PH>::PointSection(KMP*); \
+template KMP::PointSection<KMP::PH>::~PointSection(); \
+template KMP::PH* KMP::PointSection<KMP::PH>::getParent() const; \
+template void KMP::PointSection<KMP::PH>::sectionAdded(Section*); \
+template void KMP::PointSection<KMP::PH>::sectionRemoved(Section*);
+
+CT_LIB_DECLARE_POINT_SECTION_METHODS(ENPH)
+CT_LIB_DECLARE_POINT_SECTION_METHODS(ITPH)
+CT_LIB_DECLARE_POINT_SECTION_METHODS(CKPH)
+
+#undef CT_LIB_DECLARE_POINT_SECTION_METHODS
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -551,16 +705,19 @@ void KMP::ENPT::assertCanAdd(KMP* kmp)
 }
 
 KMP::ENPT::ENPT(KMP* kmp) :
-    Section(kmp),
+    PointSection(kmp),
     pos{},
     radius{20.f},
     routeCtrl{RouteControl::Default},
     driftCtrl{DriftControl::Default}
 {
-
+    kmp->registerCallback(this);
 }
 
-KMP::ENPT::~ENPT() = default;
+KMP::ENPT::~ENPT()
+{
+    kmp->unregisterCallback(this);
+}
 
 KMP::SectionType KMP::ENPT::getType() const
 {
@@ -651,7 +808,12 @@ void KMP::ITPT::assertCanAdd(KMP* kmp)
 }
 
 KMP::ITPT::ITPT(KMP* kmp) :
-    Section(kmp)
+    PointSection(kmp),
+    pos{},
+    bulletRange{1.f},
+    bulletCtrl{BulletControl::Default},
+    forceBullet{false},
+    shellIgnore{false}
 {
 
 }
@@ -757,11 +919,11 @@ void KMP::CKPT::assertCanAdd(KMP* kmp)
 }
 
 KMP::CKPT::CKPT(KMP* kmp) :
-    Section(kmp),
+    PointSection(kmp),
     left{},
     right{},
     respawn{nullptr},
-    key{false}
+    type{0xFF}
 {
     kmp->registerCallback(this);
 }
@@ -795,9 +957,9 @@ void KMP::CKPT::setRespawn(JGPT* respawn)
     this->respawn = respawn;
 }
 
-void KMP::CKPT::setIsKey(bool set)
+void KMP::CKPT::setTypeID(uint8_t type)
 {
-    key = set;
+    this->type = type;
 }
 
 Vector2f KMP::CKPT::getLeft() const
@@ -815,9 +977,9 @@ KMP::JGPT* KMP::CKPT::getRespawn() const
     return respawn;
 }
 
-bool KMP::CKPT::isKey() const
+uint8_t KMP::CKPT::getTypeID() const
 {
-    return key;
+    return type;
 }
 
 void KMP::CKPT::sectionAdded(Section* section)

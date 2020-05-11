@@ -96,6 +96,351 @@ TEST(KMPSectionTests, NameForType)
     EXPECT_STREQ("STGI", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::STGI));
 }
 
+// For the following 'KMPGroupAndPointSectionsTests', only the EN* classes are
+// used, because the IT* and CK* classes works the same way
+
+TEST(KMPGroupAndPointSectionsTests, FirstLastAndParent)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    EXPECT_EQ(nullptr, group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+
+    CTLib::KMP::ENPT* points[100];
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        points[i] = kmp.add<CTLib::KMP::ENPT>();
+        EXPECT_EQ(nullptr, points[i]->getParent());
+    }
+
+    group->setFirst(points[34]);
+    EXPECT_EQ(points[34], group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i == 34 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setLast(points[68]);
+    EXPECT_EQ(points[34], group->getFirst());
+    EXPECT_EQ(points[68], group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i >= 34 && i <= 68 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setFirst(points[45]);
+    EXPECT_EQ(points[45], group->getFirst());
+    EXPECT_EQ(points[68], group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i >= 45 && i <= 68 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setLast(nullptr);
+    EXPECT_EQ(points[45], group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i == 45 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setLast(points[81]);
+    EXPECT_EQ(points[45], group->getFirst());
+    EXPECT_EQ(points[81], group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i >= 45 && i <= 81 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setFirst(nullptr);
+    EXPECT_EQ(nullptr, group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(nullptr, points[i]->getParent());
+    }
+}
+
+TEST(KMPGroupAndPointSectionsTests, RemoveGroupAndParent)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    
+    CTLib::KMP::ENPT* points[100];
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        points[i] = kmp.add<CTLib::KMP::ENPT>();
+    }
+
+    group->setFirst(points[37]);
+    group->setLast(points[79]);
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(i >= 37 && i <= 79 ? group : nullptr, points[i]->getParent());
+    }
+
+    kmp.remove<CTLib::KMP::ENPH>(kmp.indexOf(group));
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_EQ(nullptr, points[i]->getParent());
+    }
+}
+
+TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+
+    std::vector<CTLib::KMP::ENPT*> points;
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        points.push_back(kmp.add<CTLib::KMP::ENPT>());
+    }
+
+    group->setFirst(points[26]);
+    group->setLast(points[81]);
+
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(i >= 26 && i <= 81 ? group : nullptr, points[i]->getParent());
+    }
+
+    kmp.remove<CTLib::KMP::ENPT>(63);
+    points.erase(points.begin() + 63);
+
+    EXPECT_EQ(points[26], group->getFirst());
+    EXPECT_EQ(points[80], group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(i >= 26 && i <= 80 ? group : nullptr, points[i]->getParent());
+    }
+
+    kmp.remove<CTLib::KMP::ENPT>(80);
+    points.erase(points.begin() + 80);
+
+    EXPECT_EQ(points[26], group->getFirst());
+    EXPECT_EQ(points[79], group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(i >= 26 && i <= 79 ? group : nullptr, points[i]->getParent());
+    }
+
+    kmp.remove<CTLib::KMP::ENPT>(26);
+    points.erase(points.begin() + 26);
+
+    EXPECT_EQ(points[26], group->getFirst());
+    EXPECT_EQ(points[78], group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(i >= 26 && i <= 78 ? group : nullptr, points[i]->getParent());
+    }
+
+    group->setFirst(points[4]);
+    group->setLast(points[4]);
+
+    kmp.remove<CTLib::KMP::ENPT>(4);
+    points.erase(points.begin() + 4);
+    
+    EXPECT_EQ(nullptr, group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(nullptr, points[i]->getParent());
+    }
+
+    group->setFirst(points[72]);
+    group->setLast(nullptr);
+
+    EXPECT_EQ(points[72], group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(i == 72 ? group : nullptr, points[i]->getParent());
+    }
+
+    kmp.remove<CTLib::KMP::ENPT>(72);
+    points.erase(points.begin() + 72);
+
+    EXPECT_EQ(nullptr, group->getFirst());
+    EXPECT_EQ(nullptr, group->getLast());
+    for (uint16_t i = 0; i < points.size(); ++i)
+    {
+        EXPECT_EQ(nullptr, points[i]->getParent());
+    }
+}
+
+TEST(KMPGroupAndPointSectionsTests, PreviousAndNext)
+{
+    CTLib::KMP kmp;
+
+    std::vector<CTLib::KMP::ENPH*> groups;
+    for (uint16_t i = 0; i < 5; ++i)
+    {
+        groups.push_back(kmp.add<CTLib::KMP::ENPH>());
+        EXPECT_EQ(0, groups[i]->getPreviousCount());
+        EXPECT_EQ(0, groups[i]->getPrevious().size());
+        EXPECT_EQ(0, groups[i]->getNextCount());
+        EXPECT_EQ(0, groups[i]->getNext().size());
+    }
+
+    groups[0]->addNext(groups[1]);
+    groups[1]->addPrevious(groups[0]);
+    EXPECT_EQ(0, groups[0]->getPreviousCount());
+    EXPECT_EQ(1, groups[0]->getNextCount());
+    EXPECT_EQ(groups[1], groups[0]->getNext()[0]);
+    EXPECT_EQ(1, groups[1]->getPreviousCount());
+    EXPECT_EQ(groups[0], groups[1]->getPrevious()[0]);
+    EXPECT_EQ(0, groups[1]->getNextCount());
+
+    groups[1]->addNext(groups[2]);
+    groups[1]->addNext(groups[3]);
+    groups[2]->addPrevious(groups[1]);
+    groups[3]->addPrevious(groups[1]);
+    EXPECT_EQ(2, groups[1]->getNextCount());
+    EXPECT_EQ(groups[2], groups[1]->getNext()[0]);
+    EXPECT_EQ(groups[3], groups[1]->getNext()[1]);
+    EXPECT_EQ(1, groups[2]->getPreviousCount());
+    EXPECT_EQ(groups[1], groups[2]->getPrevious()[0]);
+    EXPECT_EQ(0, groups[2]->getNextCount());
+    EXPECT_EQ(1, groups[3]->getPreviousCount());
+    EXPECT_EQ(groups[1], groups[3]->getPrevious()[0]);
+    EXPECT_EQ(0, groups[3]->getNextCount());
+
+    groups[2]->addNext(groups[4]);
+    groups[3]->addNext(groups[4]);
+    groups[4]->addPrevious(groups[2]);
+    groups[4]->addPrevious(groups[3]);
+    EXPECT_EQ(1, groups[2]->getNextCount());
+    EXPECT_EQ(groups[4], groups[2]->getNext()[0]);
+    EXPECT_EQ(1, groups[3]->getNextCount());
+    EXPECT_EQ(groups[4], groups[3]->getNext()[0]);
+    EXPECT_EQ(2, groups[4]->getPreviousCount());
+    EXPECT_EQ(groups[2], groups[4]->getPrevious()[0]);
+    EXPECT_EQ(groups[3], groups[4]->getPrevious()[1]);
+    EXPECT_EQ(0, groups[4]->getNextCount());
+
+    groups[4]->addNext(groups[0]);
+    groups[0]->addPrevious(groups[4]);
+    EXPECT_EQ(1, groups[4]->getNextCount());
+    EXPECT_EQ(groups[0], groups[4]->getNext()[0]);
+    EXPECT_EQ(1, groups[0]->getPreviousCount());
+    EXPECT_EQ(groups[4], groups[0]->getPrevious()[0]);
+}
+
+TEST(KMPGroupAndPointSectionsTests, FirstAndLastErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+
+    CTLib::KMP::ENPT* points[100];
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        points[i] = kmp.add<CTLib::KMP::ENPT>();
+    }
+
+    EXPECT_THROW(group->setLast(points[0]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[32]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[57]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[83]), CTLib::KMPError);
+
+    group->setFirst(points[37]);
+    EXPECT_THROW(group->setLast(points[12]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[26]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[36]), CTLib::KMPError);
+    EXPECT_NO_THROW(group->setLast(points[37]));
+    EXPECT_NO_THROW(group->setLast(points[59]));
+    EXPECT_NO_THROW(group->setLast(points[72]));
+    EXPECT_NO_THROW(group->setLast(points[83]));
+
+    group->setLast(points[74]);
+    EXPECT_THROW(group->setFirst(points[98]), CTLib::KMPError);
+    EXPECT_THROW(group->setFirst(points[81]), CTLib::KMPError);
+    EXPECT_THROW(group->setFirst(points[75]), CTLib::KMPError);
+    EXPECT_NO_THROW(group->setFirst(points[74]));
+    EXPECT_NO_THROW(group->setFirst(points[52]));
+    EXPECT_NO_THROW(group->setFirst(points[38]));
+    EXPECT_NO_THROW(group->setFirst(points[15]));
+
+    CTLib::KMP::ENPH* group2 = kmp.add<CTLib::KMP::ENPH>();
+    
+    group->setFirst(points[26]);
+    group->setLast(points[72]);
+    EXPECT_NO_THROW(group2->setFirst(points[3]));
+    EXPECT_NO_THROW(group2->setFirst(points[17]));
+    EXPECT_NO_THROW(group2->setFirst(points[25]));
+    EXPECT_THROW(group2->setFirst(points[26]), CTLib::KMPError);
+    EXPECT_THROW(group2->setFirst(points[38]), CTLib::KMPError);
+    EXPECT_THROW(group2->setFirst(points[53]), CTLib::KMPError);
+    EXPECT_THROW(group2->setFirst(points[69]), CTLib::KMPError);
+    EXPECT_THROW(group2->setFirst(points[72]), CTLib::KMPError);
+    EXPECT_NO_THROW(group2->setFirst(points[73]));
+    EXPECT_NO_THROW(group2->setFirst(points[86]));
+    EXPECT_NO_THROW(group2->setFirst(points[95]));
+
+    group2->setFirst(points[0]);
+    EXPECT_NO_THROW(group2->setLast(points[3]));
+    EXPECT_NO_THROW(group2->setLast(points[17]));
+    EXPECT_NO_THROW(group2->setLast(points[25]));
+    EXPECT_THROW(group2->setLast(points[26]), CTLib::KMPError);
+    EXPECT_THROW(group2->setLast(points[38]), CTLib::KMPError);
+    EXPECT_THROW(group2->setLast(points[53]), CTLib::KMPError);
+    EXPECT_THROW(group2->setLast(points[69]), CTLib::KMPError);
+    EXPECT_THROW(group2->setLast(points[72]), CTLib::KMPError);
+    EXPECT_NO_THROW(group2->setLast(points[73]));
+    EXPECT_NO_THROW(group2->setLast(points[86]));
+    EXPECT_NO_THROW(group2->setLast(points[95]));
+}
+
+TEST(KMPGroupAndPointSectionTests, NextAndPreviousErrors)
+{
+    CTLib::KMP kmp;
+
+    CTLib::KMP::ENPH* group0 = kmp.add<CTLib::KMP::ENPH>();
+    CTLib::KMP::ENPH* group1 = kmp.add<CTLib::KMP::ENPH>();
+
+    EXPECT_THROW(group0->addPrevious(nullptr), CTLib::KMPError);
+    EXPECT_THROW(group0->addPrevious(group0), CTLib::KMPError);
+    EXPECT_THROW(group0->removePrevious(group1), CTLib::KMPError);
+
+    EXPECT_THROW(group0->addNext(nullptr), CTLib::KMPError);
+    EXPECT_THROW(group0->addNext(group0), CTLib::KMPError);
+    EXPECT_THROW(group0->removeNext(group1), CTLib::KMPError);
+
+    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
+    {
+        group0->addPrevious(group1);
+        group0->addNext(group1);
+    }
+    EXPECT_THROW(group0->addPrevious(group1), CTLib::KMPError);
+    EXPECT_THROW(group0->addNext(group1), CTLib::KMPError);
+}
+
+TEST(KMPGroupAndPointSectionsTests, OtherKMPErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP kmp2;
+
+    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    CTLib::KMP::ENPT* pointFromKMP2 = kmp2.add<CTLib::KMP::ENPT>();
+    EXPECT_THROW(group->setFirst(pointFromKMP2), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(pointFromKMP2), CTLib::KMPError);
+
+    CTLib::KMP::ENPH* groupFromKMP2 = kmp2.add<CTLib::KMP::ENPH>();
+    EXPECT_THROW(group->addNext(groupFromKMP2), CTLib::KMPError);
+    EXPECT_THROW(group->addPrevious(groupFromKMP2), CTLib::KMPError);
+    EXPECT_THROW(groupFromKMP2->addNext(group), CTLib::KMPError);
+    EXPECT_THROW(groupFromKMP2->addPrevious(group), CTLib::KMPError);
+}
+
 TEST(KMPKTPTTests, Errors)
 {
     CTLib::KMP kmp;
@@ -122,117 +467,6 @@ TEST(KMPENPTTests, Errors)
         kmp.add<CTLib::KMP::ENPT>();
     }
     EXPECT_THROW(kmp.add<CTLib::KMP::ENPT>(), CTLib::KMPError);
-}
-
-TEST(KMPENPHTests, FirstAndLast)
-{
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* enph = kmp.add<CTLib::KMP::ENPH>();
-    EXPECT_EQ(nullptr, enph->getFirst());
-    EXPECT_EQ(nullptr, enph->getLast());
-
-    CTLib::KMP::ENPT* enpt0 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt1 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt2 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt3 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt4 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt5 = kmp.add<CTLib::KMP::ENPT>();
-    CTLib::KMP::ENPT* enpt6 = kmp.add<CTLib::KMP::ENPT>();
-    
-    enph->setFirst(enpt2);
-    EXPECT_EQ(enpt2, enph->getFirst());
-    EXPECT_EQ(nullptr, enph->getLast());
-
-    enph->setLast(enpt5);
-    EXPECT_EQ(enpt2, enph->getFirst());
-    EXPECT_EQ(enpt5, enph->getLast());
-
-    kmp.remove<CTLib::KMP::ENPT>(kmp.indexOf(enpt2));
-    EXPECT_EQ(nullptr, enph->getFirst());
-    EXPECT_EQ(enpt5, enph->getLast());
-
-    enph->setFirst(enpt0);
-    kmp.remove<CTLib::KMP::ENPT>(kmp.indexOf(enpt5));
-    EXPECT_EQ(enpt0, enph->getFirst());
-    EXPECT_EQ(nullptr, enph->getLast());
-
-    kmp.remove<CTLib::KMP::ENPT>(kmp.indexOf(enpt0));
-    EXPECT_EQ(nullptr, enph->getFirst());
-    EXPECT_EQ(nullptr, enph->getLast());
-}
-
-TEST(KMPENPHTests, PreviousAndNext)
-{
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* enph = kmp.add<CTLib::KMP::ENPH>();
-    EXPECT_EQ(0, enph->getPreviousCount());
-    EXPECT_EQ(0, enph->getNextCount());
-
-    CTLib::KMP::ENPH* enph2 = kmp.add<CTLib::KMP::ENPH>();
-    enph->addNext(enph2);
-    enph2->addPrevious(enph);
-    EXPECT_EQ(0, enph->getPreviousCount());
-    EXPECT_EQ(1, enph->getNextCount());
-    EXPECT_EQ(1, enph2->getPreviousCount());
-    EXPECT_EQ(0, enph2->getNextCount());
-
-    kmp.remove<CTLib::KMP::ENPH>(kmp.indexOf(enph2));
-    EXPECT_EQ(0, enph->getPreviousCount());
-    EXPECT_EQ(0, enph->getNextCount());
-}
-
-TEST(KMPENPHTests, Errors)
-{
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* enph = kmp.add<CTLib::KMP::ENPH>();
-
-    EXPECT_THROW(enph->addNext(nullptr), CTLib::KMPError);
-    EXPECT_THROW(enph->addPrevious(nullptr), CTLib::KMPError);
-    EXPECT_THROW(enph->removeNext(nullptr), CTLib::KMPError);
-    EXPECT_THROW(enph->removePrevious(nullptr), CTLib::KMPError);
-
-    EXPECT_THROW(enph->addNext(enph), CTLib::KMPError);
-    EXPECT_THROW(enph->addPrevious(enph), CTLib::KMPError);
-    EXPECT_THROW(enph->removeNext(enph), CTLib::KMPError);
-    EXPECT_THROW(enph->removePrevious(enph), CTLib::KMPError);
-
-    CTLib::KMP::ENPH* enph2 = kmp.add<CTLib::KMP::ENPH>();
-    EXPECT_THROW(enph->removeNext(enph2), CTLib::KMPError);
-    EXPECT_THROW(enph->removePrevious(enph2), CTLib::KMPError);
-
-    enph->addPrevious(enph2);
-    EXPECT_THROW(enph->removeNext(enph2), CTLib::KMPError);
-    EXPECT_NO_THROW(enph->removePrevious(enph2));
-    EXPECT_THROW(enph->removePrevious(enph2), CTLib::KMPError);
-
-    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
-    {
-        enph->addNext(enph2);
-    }
-    EXPECT_THROW(enph->addNext(enph2), CTLib::KMPError);
-
-    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
-    {
-        enph->addPrevious(enph2);
-    }
-    EXPECT_THROW(enph->addPrevious(enph2), CTLib::KMPError);
-}
-
-TEST(KMPENPHTests, OtherKMPErrors)
-{
-    CTLib::KMP kmp;
-    CTLib::KMP kmp2;
-
-    CTLib::KMP::ENPH* enph = kmp.add<CTLib::KMP::ENPH>();
-    CTLib::KMP::ENPT* enptFromKMP2 = kmp2.add<CTLib::KMP::ENPT>();
-    EXPECT_THROW(enph->setFirst(enptFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(enph->setLast(enptFromKMP2), CTLib::KMPError);
-
-    CTLib::KMP::ENPH* enphFromKMP2 = kmp2.add<CTLib::KMP::ENPH>();
-    EXPECT_THROW(enph->addNext(enphFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(enph->addPrevious(enphFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(enphFromKMP2->addNext(enph), CTLib::KMPError);
-    EXPECT_THROW(enphFromKMP2->addPrevious(enph), CTLib::KMPError);
 }
 
 TEST(KMPITPTTests, Errors)
