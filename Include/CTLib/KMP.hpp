@@ -806,7 +806,7 @@ public:
     };
 
     /*! @brief Game objects. */
-    class GOBJ final : public Section
+    class GOBJ final : public Section, public SectionCallback
     {
 
         friend class KMP;
@@ -816,10 +816,101 @@ public:
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::GOBJ;
 
+        /*! @brief Number of object-specific settings. */
+        static constexpr uint8_t SETTINGS_COUNT = 8;
+
         ~GOBJ();
 
         /*! @brief Returns SectionType::GOBJ. */
         SectionType getType() const override;
+
+        /*! @brief Sets the type ID of this object.
+         *  
+         *  **Note**: For a good reference of objects and their settings, use
+         *  <a href="http://wiki.tockdom.com/wiki/Object">Tockdom Object Page
+         *  </a>.
+         */
+        void setTypeID(uint16_t type);
+
+        /*! @brief Sets the position of this object. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this object. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Sets the scale of this object. */
+        void setScale(Vector3f scale);
+
+        /*! @brief Sets the POTI route of this object.
+         *  
+         *  @throw CTLib::KMPError If the specified POTI route is not owned by
+         *  the same KMP as this GOBJ object.
+         */
+        void setRoute(POTI* route);
+
+        /*! @brief Sets the object-specific setting at the specified index.
+         *  
+         *  @throw CTLib::KMPError If the specified index is more than or equal
+         *  to SETTING_COUNT.
+         */
+        void setSetting(uint8_t index, uint16_t value);
+
+        /*! @brief Sets whether this object should be present in single-player
+         *  mode (offline, online, and time-trials).
+         */
+        void setIsSinglePlayerEnabled(bool enable);
+
+        /*! @brief Sets whether this object should be present in 2-player mode
+         *  (offline and online).
+         */
+        void setIs2PlayerEnabled(bool enable);
+
+        /*! @brief Sets whether this object should be present in 3-player and
+         *  4-player mode (offline).
+         */
+        void setIs3And4PlayerEnabled(bool enable);
+
+        /*! @brief Returns the type ID of this object. */
+        uint16_t getTypeID() const;
+
+        /*! @brief Returns the position of this object. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this object. */
+        Vector3f getRotation() const;
+
+        /*! @brief Returns the scale of this object. */
+        Vector3f getScale() const;
+
+        /*! @brief Returns the POTI route used by this object. */
+        POTI* getRoute() const;
+
+        /*! @brief Returns the object-specific setting at the specified index.
+         *  
+         *  @throw CTLib::KMPError If the specified index is more than or equal
+         *  to SETTING_COUNT.
+         */
+        uint16_t getSetting(uint8_t index) const;
+
+        /*! @brief Returns whether this object is present in single-player mode.
+         */
+        bool isSinglePlayerEnabled() const;
+
+        /*! @brief Returns whether this object is present in 2-player mode. */
+        bool is2PlayerEnabled() const;
+
+        /*! @brief Returns whether this object is present in 3-player and
+         *  4-player mode.
+         */
+        bool is3And4PlayerEnabled() const;
+
+    protected:
+
+        //! invoked when a section entry is added
+        void sectionAdded(Section* section) override;
+
+        //! invoked when a section entry is removed
+        void sectionRemoved(Section* section) override;
 
     private:
 
@@ -827,15 +918,71 @@ public:
         static void assertCanAdd(KMP* kmp);
 
         GOBJ(KMP* kmp);
+
+        // throws if 'index' >= 'SETTINGS_COUNT'
+        void assertValidSettingsIndex(uint8_t index) const;
+
+        // object type ID
+        uint16_t type;
+
+        // position
+        Vector3f pos;
+
+        // rotation
+        Vector3f rot;
+
+        // scale
+        Vector3f scale;
+
+        // pointer to POTI route
+        POTI* route;
+
+        // object-specified settings
+        uint16_t settings[SETTINGS_COUNT];
+
+        // enable on single-player (offline and online) and time-trials
+        bool flag1p;
+
+        // enable on 2-player mode (offline and online)
+        bool flag2p;
+
+        // enable on 3-player and 4-player mode (offline)
+        bool flag34p;
     };
 
-    /*! @brief Game object routes. */
+    /*! @brief Routes. */
     class POTI final : public Section
     {
 
         friend class KMP;
 
     public:
+
+        /*! @brief Enumeration of the possible route type values. */
+        enum class RouteType : uint8_t
+        {
+            /*! @brief Go back to first point of route after last point. */
+            Loop,
+
+            /*! @brief Follow route forwards, then backwards, then forwards,
+             *  and so on...
+             */
+            PingPong
+        };
+
+        /*! @brief A point in a POTI route. */
+        struct Point
+        {
+
+            /*! @brief Position of this point. */
+            Vector3f pos;
+
+            /*! @brief Point setting 1. (Object dependent). */
+            uint16_t val1 = 0;
+
+            /*! @brief Point setting 2. (Object dependent). */
+            uint16_t val2 = 0;
+        };
 
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::POTI;
@@ -845,12 +992,63 @@ public:
         /*! @brief Returns SectionType::POTI. */
         SectionType getType() const override;
 
+        /*! @brief Sets whether this route should be followed with smooth
+         *  motion.
+         */
+        void setIsSmooth(bool enable);
+
+        /*! @brief Sets the RouteType of this route. */
+        void setRouteType(RouteType type);
+
+        /*! @brief Returns whether this route should be followed with smooth
+         *  motion.
+         */
+        bool isSmooth() const;
+
+        /*! @brief Returns the RouteType of this route. */
+        RouteType getRouteType() const;
+
+        /*! @brief Adds the specified Point to this route. */
+        void addPoint(Point point);
+
+        /*! @brief Returns a reference to the Point at the specified index.
+         *  
+         *  @throw CTLib::KMPErorr If the specified index is more than or equal
+         *  to the point count of this route.
+         */
+        Point& getPoint(uint16_t index);
+
+        /*! @brief Removes the Point at the specified index.
+         *  
+         *  @throw CTLib::KMPError If the specified index is more than or equal
+         *  to the point count of this route.
+         */
+        void removePoint(uint16_t index);
+
+        /*! @brief Returns a std::vector containing all Points in this route. */
+        std::vector<Point> getPoints() const;
+
+        /*! @brief Returns the number of Points in this route. */
+        uint16_t getPointCount() const;
+
     private:
 
         // does nothing
         static void assertCanAdd(KMP* kmp);
 
         POTI(KMP* kmp);
+
+        // throws if 'index' >= 'points.size()'
+        void assertValidIndex(uint16_t index) const;
+
+        // whether use smooth motion for this route
+        bool smooth;
+
+        // route type
+        RouteType type;
+
+        // vector containing all points in this route
+        std::vector<Point> points;
     };
 
     /*! @brief Areas. */

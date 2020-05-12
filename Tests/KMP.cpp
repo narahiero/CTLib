@@ -514,6 +514,75 @@ TEST(KMPCKPTTests, OtherKMPErrors)
     EXPECT_THROW(ckpt->setRespawn(jgpt), CTLib::KMPError);
 }
 
+TEST(KMPGOBJTests, RemovePOTI)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
+    EXPECT_EQ(nullptr, gobj->getRoute());
+
+    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    gobj->setRoute(poti);
+    EXPECT_EQ(poti, gobj->getRoute());
+
+    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    EXPECT_EQ(nullptr, gobj->getRoute());
+}
+
+TEST(KMPGOBJTests, Errors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
+
+    for (uint8_t i = 0; i < CTLib::KMP::GOBJ::SETTINGS_COUNT; ++i)
+    {
+        EXPECT_NO_THROW(gobj->setSetting(i, 0));
+    }
+    for (uint8_t i = CTLib::KMP::GOBJ::SETTINGS_COUNT; i != 0; ++i)
+    {
+        EXPECT_THROW(gobj->setSetting(i, 0), CTLib::KMPError);
+    }
+}
+
+TEST(KMPGOBJTests, OtherKMPErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP kmp2;
+
+    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
+    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
+    EXPECT_THROW(gobj->setRoute(potiFromKMP2), CTLib::KMPError);
+}
+
+TEST(KMPPOTITests, Errors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+
+    EXPECT_THROW(poti->getPoint(0), CTLib::KMPError);
+    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+
+    poti->addPoint(CTLib::KMP::POTI::Point());
+    EXPECT_THROW(poti->getPoint(1), CTLib::KMPError);
+    EXPECT_THROW(poti->removePoint(1), CTLib::KMPError);
+    EXPECT_NO_THROW(poti->getPoint(0));
+    EXPECT_NO_THROW(poti->removePoint(0)); // point removed here
+    EXPECT_THROW(poti->getPoint(0), CTLib::KMPError);
+    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        poti->addPoint(CTLib::KMP::POTI::Point());
+        EXPECT_NO_THROW(poti->getPoint(i));
+        EXPECT_THROW(poti->getPoint(i + 1), CTLib::KMPError);
+    }
+
+    for (uint16_t i = 0; i < 100; ++i)
+    {
+        EXPECT_NO_THROW(poti->removePoint(0));
+    }
+    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+}
+
 TEST(KMPJGPTTests, Errors)
 {
     CTLib::KMP kmp;

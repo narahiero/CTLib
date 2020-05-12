@@ -262,14 +262,60 @@ void readCKPHSection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
     readKMPGroupSection<KMP::CKPH, KMP::CKPT>(data, kmp, count);
 }
 
-void readGOBJSection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
+void readGOBJSection(
+    Buffer& data, KMP& kmp, uint16_t count, uint16_t, std::map<KMP::GOBJ*, uint16_t>& routes
+)
 {
+    for (uint16_t i = 0; i < count; ++i)
+    {
+        KMP::GOBJ* gobj = kmp.add<KMP::GOBJ>();
 
+        gobj->setTypeID(data.getShort());
+        data.getShort(); // unknown/unused
+
+        Vector3f pos, rot, scale;
+        pos.get(data);
+        rot.get(data);
+        scale.get(data);
+
+        gobj->setPosition(pos);
+        gobj->setRotation(rot);
+        gobj->setScale(scale);
+        routes.insert(std::map<KMP::GOBJ*, uint16_t>::value_type(gobj, data.getShort()));
+        
+        for (uint8_t i = 0; i < KMP::GOBJ::SETTINGS_COUNT; ++i)
+        {
+            gobj->setSetting(i, data.getShort());
+        }
+
+        uint16_t flags = data.getShort();
+        gobj->setIsSinglePlayerEnabled(flags & 0x1);
+        gobj->setIs2PlayerEnabled(flags & 0x2);
+        gobj->setIs3And4PlayerEnabled(flags & 0x4);
+    }
 }
 
 void readPOTISection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
 {
+    for (uint16_t i = 0; i < count; ++i)
+    {
+        KMP::POTI* poti = kmp.add<KMP::POTI>();
 
+        uint16_t pointCount = data.getShort();
+        poti->setIsSmooth(data.get());
+        poti->setRouteType(static_cast<KMP::POTI::RouteType>(data.get()));
+
+        for (uint16_t p = 0; p < pointCount; ++p)
+        {
+            KMP::POTI::Point point;
+
+            point.pos.get(data);
+            point.val1 = data.getShort();
+            point.val2 = data.getShort();
+
+            poti->addPoint(point);
+        }
+    }
 }
 
 void readAREASection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
@@ -432,6 +478,7 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
     std::set<KMP::SectionType> sections;
 
     std::map<KMP::CKPT*, uint8_t> ckptRespawns;
+    std::map<KMP::GOBJ*, uint16_t> gobjRoutes;
 
     for (uint32_t offset : header->sectionOffs)
     {
@@ -480,7 +527,7 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
             break;
 
         case KMP::SectionType::GOBJ:
-            readGOBJSection(data, kmp, count, value);
+            readGOBJSection(data, kmp, count, value, gobjRoutes);
             break;
 
         case KMP::SectionType::POTI:
@@ -527,6 +574,23 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
             ));
         }
         pair.first->setRespawn(kmp.get<KMP::JGPT>(pair.second));
+    }
+
+    // Resolve GOBJ routes
+    for (auto& pair : gobjRoutes)
+    {
+        if (pair.second == 0xFFFF)
+        {
+            continue;
+        }
+        if (pair.second >= kmp.count<KMP::POTI>())
+        {
+            throw KMPError(Strings::format(
+                "KMP: POTI route index out of bounds is GOBJ entry! (Index %d, Size %d)",
+                pair.second, kmp.count<KMP::POTI>()
+            ));
+        }
+        pair.first->setRoute(kmp.get<KMP::POTI>(pair.second));
     }
 }
 

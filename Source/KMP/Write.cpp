@@ -104,7 +104,11 @@ uint32_t calculateKMPSectionSizeAndOffset(const KMP& kmp, uint32_t pos, KMPOffse
     uint32_t size = 0;
     if (Type::TYPE == KMP::SectionType::POTI)
     {
-        size = 0x8; // until POTI section is actually implemented
+        size = 0x8;
+        for (KMP::POTI* entry : kmp.getAll<KMP::POTI>())
+        {
+            size += 0x4 + (entry->getPointCount() * 0x10);
+        }
     }
     else
     {
@@ -303,8 +307,34 @@ void writeGOBJSection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
 
     for (KMP::GOBJ* entry : kmp.getAll<KMP::GOBJ>())
     {
+        out.putShort(entry->getTypeID());
+        out.putShort(0); // unknown/unused
+        entry->getPosition().put(out);
+        entry->getRotation().put(out);
+        entry->getScale().put(out);
+        out.putShort(entry->getRoute() == nullptr ? 0xFFFF : kmp.indexOf(entry->getRoute()));
 
+        for (uint8_t i = 0; i < KMP::GOBJ::SETTINGS_COUNT; ++i)
+        {
+            out.putShort(entry->getSetting(i));
+        }
+
+        uint16_t flags = 0;
+        flags |= entry->isSinglePlayerEnabled() ? 0x09 : 0x00;
+        flags |= entry->is2PlayerEnabled() ? 0x12 : 0x00;
+        flags |= entry->is3And4PlayerEnabled() ? 0x24 : 0x00;
+        out.putShort(flags);
     }
+}
+
+uint16_t getTotalPOTIPointCount(const KMP& kmp)
+{
+    uint16_t count = 0;
+    for (KMP::POTI* poti : kmp.getAll<KMP::POTI>())
+    {
+        count += poti->getPointCount();
+    }
+    return count;
 }
 
 void writePOTISection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
@@ -312,8 +342,22 @@ void writePOTISection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
     out.position(offsets->sectionOffs.at(KMP::SectionType::POTI));
 
     out.putArray((uint8_t*)"POTI", 4);
-    out.putShort(0); // 0 until POTI section gets actually implemented
-    out.putShort(0); // unused
+    out.putShort(kmp.count<KMP::POTI>());
+    out.putShort(getTotalPOTIPointCount(kmp)); // point count
+
+    for (KMP::POTI* poti : kmp.getAll<KMP::POTI>())
+    {
+        out.putShort(poti->getPointCount());
+        out.put(poti->isSmooth() ? 0x01 : 0x00);
+        out.put(static_cast<uint8_t>(poti->getRouteType()));
+
+        for (KMP::POTI::Point& point : poti->getPoints())
+        {
+            point.pos.put(out);
+            out.putShort(point.val1);
+            out.putShort(point.val2);
+        }
+    }
 }
 
 void writeAREASection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)

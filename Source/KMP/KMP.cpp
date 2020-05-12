@@ -1028,16 +1028,152 @@ void KMP::GOBJ::assertCanAdd(KMP* kmp)
 }
 
 KMP::GOBJ::GOBJ(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    type{0},
+    pos{},
+    rot{},
+    scale{},
+    route{nullptr},
+    flag1p{true},
+    flag2p{true},
+    flag34p{true}
 {
+    for (uint8_t i = 0; i < SETTINGS_COUNT; ++i)
+    {
+        settings[i] = 0x00;
+    }
 
+    kmp->registerCallback(this);
 }
 
-KMP::GOBJ::~GOBJ() = default;
+KMP::GOBJ::~GOBJ()
+{
+    kmp->unregisterCallback(this);
+}
 
 KMP::SectionType KMP::GOBJ::getType() const
 {
     return SectionType::GOBJ;
+}
+
+void KMP::GOBJ::setTypeID(uint16_t type)
+{
+    this->type = type;
+}
+
+void KMP::GOBJ::setPosition(Vector3f position)
+{
+    pos = position;
+}
+
+void KMP::GOBJ::setRotation(Vector3f rotation)
+{
+    rot = rotation;
+}
+
+void KMP::GOBJ::setScale(Vector3f scale)
+{
+    this->scale = scale;
+}
+
+void KMP::GOBJ::setRoute(POTI* route)
+{
+    if (route != nullptr)
+    {
+        assertSameKMP(route);
+    }
+    this->route = route;
+}
+
+void KMP::GOBJ::setSetting(uint8_t index, uint16_t value)
+{
+    assertValidSettingsIndex(index);
+    settings[index] = value;
+}
+
+void KMP::GOBJ::setIsSinglePlayerEnabled(bool enable)
+{
+    flag1p = enable;
+}
+
+void KMP::GOBJ::setIs2PlayerEnabled(bool enable)
+{
+    flag2p = enable;
+}
+
+void KMP::GOBJ::setIs3And4PlayerEnabled(bool enable)
+{
+    flag34p = enable;
+}
+
+uint16_t KMP::GOBJ::getTypeID() const
+{
+    return type;
+}
+
+Vector3f KMP::GOBJ::getPosition() const
+{
+    return pos;
+}
+
+Vector3f KMP::GOBJ::getRotation() const
+{
+    return rot;
+}
+
+Vector3f KMP::GOBJ::getScale() const
+{
+    return scale;
+}
+
+KMP::POTI* KMP::GOBJ::getRoute() const
+{
+    return route;
+}
+
+uint16_t KMP::GOBJ::getSetting(uint8_t index) const
+{
+    assertValidSettingsIndex(index);
+    return settings[index];
+}
+
+bool KMP::GOBJ::isSinglePlayerEnabled() const
+{
+    return flag1p;
+}
+
+bool KMP::GOBJ::is2PlayerEnabled() const
+{
+    return flag2p;
+}
+
+bool KMP::GOBJ::is3And4PlayerEnabled() const
+{
+    return flag34p;
+}
+
+void KMP::GOBJ::sectionAdded(Section* section)
+{
+
+}
+
+void KMP::GOBJ::sectionRemoved(Section* section)
+{
+    if (section == route)
+    {
+        route = nullptr;
+    }
+}
+
+void KMP::GOBJ::assertValidSettingsIndex(uint8_t index) const
+{
+    if (index >= SETTINGS_COUNT)
+    {
+        throw KMPError(Strings::format(
+            "KMP: GOBJ setting index out of range! (%d >= %d)",
+            index, SETTINGS_COUNT
+        ));
+    }
 }
 
 
@@ -1052,7 +1188,10 @@ void KMP::POTI::assertCanAdd(KMP* kmp)
 }
 
 KMP::POTI::POTI(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    smooth{false},
+    type{RouteType::Loop},
+    points{}
 {
 
 }
@@ -1062,6 +1201,64 @@ KMP::POTI::~POTI() = default;
 KMP::SectionType KMP::POTI::getType() const
 {
     return SectionType::POTI;
+}
+
+void KMP::POTI::setIsSmooth(bool enable)
+{
+    smooth = enable;
+}
+
+void KMP::POTI::setRouteType(RouteType type)
+{
+    this->type = type;
+}
+
+bool KMP::POTI::isSmooth() const
+{
+    return smooth;
+}
+
+KMP::POTI::RouteType KMP::POTI::getRouteType() const
+{
+    return type;
+}
+
+void KMP::POTI::addPoint(Point point)
+{
+    points.push_back(point);
+}
+
+KMP::POTI::Point& KMP::POTI::getPoint(uint16_t index)
+{
+    assertValidIndex(index);
+    return points.at(index);
+}
+
+void KMP::POTI::removePoint(uint16_t index)
+{
+    assertValidIndex(index);
+    points.erase(points.begin() + index);
+}
+
+std::vector<KMP::POTI::Point> KMP::POTI::getPoints() const
+{
+    return points;
+}
+
+uint16_t KMP::POTI::getPointCount() const
+{
+    return static_cast<uint16_t>(points.size());
+}
+
+void KMP::POTI::assertValidIndex(uint16_t index) const
+{
+    if (index >= points.size())
+    {
+        throw KMPError(Strings::format(
+            "KMP: Point index of out range in POTI route! (%d >= %d)",
+            index, points.size()
+        ));
+    }
 }
 
 
