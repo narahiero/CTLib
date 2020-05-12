@@ -54,7 +54,10 @@ public:
     class MSPT;
     class STGI;
 
-    /*! @brief Reads a KMP from the specified Buffer. */
+    /*! @brief Reads a KMP from the specified Buffer.
+     *  
+     *  @throw CTLib::KMPError If the specified data is invalid.
+     */
     static KMP read(Buffer& data);
 
     /*! @brief Writes the specified KMP to a new Buffer. */
@@ -215,9 +218,9 @@ public:
          * 
          *  @param[in] prev The group to be added to the previous groups
          * 
-         *  @throw CTLib::KMPError If the specified group is `nullptr` or
-         *  `this`, or not owned by the same KMP as this group, or this group
-         *  already has MAX_LINKS previous groups.
+         *  @throw CTLib::KMPError If the specified group is `nullptr`, or not
+         *  owned by the same KMP as this group, or this group already has
+         *  MAX_LINKS previous groups.
          */
         void addPrevious(PH* prev);
 
@@ -226,8 +229,8 @@ public:
          * 
          *  @param[in] prev The previous group to remove
          * 
-         *  @throw CTLib::KMPError If the specified group is `nullptr` or
-         *  `this`, or is not a previous group of this group.
+         *  @throw CTLib::KMPError If the specified group is `nullptr`, or is
+         *  not a previous group of this group.
          */
         void removePrevious(PH* prev);
 
@@ -240,9 +243,9 @@ public:
          * 
          *  @param[in] next The group to be added to the next groups
          * 
-         *  @throw CTLib::KMPError If the specified group is `nullptr` or
-         *  `this`, or not owned by the same KMP as this group, or this group
-         *  already has MAX_LINKS next groups.
+         *  @throw CTLib::KMPError If the specified group is `nullptr`, or not
+         *  owned by the same KMP as this group, or this group already has
+         *  MAX_LINKS next groups.
          */
         void addNext(PH* next);
 
@@ -251,8 +254,8 @@ public:
          * 
          *  @param[in] next The next group to be removed
          * 
-         *  @throw CTLib::KMPError If the specified group is `nullptr` or
-         *  `this`, or is not a next group of this group.
+         *  @throw CTLib::KMPError If the specified group is `nullptr`, or is
+         *  not a next group of this group.
          */
         void removeNext(PH* next);
 

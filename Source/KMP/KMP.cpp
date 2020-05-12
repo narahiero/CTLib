@@ -337,7 +337,6 @@ template <class PH, class PT>
 void KMP::GroupSection<PH, PT>::addPrevious(PH* prev)
 {
     assertNotNull(prev);
-    assertNotThis(prev);
     assertSameKMP(prev);
     assertCanAddLink(prevs);
     prevs.push_back(prev);
@@ -347,7 +346,6 @@ template <class PH, class PT>
 void KMP::GroupSection<PH, PT>::removePrevious(PH* prev)
 {
     assertNotNull(prev);
-    assertNotThis(prev);
 
     if (Collections::removeAll(prevs, prev) == 0)
     {
@@ -361,7 +359,6 @@ template <class PH, class PT>
 void KMP::GroupSection<PH, PT>::addNext(PH* next)
 {
     assertNotNull(next);
-    assertNotThis(next);
     assertSameKMP(next);
     assertCanAddLink(nexts);
     nexts.push_back(next);
@@ -371,7 +368,6 @@ template <class PH, class PT>
 void KMP::GroupSection<PH, PT>::removeNext(PH* next)
 {
     assertNotNull(next);
-    assertNotThis(next);
 
     if (Collections::removeAll(nexts, next) == 0)
     {

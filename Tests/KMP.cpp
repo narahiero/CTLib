@@ -408,11 +408,9 @@ TEST(KMPGroupAndPointSectionTests, NextAndPreviousErrors)
     CTLib::KMP::ENPH* group1 = kmp.add<CTLib::KMP::ENPH>();
 
     EXPECT_THROW(group0->addPrevious(nullptr), CTLib::KMPError);
-    EXPECT_THROW(group0->addPrevious(group0), CTLib::KMPError);
     EXPECT_THROW(group0->removePrevious(group1), CTLib::KMPError);
 
     EXPECT_THROW(group0->addNext(nullptr), CTLib::KMPError);
-    EXPECT_THROW(group0->addNext(group0), CTLib::KMPError);
     EXPECT_THROW(group0->removeNext(group1), CTLib::KMPError);
 
     for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)

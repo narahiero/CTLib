@@ -74,6 +74,7 @@ if(CT_LIB_MODULE_KMP)
     target_sources(CTLib PRIVATE
         "${CT_LIB_INCLUDE_DIR}/CTLib/KMP.hpp"
         KMP/KMP.cpp
+        KMP/Read.cpp
         KMP/Write.cpp
     )
 endif()
