@@ -216,7 +216,7 @@ void writeENPTSection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
         out.putFloat(entry->getRadius());
         out.putShort(static_cast<uint16_t>(entry->getRouteControl()));
         out.put(static_cast<uint8_t>(entry->getDriftControl()));
-        out.put(0x00); // unknown flags
+        out.put(entry->getFlags()); // unknown flags
     }
 }
 
@@ -452,7 +452,7 @@ void writeJGPTSection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
         entry->getPosition().put(out);
         entry->getRotation().put(out);
         out.putShort(kmp.indexOf(entry));
-        out.putShort(0); // range?
+        out.putShort(entry->getRange());
     }
 }
 

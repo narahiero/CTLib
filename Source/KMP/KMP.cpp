@@ -724,7 +724,8 @@ KMP::ENPT::ENPT(KMP* kmp) :
     pos{},
     radius{20.f},
     routeCtrl{RouteControl::Default},
-    driftCtrl{DriftControl::Default}
+    driftCtrl{DriftControl::Default},
+    flags{0}
 {
     kmp->registerCallback(this);
 }
@@ -759,6 +760,11 @@ void KMP::ENPT::setDriftControl(DriftControl control)
     driftCtrl = control;
 }
 
+void KMP::ENPT::setFlags(uint8_t flags)
+{
+    this->flags = flags;
+}
+
 Vector3f KMP::ENPT::getPosition() const
 {
     return pos;
@@ -777,6 +783,11 @@ KMP::ENPT::RouteControl KMP::ENPT::getRouteControl() const
 KMP::ENPT::DriftControl KMP::ENPT::getDriftControl() const
 {
     return driftCtrl;
+}
+
+uint8_t KMP::ENPT::getFlags() const
+{
+    return flags;
 }
 
 
@@ -1709,7 +1720,8 @@ void KMP::JGPT::assertCanAdd(KMP* kmp)
 KMP::JGPT::JGPT(KMP* kmp) :
     Section(kmp),
     pos{},
-    rot{}
+    rot{},
+    range{0}
 {
 
 }
@@ -1731,6 +1743,11 @@ void KMP::JGPT::setRotation(Vector3f rotation)
     rot = rotation;
 }
 
+void KMP::JGPT::setRange(int16_t range)
+{
+    this->range = range;
+}
+
 Vector3f KMP::JGPT::getPosition() const
 {
     return pos;
@@ -1739,6 +1756,11 @@ Vector3f KMP::JGPT::getPosition() const
 Vector3f KMP::JGPT::getRotation() const
 {
     return rot;
+}
+
+int16_t KMP::JGPT::getRange() const
+{
+    return range;
 }
 
 

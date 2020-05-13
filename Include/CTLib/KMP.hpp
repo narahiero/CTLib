@@ -506,6 +506,9 @@ public:
         /*! @brief Sets the DriftControl of this point. */
         void setDriftControl(DriftControl control);
 
+        /*! @brief Sets unknown flags of this point. */
+        void setFlags(uint8_t flags);
+
         /*! @brief Returns the position of this point. */
         Vector3f getPosition() const;
 
@@ -517,6 +520,9 @@ public:
 
         /*! @brief Returns the DriftControl of this point. */
         DriftControl getDriftControl() const;
+
+        /*! @brief Returns the flags of this point. */
+        uint8_t getFlags() const;
 
     private:
 
@@ -533,6 +539,9 @@ public:
 
         RouteControl routeCtrl;
         DriftControl driftCtrl;
+
+        // unknown flags
+        uint8_t flags;
     };
 
     /*! @brief Enemy route point groups. */
@@ -1494,11 +1503,17 @@ public:
         /*! @brief Sets the rotation of this respawn point. */
         void setRotation(Vector3f rotation);
 
+        /*! @brief Sets the range of this respawn point. */
+        void setRange(int16_t range);
+
         /*! @brief Returns the position of this respawn point. */
         Vector3f getPosition() const;
 
         /*! @brief Returns the rotation of this respawn point. */
         Vector3f getRotation() const;
+
+        /*! @brief Returns the range of this respawn point. */
+        int16_t getRange() const;
 
     private:
 
@@ -1513,7 +1528,8 @@ public:
         // rotation
         Vector3f rot;
 
-        float range;
+        // unknown usage
+        int16_t range;
     };
 
     /*! @brief Cannon points. */

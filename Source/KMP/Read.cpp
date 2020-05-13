@@ -204,7 +204,7 @@ void readENPTSection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
         enpt->setRadius(data.getFloat());
         enpt->setRouteControl(static_cast<KMP::ENPT::RouteControl>(data.getShort()));
         enpt->setDriftControl(static_cast<KMP::ENPT::DriftControl>(data.get()));
-        data.get(); // ignore unknown flags
+        enpt->setFlags(data.get()); // unknown flags
     }
 }
 
@@ -438,7 +438,7 @@ void readJGPTSection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
         jgpt->setPosition(pos);
         jgpt->setRotation(pos);
         data.getShort(); // ignore ID
-        data.getShort(); // range?
+        jgpt->setRange(data.getShort());
     }
 }
 
