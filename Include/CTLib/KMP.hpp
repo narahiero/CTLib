@@ -1052,12 +1052,69 @@ public:
     };
 
     /*! @brief Areas. */
-    class AREA final : public Section
+    class AREA final : public Section, public SectionCallback
     {
 
         friend class KMP;
 
     public:
+
+        /*! @brief Enumeration of the possible area shape values. */
+        enum class Shape : uint8_t
+        {
+            /*! @brief Box. */
+            Box,
+
+            /*! @brief Vertical cylinder. */
+            Cylinder
+        };
+
+        /*! @brief Enumeration of the possible area type values. */
+        enum class Type
+        {
+            /*! @brief Activates the camera of the area. (Used for end of races
+             *  and online waiting)
+             */
+            Camera = 0x0,
+
+            /*! @brief Activates `EffectKareha` effect (or `EffectKarehaUp` if
+             *  Setting 1 is set to `0x01`).
+             */
+            EnvEffect = 0x1,
+
+            /*! @brief Activates the BFG entry at the index specified by the
+             *  Setting 1 of the area.
+             */
+            BFGSwap = 0x2,
+
+            /*! @brief Links a KCL flag to the POTI route of the area. */
+            MovingRoad = 0x3,
+
+            /*! @brief Links a KCL flag to the ENPT point of the area. */
+            DestinationPoint = 0x4,
+
+            /*! @brief Seems to hide parts of the minimap. (Type only used in
+             *  competitions)
+             */
+            MinimapControl = 0x5,
+
+            /*! @brief Triggers music special effect like in Mushroom Gorge's
+             *  cave.
+             */
+            MusicChange = 0x6,
+
+            /*! @brief Activates the GOBJ `'b_teresa'` in the area. */
+            EffectBoos = 0x7,
+
+            /*! @brief Alters render distance of GOBJs in the area. */
+            RenderDistance = 0x8,
+
+            /*! @brief Same as Type::RenderDistance. */
+            RenderDistanceAlt = 0x9,
+
+            /*! @brief Fall boundary just like KCL flag `0x10`. */
+            FallBoundary = 0xA
+        };
 
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::AREA;
@@ -1067,21 +1124,172 @@ public:
         /*! @brief Returns SectionType::AREA. */
         SectionType getType() const override;
 
+        /*! @brief Sets the shape of this area. */
+        void setShape(Shape shape);
+
+        /*! @brief Sets the type of this area.
+         *  
+         *  **Note**: For a good reference of AREA types and their settings, use
+         *  <a href="http://wiki.tockdom.com/wiki/AREA_type">AREA Types Page
+         *  </a>.
+         */
+        void setAreaType(Type type);
+
+        /*! @brief Sets the camera of this area. 
+         *  
+         *  **Note**: The camera is only useful if the area type is Camera.
+         *  
+         *  @throw CTLib::KMPError If the specified CAME camera is not by the
+         *  same KMP as this AREA entry.
+         */
+        void setCamera(CAME* camera);
+
+        /*! @brief Sets the priority of this area. */
+        void setPriority(uint8_t priority);
+
+        /*! @brief Sets the position of this area. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this area. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Sets the scale of this area. */
+        void setScale(Vector3f scale);
+
+        /*! @brief Sets the Setting 1 of this area.
+         *  
+         *  **Note**: The usage of this value is type-specific.
+         */
+        void setSetting1(uint16_t value);
+
+        /*! @brief Sets the Setting 2 of this area.
+         *  
+         *  **Note**: The usage of this value is type-specific.
+         */
+        void setSetting2(uint16_t value);
+
+        /*! @brief Sets the route of this area.
+         *  
+         *  **Note**: The route is only useful if area type is MovingRoad.
+         * 
+         *  @throw CTLib::KMPError If the specified POTI route is not owned by
+         *  the same KMP as this AREA entry.
+         */
+        void setRoute(POTI* route);
+
+        /*! @brief Sets the destination point of this area.
+         *  
+         *  **Note**: The point is only useful if area type is DestinationPoint.
+         * 
+         *  @throw CTLib::KMPError If the specified ENPT point is not owned by
+         *  the same KMP as this AREA entry.
+         */
+        void setDestinationPoint(ENPT* point);
+
+        /*! @brief Returns the shape of this area. */
+        Shape getShape() const;
+
+        /*! @brief Returns the type of this area. */
+        Type getAreaType() const;
+
+        /*! @brief Returns the camera of this area. */
+        CAME* getCamera() const;
+
+        /*! @brief Returns the priority of this area. */
+        uint8_t getPriority() const;
+
+        /*! @brief Returns the position of this area. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this area. */
+        Vector3f getRotation() const;
+
+        /*! @brief Returns the scale of this area. */
+        Vector3f getScale() const;
+
+        /*! @brief Returns the Setting 1 of this area. */
+        uint16_t getSetting1() const;
+
+        /*! @brief Returns the Setting 2 of this area. */
+        uint16_t getSetting2() const;
+
+        /*! @brief Returns the route of this area. */
+        POTI* getRoute() const;
+
+        /*! @brief Returns the destination point of this area. */
+        ENPT* getDestinationPoint() const;
+
+    protected:
+
+        //! invoked when a section entry is added
+        void sectionAdded(Section* section) override;
+
+        //! invoked when a section entry is removed
+        void sectionRemoved(Section* section) override;
+
     private:
 
         // does nothing
         static void assertCanAdd(KMP* kmp);
 
         AREA(KMP* kmp);
+
+        // shape of this area
+        Shape shape;
+
+        // type of this area
+        Type type;
+
+        // camera index (only used by AREA type Camera)
+        CAME* camera;
+
+        // priority when areas overlaps
+        uint8_t priority;
+
+        // position
+        Vector3f pos;
+
+        // rotation
+        Vector3f rot;
+
+        // scale
+        Vector3f scale;
+
+        // setting 1
+        uint16_t val1;
+
+        // setting 2 (only used by AREA type MovingRoad)
+        uint16_t val2;
+
+        // pointer to POTI route (only used by AREA type MovingRoad)
+        POTI* route;
+
+        // pointer to ENPT point (only used by AREA type DestinationPoint)
+        ENPT* dest;
     };
 
     /*! @brief Cameras. */
-    class CAME final : public Section
+    class CAME final : public Section, public SectionCallback
     {
 
         friend class KMP;
 
     public:
+
+        /*! @brief Enumeration of the possible camera type values. */
+        enum class Type : uint8_t
+        {
+            Goal = 0x0,
+            FixSearch = 0x1,
+            PathSearch = 0x2,
+            KartFollow = 0x3,
+            KartPathFollow = 0x4,
+            OP_FixMoveAt = 0x5,
+            OP_PathMoveAt = 0x6,
+            MiniGame = 0x7,
+            MissionSuccess = 0x8,
+            Unknown = 0x9
+        };
 
         /*! @brief The SectionType of this class. */
         static constexpr SectionType TYPE = SectionType::CAME;
@@ -1091,12 +1299,174 @@ public:
         /*! @brief Returns SectionType::CAME. */
         SectionType getType() const override;
 
+        /*! @brief Sets the type of this camera.
+         *  
+         *  **Note**: For a good reference of cameras and their settings, use
+         *  <a href="http://wiki.tockdom.com/wiki/Camera">Tockdom Camera Page
+         *  </a>.
+         */
+        void setCameraType(Type type);
+
+        /*! @brief Sets the next camera of this camera.
+         *  
+         *  @throw CTLib::KMPError If the specified CAME camera is not owned by
+         *  the same KMP as this CAME camera.
+         */
+        void setNext(CAME* camera);
+
+        /*! @brief Sets the 'camshake' value of this camera.
+         *  
+         *  The usage of this setting is unknown.
+         */
+        void setCamshake(uint8_t value);
+
+        /*! @brief Sets the route of this camera.
+         *  
+         *  @throw CTLib::KMPError If the specified POTI route is not owned by
+         *  the same KMP as this CAME camera.
+         */
+        void setRoute(POTI* poti);
+
+        /*! @brief Sets the point velocity of this camera. */
+        void setPointVelocity(uint16_t velocity);
+
+        /*! @brief Sets the zoom velocity of this camera. */
+        void setZoomVelocity(uint16_t velocity);
+
+        /*! @brief Sets the view velocity of this camera. */
+        void setViewVelocity(uint16_t velocity);
+
+        /*! @brief Sets the start flags of this camera.
+         *  
+         *  The usage of this setting is unknown.
+         */
+        void setStartFlags(uint8_t value);
+
+        /*! @brief Sets the movie flags of this camera.
+         *  
+         *  The usage of this setting is unknown.
+         */
+        void setMovieFlags(uint8_t value);
+
+        /*! @brief Sets the position of this camera. */
+        void setPosition(Vector3f position);
+
+        /*! @brief Sets the rotation of this camera. */
+        void setRotation(Vector3f rotation);
+
+        /*! @brief Sets the zoom (field of view) start of this camera. */
+        void setZoomStart(float zoom);
+
+        /*! @brief Sets the zoom (field of view) end of this camera. */
+        void setZoomEnd(float zoom);
+
+        /*! @brief Sets the view start of this camera. */
+        void setViewStart(Vector3f view);
+
+        /*! @brief Sets the view end of this camera. */
+        void setViewEnd(Vector3f view);
+
+        /*! @brief Sets the amount of time this camera stays active.
+         *  
+         *  Time is mesured in 1/60 of a second units.
+         */
+        void setTime(float time);
+
+        /*! @brief Returns the type of this camera. */
+        Type getCameraType() const;
+
+        /*! @brief Returns the next camera of this camera. */
+        CAME* getNext() const;
+
+        /*! @brief Returns the 'camshake' value of this camera. */
+        uint8_t getCamshake() const;
+
+        /*! @brief Returns the route of this camera. */
+        POTI* getRoute() const;
+
+        /*! @brief Returns the point velocity of this camera. */
+        uint16_t getPointVelocity() const;
+
+        /*! @brief Returns the zoom velocity of this camera. */
+        uint16_t getZoomVelocity() const;
+
+        /*! @brief Returns the view velocity of this camera. */
+        uint16_t getViewVelocity() const;
+
+        /*! @brief Returns the start flags of this camera. */
+        uint8_t getStartFlags() const;
+
+        /*! @brief Returns the movie flags of this camera. */
+        uint8_t getMovieFlags() const;
+
+        /*! @brief Returns the position of this camera. */
+        Vector3f getPosition() const;
+
+        /*! @brief Returns the rotation of this camera. */
+        Vector3f getRotation() const;
+
+        /*! @brief Returns the zoom start of this camera. */
+        float getZoomStart() const;
+
+        /*! @brief Returns the zoom end of this camera. */
+        float getZoomEnd() const;
+
+        /*! @brief Returns the view start of this camera. */
+        Vector3f getViewStart() const;
+
+        /*! @brief Returns the view end of this camera. */
+        Vector3f getViewEnd() const;
+
+        /*! @brief Returns the amount of time this camera is active. */
+        float getTime() const;
+
+    protected:
+
+        //! invoked when a section entry is added
+        void sectionAdded(Section* section) override;
+
+        //! invoked when a section entry is removed
+        void sectionRemoved(Section* section) override;
+
     private:
 
         // does nothing
         static void assertCanAdd(KMP* kmp);
 
         CAME(KMP* kmp);
+
+        // type of camera
+        Type type;
+
+        // next camera
+        CAME* next;
+
+        // unknown usage
+        uint8_t camshake;
+
+        // pointer to POTI route of this camera
+        POTI* route;
+
+        // velocity
+        uint16_t vPoint, vZoom, vView;
+
+        // unknown flags
+        uint8_t fStart, fMovie;
+
+        // position
+        Vector3f pos;
+
+        // rotation
+        Vector3f rot;
+
+        // start and end zoom (field of view)
+        float zoomStart, zoomEnd;
+
+        // start and end view
+        Vector3f viewStart, viewEnd;
+
+        // active time
+        float time;
     };
 
     /*! @brief Respawn points. */
@@ -1508,13 +1878,23 @@ public:
     /*! @brief Unregisters the specified SectionCallback. */
     void unregisterCallback(SectionCallback* cb);
 
+    /*! @brief Sets the camera to use on track's opening pans.
+     *  
+     *  @throw CTLib::KMPError If the specified CAME camera is not owned by
+     *  this KMP.
+     */
+    void setCamera(CAME* camera);
+
+    /*! @brief Returns the camera to use on track's opening pans. */
+    CAME* getCamera() const;
+
 private:
 
     // calls SectionCallback::sectionAdded() on all registered callbacks
-    void invokeSectionCallbacksAdd(Section* section) const;
+    void invokeSectionCallbacksAdd(Section* section);
 
     // calls SectionCallback::sectionRemoved() on all registered callbacks
-    void invokeSectionCallbacksRemove(Section* section) const;
+    void invokeSectionCallbacksRemove(Section* section);
 
     std::vector<KTPT*> ktpts;
     std::vector<ENPT*> enpts;
@@ -1534,6 +1914,9 @@ private:
 
     // vector containing all section callbacks
     std::vector<SectionCallback*> callbacks;
+
+    // first camera used in track's opening pans
+    CAME* camera;
 };
 
 /*! @brief KMPError is the error class used by the methods in this header. */

@@ -370,7 +370,33 @@ void writeAREASection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
 
     for (KMP::AREA* entry : kmp.getAll<KMP::AREA>())
     {
+        out.put(static_cast<uint8_t>(entry->getShape()));
+        out.put(static_cast<uint8_t>(entry->getAreaType()));
 
+        out.put(
+            entry->getAreaType() == KMP::AREA::Type::Camera && entry->getCamera() != nullptr
+            ? kmp.indexOf(entry->getCamera()) : 0xFF
+        );
+
+        out.put(entry->getPriority());
+        entry->getPosition().put(out);
+        entry->getRotation().put(out);
+        entry->getScale().put(out);
+        out.putShort(entry->getSetting1());
+        out.putShort(entry->getSetting2());
+
+        out.put(
+            entry->getAreaType() == KMP::AREA::Type::MovingRoad && entry->getRoute() != nullptr
+            ? kmp.indexOf(entry->getRoute()) : 0xFF
+        );
+
+        out.put(
+            entry->getAreaType() == KMP::AREA::Type::DestinationPoint &&
+            entry->getDestinationPoint() != nullptr
+            ? kmp.indexOf(entry->getDestinationPoint()) : 0xFF
+        );
+
+        out.putShort(0); // unknown/unused
     }
 }
 
@@ -380,11 +406,36 @@ void writeCAMESection(Buffer& out, const KMP& kmp, KMPOffsets* offsets)
 
     out.putArray((uint8_t*)"CAME", 4);
     out.putShort(kmp.count<KMP::CAME>());
-    out.putShort(0); // unused
+    out.putShort(kmp.indexOf(kmp.getCamera()) << 8); // first camera index
 
     for (KMP::CAME* entry : kmp.getAll<KMP::CAME>())
     {
+        out.put(static_cast<uint8_t>(entry->getCameraType()));
+        out.put(static_cast<uint8_t>(
+            entry->getNext() == nullptr ? 0xFF : kmp.indexOf(entry->getNext())
+        ));
+        out.put(entry->getCamshake());
+        out.put(static_cast<uint8_t>(
+            entry->getRoute() == nullptr ? 0xFF : kmp.indexOf(entry->getRoute())
+        ));
 
+        out.putShort(entry->getPointVelocity());
+        out.putShort(entry->getZoomVelocity());
+        out.putShort(entry->getViewVelocity());
+
+        out.put(entry->getStartFlags());
+        out.put(entry->getMovieFlags());
+
+        entry->getPosition().put(out);
+        entry->getRotation().put(out);
+
+        out.putFloat(entry->getZoomStart());
+        out.putFloat(entry->getZoomEnd());
+
+        entry->getViewStart().put(out);
+        entry->getViewEnd().put(out);
+
+        out.putFloat(entry->getTime());
     }
 }
 

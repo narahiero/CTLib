@@ -583,6 +583,97 @@ TEST(KMPPOTITests, Errors)
     EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
 }
 
+TEST(KMPAREATests, RemoveCAMEAndPOTIAndENPT)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::AREA* area = kmp.add<CTLib::KMP::AREA>();
+    EXPECT_EQ(nullptr, area->getCamera());
+    EXPECT_EQ(nullptr, area->getRoute());
+    EXPECT_EQ(nullptr, area->getDestinationPoint());
+
+    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+    area->setCamera(came);
+    EXPECT_EQ(came, area->getCamera());
+    EXPECT_EQ(nullptr, area->getRoute());
+    EXPECT_EQ(nullptr, area->getDestinationPoint());
+
+    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    CTLib::KMP::ENPT* enpt = kmp.add<CTLib::KMP::ENPT>();
+    area->setRoute(poti);
+    area->setDestinationPoint(enpt);
+    EXPECT_EQ(came, area->getCamera());
+    EXPECT_EQ(poti, area->getRoute());
+    EXPECT_EQ(enpt, area->getDestinationPoint());
+
+    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    EXPECT_EQ(came, area->getCamera());
+    EXPECT_EQ(nullptr, area->getRoute());
+    EXPECT_EQ(enpt, area->getDestinationPoint());
+
+    kmp.remove<CTLib::KMP::CAME>(kmp.indexOf(came));
+    kmp.remove<CTLib::KMP::ENPT>(kmp.indexOf(enpt));
+    EXPECT_EQ(nullptr, area->getCamera());
+    EXPECT_EQ(nullptr, area->getRoute());
+    EXPECT_EQ(nullptr, area->getDestinationPoint());
+}
+
+TEST(KMPAREATests, OtherKMPErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP kmp2;
+
+    CTLib::KMP::AREA* area = kmp.add<CTLib::KMP::AREA>();
+
+    CTLib::KMP::CAME* cameFromKMP2 = kmp2.add<CTLib::KMP::CAME>();
+    EXPECT_THROW(area->setCamera(cameFromKMP2), CTLib::KMPError);
+
+    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
+    EXPECT_THROW(area->setRoute(potiFromKMP2), CTLib::KMPError);
+
+    CTLib::KMP::ENPT* enptFromKMP2 = kmp2.add<CTLib::KMP::ENPT>();
+    EXPECT_THROW(area->setDestinationPoint(enptFromKMP2), CTLib::KMPError);
+}
+
+TEST(KMPCAMETests, RemoveCAMEAndPOTI)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+    EXPECT_EQ(nullptr, came->getNext());
+    EXPECT_EQ(nullptr, came->getRoute());
+
+    CTLib::KMP::CAME* came2 = kmp.add<CTLib::KMP::CAME>();
+    came->setNext(came2);
+    EXPECT_EQ(came2, came->getNext());
+    EXPECT_EQ(nullptr, came->getRoute());
+
+    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    came->setRoute(poti);
+    EXPECT_EQ(came2, came->getNext());
+    EXPECT_EQ(poti, came->getRoute());
+
+    kmp.remove<CTLib::KMP::CAME>(kmp.indexOf(came2));
+    EXPECT_EQ(nullptr, came->getNext());
+    EXPECT_EQ(poti, came->getRoute());
+
+    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    EXPECT_EQ(nullptr, came->getNext());
+    EXPECT_EQ(nullptr, came->getRoute());
+}
+
+TEST(KMPCAMETests, OtherKMPErrors)
+{
+    CTLib::KMP kmp;
+    CTLib::KMP kmp2;
+
+    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+
+    CTLib::KMP::CAME* cameFromKMP2 = kmp2.add<CTLib::KMP::CAME>();
+    EXPECT_THROW(came->setNext(cameFromKMP2), CTLib::KMPError);
+
+    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
+    EXPECT_THROW(came->setRoute(potiFromKMP2), CTLib::KMPError);
+}
+
 TEST(KMPJGPTTests, Errors)
 {
     CTLib::KMP kmp;

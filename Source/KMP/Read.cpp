@@ -9,6 +9,7 @@
 
 #include <map>
 #include <set>
+#include <tuple>
 
 #include <CTLib/Utilities.hpp>
 
@@ -318,14 +319,110 @@ void readPOTISection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
     }
 }
 
-void readAREASection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
+void readAREASection(
+    Buffer& data, KMP& kmp, uint16_t count, uint16_t,
+    std::map<KMP::AREA*, std::tuple<uint8_t, uint8_t, uint8_t>>& links
+)
 {
+    for (uint16_t i = 0; i < count; ++i)
+    {
+        KMP::AREA* area = kmp.add<CTLib::KMP::AREA>();
 
+        area->setShape(static_cast<KMP::AREA::Shape>(data.get()));
+        area->setAreaType(static_cast<KMP::AREA::Type>(data.get()));
+        uint8_t cameIdx = data.get();
+        area->setPriority(data.get());
+
+        Vector3f pos, rot, scale;
+        pos.get(data);
+        rot.get(data);
+        scale.get(data);
+
+        area->setPosition(pos);
+        area->setRotation(rot);
+        area->setScale(scale);
+        area->setSetting1(data.getShort());
+        area->setSetting2(data.getShort());
+        uint8_t potiIdx = data.get();
+        uint8_t enptIdx = data.get();
+        data.getShort(); // unknown/unused
+
+        links.insert(std::map<KMP::AREA*, std::tuple<uint8_t, uint8_t, uint8_t>>::value_type(
+            area, {cameIdx, potiIdx, enptIdx}
+        ));
+    }
 }
 
-void readCAMESection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
+void readCAMESection(
+    Buffer& data, KMP& kmp, uint16_t count, uint16_t camera, std::map<KMP::CAME*, uint8_t>& routes
+)
 {
+    std::map<KMP::CAME*, uint8_t> nexts;
 
+    for (uint16_t i = 0; i < count; ++i)
+    {
+        KMP::CAME* came = kmp.add<KMP::CAME>();
+
+        came->setCameraType(static_cast<KMP::CAME::Type>(data.get()));
+        nexts.insert(std::map<KMP::CAME*, uint8_t>::value_type(came, data.get()));
+        came->setCamshake(data.get());
+        routes.insert(std::map<KMP::CAME*, uint8_t>::value_type(came, data.get()));
+
+        came->setPointVelocity(data.getShort());
+        came->setZoomVelocity(data.getShort());
+        came->setViewVelocity(data.getShort());
+
+        came->setStartFlags(data.get());
+        came->setMovieFlags(data.get());
+
+        Vector3f pos, rot;
+        pos.get(data);
+        rot.get(data);
+
+        came->setPosition(pos);
+        came->setRotation(rot);
+
+        came->setZoomStart(data.getFloat());
+        came->setZoomEnd(data.getFloat());
+
+        Vector3f start, end;
+        start.get(data);
+        end.get(data);
+
+        came->setViewStart(start);
+        came->setViewEnd(end);
+
+        came->setTime(data.getFloat());
+    }
+
+    for (auto& next : nexts)
+    {
+        if (next.second == 0xFF)
+        {
+            continue;
+        }
+        if (next.second >= kmp.count<KMP::CAME>())
+        {
+            throw KMPError(Strings::format(
+                "KMP: Next camera index out of bounds in CAME entry! (Index %d, Size %d)",
+                next.second, kmp.count<KMP::CAME>()
+            ));
+        }
+        next.first->setNext(kmp.get<KMP::CAME>(next.second));
+    }
+
+    uint8_t cameIdx = static_cast<uint8_t>(camera >> 8);
+    if (cameIdx != 0xFF)
+    {
+        if (cameIdx >= kmp.count<KMP::CAME>())
+        {
+            throw KMPError(Strings::format(
+                "KMP: First camera index in CAME section header out of bounds! (Index %d, Size %d)",
+                cameIdx, kmp.count<KMP::CAME>()
+            ));
+        }
+        kmp.setCamera(kmp.get<KMP::CAME>(cameIdx));
+    }
 }
 
 void readJGPTSection(Buffer& data, KMP& kmp, uint16_t count, uint16_t)
@@ -479,6 +576,8 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
 
     std::map<KMP::CKPT*, uint8_t> ckptRespawns;
     std::map<KMP::GOBJ*, uint16_t> gobjRoutes;
+    std::map<KMP::AREA*, std::tuple<uint8_t, uint8_t, uint8_t>> areaLinks;
+    std::map<KMP::CAME*, uint8_t> cameRoutes;
 
     for (uint32_t offset : header->sectionOffs)
     {
@@ -535,11 +634,11 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
             break;
 
         case KMP::SectionType::AREA:
-            readAREASection(data, kmp, count, value);
+            readAREASection(data, kmp, count, value, areaLinks);
             break;
 
         case KMP::SectionType::CAME:
-            readCAMESection(data, kmp, count, value);
+            readCAMESection(data, kmp, count, value, cameRoutes);
             break;
 
         case KMP::SectionType::JGPT:
@@ -586,7 +685,67 @@ void readKMPSections(Buffer& data, KMPHeader* header, KMP& kmp)
         if (pair.second >= kmp.count<KMP::POTI>())
         {
             throw KMPError(Strings::format(
-                "KMP: POTI route index out of bounds is GOBJ entry! (Index %d, Size %d)",
+                "KMP: POTI route index out of bounds in GOBJ entry! (Index %d, Size %d)",
+                pair.second, kmp.count<KMP::POTI>()
+            ));
+        }
+        pair.first->setRoute(kmp.get<KMP::POTI>(pair.second));
+    }
+
+    // Resolve AREA links
+    for (auto& pair : areaLinks)
+    {
+        uint8_t cameIdx = std::get<0>(pair.second);
+        if (cameIdx != 0xFF)
+        {
+            if (cameIdx >= kmp.count<KMP::CAME>())
+            {
+                throw KMPError(Strings::format(
+                    "KMP: CAME index out of bounds in AREA entry! (Index %d, Size %d)",
+                    cameIdx, kmp.count<KMP::CAME>()
+                ));
+            }
+            pair.first->setCamera(kmp.get<KMP::CAME>(cameIdx));
+        }
+
+        uint8_t potiIdx = std::get<1>(pair.second);
+        if (potiIdx != 0xFF)
+        {
+            if (potiIdx >= kmp.count<KMP::POTI>())
+            {
+                throw KMPError(Strings::format(
+                    "KMP: POTI route index out of bounds in AREA entry! (Index %d, Size %d)",
+                    potiIdx, kmp.count<KMP::POTI>()
+                ));
+            }
+            pair.first->setRoute(kmp.get<KMP::POTI>(potiIdx));
+        }
+
+        uint8_t enptIdx = std::get<2>(pair.second);
+        if (enptIdx != 0xFF)
+        {
+            if (enptIdx >= kmp.count<KMP::ENPT>())
+            {
+                throw KMPError(Strings::format(
+                    "KMP: ENPT point index out of bounds in AREA entry! (Index %d, Size %d)",
+                    enptIdx, kmp.count<KMP::ENPT>()
+                ));
+            }
+            pair.first->setDestinationPoint(kmp.get<KMP::ENPT>(enptIdx));
+        }
+    }
+
+    // Resolve CAME routes
+    for (auto& pair : cameRoutes)
+    {
+        if (pair.second == 0xFF)
+        {
+            continue;
+        }
+        if (pair.second >= kmp.count<KMP::POTI>())
+        {
+            throw KMPError(Strings::format(
+                "KMP: POTI route index out of bounds in CAME entry! (Index %d, Size %d)",
                 pair.second, kmp.count<KMP::POTI>()
             ));
         }

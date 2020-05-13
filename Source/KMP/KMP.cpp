@@ -34,7 +34,8 @@ KMP::KMP() :
     cnpts{},
     mspts{},
     stgis{},
-    callbacks{}
+    callbacks{},
+    camera{nullptr}
 {
 
 }
@@ -59,7 +60,8 @@ KMP::KMP(KMP&& src) :
     cnpts{std::move(src.cnpts)},
     mspts{std::move(src.mspts)},
     stgis{std::move(src.stgis)},
-    callbacks{std::move(src.callbacks)}
+    callbacks{std::move(src.callbacks)},
+    camera{src.camera}
 {
     CT_LIB_KMP_MOVE_CONTAINER(ktpts);
     CT_LIB_KMP_MOVE_CONTAINER(enpts);
@@ -76,6 +78,8 @@ KMP::KMP(KMP&& src) :
     CT_LIB_KMP_MOVE_CONTAINER(cnpts);
     CT_LIB_KMP_MOVE_CONTAINER(mspts);
     CT_LIB_KMP_MOVE_CONTAINER(stgis);
+
+    src.camera = nullptr;
 }
 
 #undef CT_LIB_KMP_MOVE_CONTAINER
@@ -217,7 +221,17 @@ void KMP::unregisterCallback(SectionCallback* cb)
     Collections::removeAll(callbacks, cb);
 }
 
-void KMP::invokeSectionCallbacksAdd(Section* section) const
+void KMP::setCamera(CAME* camera)
+{
+    this->camera = camera;
+}
+
+KMP::CAME* KMP::getCamera() const
+{
+    return camera;
+}
+
+void KMP::invokeSectionCallbacksAdd(Section* section)
 {
     for (SectionCallback* cb : callbacks)
     {
@@ -225,11 +239,16 @@ void KMP::invokeSectionCallbacksAdd(Section* section) const
     }
 }
 
-void KMP::invokeSectionCallbacksRemove(Section* section) const
+void KMP::invokeSectionCallbacksRemove(Section* section)
 {
     for (SectionCallback* cb : callbacks)
     {
         cb->sectionRemoved(section);
+    }
+
+    if (section == camera)
+    {
+        camera = nullptr;
     }
 }
 
@@ -1273,16 +1292,173 @@ void KMP::AREA::assertCanAdd(KMP* kmp)
 }
 
 KMP::AREA::AREA(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    shape{Shape::Box},
+    type{Type::Camera},
+    camera{nullptr},
+    priority{0},
+    pos{},
+    rot{},
+    scale{},
+    val1{0},
+    val2{0},
+    route{nullptr},
+    dest{nullptr}
 {
-
+    kmp->registerCallback(this);
 }
 
-KMP::AREA::~AREA() = default;
+KMP::AREA::~AREA()
+{
+    kmp->unregisterCallback(this);
+}
 
 KMP::SectionType KMP::AREA::getType() const
 {
     return SectionType::AREA;
+}
+
+void KMP::AREA::setShape(Shape shape)
+{
+    this->shape = shape;
+}
+
+void KMP::AREA::setAreaType(Type type)
+{
+    this->type = type;
+}
+
+void KMP::AREA::setCamera(CAME* camera)
+{
+    if (camera != nullptr)
+    {
+        assertSameKMP(camera);
+    }
+    this->camera = camera;
+}
+
+void KMP::AREA::setPriority(uint8_t priority)
+{
+    this->priority = priority;
+}
+
+void KMP::AREA::setPosition(Vector3f position)
+{
+    pos = position;
+}
+
+void KMP::AREA::setRotation(Vector3f rotation)
+{
+    rot = rotation;
+}
+
+void KMP::AREA::setScale(Vector3f scale)
+{
+    this->scale = scale;
+}
+
+void KMP::AREA::setSetting1(uint16_t value)
+{
+    val1 = value;
+}
+
+void KMP::AREA::setSetting2(uint16_t value)
+{
+    val2 = value;
+}
+
+void KMP::AREA::setRoute(POTI* route)
+{
+    if (route != nullptr)
+    {
+        assertSameKMP(route);
+    }
+    this->route = route;
+}
+
+void KMP::AREA::setDestinationPoint(ENPT* point)
+{
+    if (point != nullptr)
+    {
+        assertSameKMP(point);
+    }
+    dest = point;
+}
+
+KMP::AREA::Shape KMP::AREA::getShape() const
+{
+    return shape;
+}
+
+KMP::AREA::Type KMP::AREA::getAreaType() const
+{
+    return type;
+}
+
+KMP::CAME* KMP::AREA::getCamera() const
+{
+    return camera;
+}
+
+uint8_t KMP::AREA::getPriority() const
+{
+    return priority;
+}
+
+Vector3f KMP::AREA::getPosition() const
+{
+    return pos;
+}
+
+Vector3f KMP::AREA::getRotation() const
+{
+    return rot;
+}
+
+Vector3f KMP::AREA::getScale() const
+{
+    return scale;
+}
+
+uint16_t KMP::AREA::getSetting1() const
+{
+    return val1;
+}
+
+uint16_t KMP::AREA::getSetting2() const
+{
+    return val2;
+}
+
+KMP::POTI* KMP::AREA::getRoute() const
+{
+    return route;
+}
+
+KMP::ENPT* KMP::AREA::getDestinationPoint() const
+{
+    return dest;
+}
+
+void KMP::AREA::sectionAdded(Section* section)
+{
+
+}
+
+void KMP::AREA::sectionRemoved(Section* section)
+{
+    if (section == camera)
+    {
+        camera = nullptr;
+    }
+    if (section == route)
+    {
+        route = nullptr;
+    }
+    if (section == dest)
+    {
+        dest = nullptr;
+    }
 }
 
 
@@ -1297,16 +1473,220 @@ void KMP::CAME::assertCanAdd(KMP* kmp)
 }
 
 KMP::CAME::CAME(KMP* kmp) :
-    Section(kmp)
+    Section(kmp),
+    type{Type::Goal},
+    next{nullptr},
+    camshake{0},
+    route{nullptr},
+    vPoint{1},
+    vZoom{1},
+    vView{1},
+    fStart{0},
+    fMovie{0},
+    pos{},
+    rot{},
+    zoomStart{70.f},
+    zoomEnd{70.f},
+    viewStart{},
+    viewEnd{},
+    time{0.f}
 {
-
+    kmp->registerCallback(this);
 }
 
-KMP::CAME::~CAME() = default;
+KMP::CAME::~CAME()
+{
+    kmp->unregisterCallback(this);
+}
 
 KMP::SectionType KMP::CAME::getType() const
 {
     return SectionType::CAME;
+}
+
+void KMP::CAME::setCameraType(Type type)
+{
+    this->type = type;
+}
+
+void KMP::CAME::setNext(CAME* next)
+{
+    if (next != nullptr)
+    {
+        assertSameKMP(next);
+    }
+    this->next = next;
+}
+
+void KMP::CAME::setCamshake(uint8_t value)
+{
+    camshake = value;
+}
+
+void KMP::CAME::setRoute(POTI* route)
+{
+    if (route != nullptr)
+    {
+        assertSameKMP(route);
+    }
+    this->route = route;
+}
+
+void KMP::CAME::setPointVelocity(uint16_t velocity)
+{
+    vPoint = velocity;
+}
+
+void KMP::CAME::setZoomVelocity(uint16_t velocity)
+{
+    vZoom = velocity;
+}
+
+void KMP::CAME::setViewVelocity(uint16_t velocity)
+{
+    vView = velocity;
+}
+
+void KMP::CAME::setStartFlags(uint8_t flags)
+{
+    fStart = flags;
+}
+
+void KMP::CAME::setMovieFlags(uint8_t flags)
+{
+    fMovie = flags;
+}
+
+void KMP::CAME::setPosition(Vector3f position)
+{
+    pos = position;
+}
+
+void KMP::CAME::setRotation(Vector3f rotation)
+{
+    rot = rotation;
+}
+
+void KMP::CAME::setZoomStart(float zoom)
+{
+    zoomStart = zoom;
+}
+
+void KMP::CAME::setZoomEnd(float zoom)
+{
+    zoomEnd = zoom;
+}
+
+void KMP::CAME::setViewStart(Vector3f view)
+{
+    viewStart = view;
+}
+
+void KMP::CAME::setViewEnd(Vector3f view)
+{
+    viewEnd = view;
+}
+
+void KMP::CAME::setTime(float time)
+{
+    this->time = time;
+}
+
+KMP::CAME::Type KMP::CAME::getCameraType() const
+{
+    return type;
+}
+
+KMP::CAME* KMP::CAME::getNext() const
+{
+    return next;
+}
+
+uint8_t KMP::CAME::getCamshake() const
+{
+    return camshake;
+}
+
+KMP::POTI* KMP::CAME::getRoute() const
+{
+    return route;
+}
+
+uint16_t KMP::CAME::getPointVelocity() const
+{
+    return vPoint;
+}
+
+uint16_t KMP::CAME::getZoomVelocity() const
+{
+    return vZoom;
+}
+
+uint16_t KMP::CAME::getViewVelocity() const
+{
+    return vView;
+}
+
+uint8_t KMP::CAME::getStartFlags() const
+{
+    return fStart;
+}
+
+uint8_t KMP::CAME::getMovieFlags() const
+{
+    return fMovie;
+}
+
+Vector3f KMP::CAME::getPosition() const
+{
+    return pos;
+}
+
+Vector3f KMP::CAME::getRotation() const
+{
+    return rot;
+}
+
+float KMP::CAME::getZoomStart() const
+{
+    return zoomStart;
+}
+
+float KMP::CAME::getZoomEnd() const
+{
+    return zoomEnd;
+}
+
+Vector3f KMP::CAME::getViewStart() const
+{
+    return viewStart;
+}
+
+Vector3f KMP::CAME::getViewEnd() const
+{
+    return viewEnd;
+}
+
+float KMP::CAME::getTime() const
+{
+    return time;
+}
+
+void KMP::CAME::sectionAdded(Section* section)
+{
+
+}
+
+void KMP::CAME::sectionRemoved(Section* section)
+{
+    if (section == next)
+    {
+        next = nullptr;
+    }
+    if (section == route)
+    {
+        route = nullptr;
+    }
 }
 
 
