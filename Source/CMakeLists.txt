@@ -69,6 +69,14 @@ if(CT_LIB_MODULE_BRRES)
     )
 endif()
 
+# KCL module
+if(CT_LIB_MODULE_KCL)
+    target_sources(CTLib PRIVATE
+        "${CT_LIB_INCLUDE_DIR}/CTLib/KCL.hpp"
+        KCL/KCL.cpp
+    )
+endif()
+
 # KMP module
 if(CT_LIB_MODULE_KMP)
     target_sources(CTLib PRIVATE

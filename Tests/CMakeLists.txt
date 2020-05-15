@@ -88,7 +88,12 @@ if(CT_LIB_MODULE_BRRES)
     ct_lib_add_test(BRRESTest SOURCES BRRES.cpp)
 endif()
 
+# Tests for KCL module
+if(CT_LIB_MODULE_KCL)
+    ct_lib_add_test(KCLTest SOURCES KCL.cpp)
+endif()
+
 # Tests for KMP module
 if(CT_LIB_MODULE_KMP)
-    ct_lib_add_test(MDL0Test SOURCES KMP.cpp)
+    ct_lib_add_test(KMPTest SOURCES KMP.cpp)
 endif()
