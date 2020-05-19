@@ -13,6 +13,7 @@
  */
 
 
+#include <cmath>
 #include <cstdint>
 #include <type_traits>
 
@@ -147,12 +148,56 @@ class Vectorf : public Vector<float, Size>
 
 public:
 
+    /*! @brief Returns the normalized specified vector. */
+    template <uint32_t Size>
+    static Vectorf<Size> unit(const Vectorf<Size>& v)
+    {
+        return v * (1.f / length(v));
+    }
+
+    /*! @brief Returns the dot product of the specified vectors. */
+    template <uint32_t Size>
+    static float dot(const Vectorf<Size>& lhs, const Vectorf<Size>& rhs)
+    {
+        float result = 0.f;
+        for (uint32_t i = 0; i < Size; ++i)
+        {
+            result += lhs[i] * rhs[i];
+        }
+        return result;
+    }
+
+    /*! @brief Returns the length squared of the specified vector. */
+    template <uint32_t Size>
+    static float lengthSquared(const Vectorf<Size>& v)
+    {
+        return dot(v, v);
+    }
+
+    /*! @brief Returns the length of the specified vector. */
+    template <uint32_t Size>
+    static float length(const Vectorf<Size>& v)
+    {
+        return sqrtf(lengthSquared(v));
+    }
+
     Vectorf() : Vector()
     {
 
     }
 
     ~Vectorf() = default;
+
+    /*! @brief Returns this vector negated. */
+    Vectorf<Size> operator-() const
+    {
+        Vectorf<Size> result;
+        for (uint32_t i = 0; i < Size; ++i)
+        {
+            result[i] = -array[i];
+        }
+        return result;
+    }
 
     /*! @brief Puts `Size` floats on the specified buffer.
      *  
@@ -190,7 +235,68 @@ public:
         }
         return *this;
     }
+
+    /*! @brief Returns the dot product of this vector and the specified one. */
+    float dot(const Vectorf<Size>& rhs) const
+    {
+        return dot(*this, rhs);
+    }
+
+    /*! @brief Returns the length squared of this vector. */
+    float lengthSquared() const
+    {
+        return lengthSquared(*this);
+    }
+
+    /*! @brief Returns the length of this vector. */
+    float length() const
+    {
+        return length(*this);
+    }
 };
+
+/*! @brief Returns the sum of the specified vectors. */
+template <uint32_t Size>
+Vectorf<Size> operator+(const Vectorf<Size>& lhs, const Vectorf<Size>& rhs)
+{
+    Vectorf<Size> result;
+    for (uint32_t i = 0; i < Size; ++i)
+    {
+        result[i] = lhs[i] + rhs[i];
+    }
+    return result;
+}
+
+/*! @brief Returns the difference of the specified vectors. */
+template <uint32_t Size>
+Vectorf<Size> operator-(const Vectorf<Size>& lhs, const Vectorf<Size>& rhs)
+{
+    Vectorf<Size> result;
+    for (uint32_t i = 0; i < Size; ++i)
+    {
+        result[i] = lhs[i] - rhs[i];
+    }
+    return result;
+}
+
+/*! @brief Returns the product of the specified scalar and vector. */
+template <uint32_t Size>
+Vectorf<Size> operator*(float lhs, const Vectorf<Size>& rhs)
+{
+    Vectorf<Size> result;
+    for (uint32_t i = 0; i < Size; ++i)
+    {
+        result[i] = lhs * rhs[i];
+    }
+    return result;
+}
+
+/*! @brief Returns the product of the specified scalar and vector. */
+template <uint32_t Size>
+Vectorf<Size> operator*(const Vectorf<Size>& lhs, float rhs)
+{
+    return rhs * lhs;
+}
 
 class Vector2f final : public Vectorf<2>
 {
@@ -209,10 +315,18 @@ class Vector3f final : public Vectorf<3>
 
 public:
 
+    /*! @brief Returns the cross product of the specified vectors. */
+    static Vector3f cross(const Vector3f& lhs, const Vector3f& rhs);
+
     Vector3f();
+
+    Vector3f(const Vectorf<3>& src);
 
     Vector3f(float x, float y, float z);
 
     ~Vector3f();
+
+    /*! @brief Returns the cross product of this vector and the specified one. */
+    Vector3f cross(const Vector3f& rhs) const;
 };
 }
