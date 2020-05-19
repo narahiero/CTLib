@@ -15,6 +15,7 @@
 
 #include <map>
 
+#include <CTLib/Math.hpp>
 #include <CTLib/Memory.hpp>
 
 
@@ -341,7 +342,7 @@ public:
      *  @throw CTLib::ModelError If this Model does not have data of the
      *  specified Type.
      */
-    Buffer getData(Type type);
+    Buffer getData(Type type) const;
 
     /*! @brief Returns whether this Model has index data of the specified Type.
      *  
@@ -360,7 +361,7 @@ public:
      *  @throw CTLib::ModelError If this Model does not have index data of the
      *  specified Type.
      */
-    Buffer getIndexData(Type type);
+    Buffer getIndexData(Type type) const;
 
     /*! @brief Return the DataFormat of the specified Type of this Model.
      *  

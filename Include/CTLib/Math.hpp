@@ -117,6 +117,19 @@ protected:
     Type array[Size];
 };
 
+/*! @brief Puts the specified vector on the specified std::ostream. */
+template <class Type, uint32_t Size>
+std::ostream& operator<<(std::ostream& os, const Vector<Type, Size>& v)
+{
+    os << "[" << v[0];
+    for (uint32_t i = 1; i < Size; ++i)
+    {
+        os << ", " << v[1];
+    }
+    os << "]";
+    return os;
+}
+
 /*! @brief Returns whether the specified vectors are equal component-wise. */
 template <class Type, uint32_t Size>
 bool operator==(const Vector<Type, Size>& lhs, const Vector<Type, Size>& rhs)

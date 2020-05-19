@@ -8,7 +8,7 @@
 #include <CTLib/Model.hpp>
 
 #include <CTLib/Utilities.hpp>
-
+#include <iostream>
 namespace CTLib
 {
 
@@ -266,10 +266,10 @@ bool Model::hasData(Type type) const
     return dataMap.count(type) > 0;
 }
 
-Buffer Model::getData(Type type)
+Buffer Model::getData(Type type) const
 {
     assertHasData(type);
-    return dataMap[type];
+    return dataMap.at(type);
 }
 
 bool Model::hasIndexData(Type type) const
@@ -277,10 +277,10 @@ bool Model::hasIndexData(Type type) const
     return indexMap.count(type) > 0;
 }
 
-Buffer Model::getIndexData(Type type)
+Buffer Model::getIndexData(Type type) const
 {
     assertHasIndexData(type);
-    return indexMap[type];
+    return indexMap.at(type);
 }
 
 Model::DataFormat Model::getDataFormat(Type type) const
