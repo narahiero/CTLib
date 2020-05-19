@@ -442,7 +442,7 @@ public:
      * 
      *  @return The byte at the specified index
      */
-    uint8_t get(size_t index);
+    uint8_t get(size_t index) const;
 
     /*! @brief Puts the remaining data of the specified buffer at the current
      *  position.
@@ -590,7 +590,7 @@ public:
      * 
      *  @return The short at the specified index
      */
-    uint16_t getShort(size_t index);
+    uint16_t getShort(size_t index) const;
 
     /*! @brief Puts the specified integer at the current position.
      *  
@@ -643,7 +643,7 @@ public:
      * 
      *  @return The integer at the specified index
      */
-    uint32_t getInt(size_t index);
+    uint32_t getInt(size_t index) const;
 
     /*! @brief Puts the specified long at the current position.
      *  
@@ -696,7 +696,7 @@ public:
      * 
      *  @return The long at the specified index
      */
-    uint64_t getLong(size_t index);
+    uint64_t getLong(size_t index) const;
 
     /*! @brief Puts the specified float at the current position.
      *  
@@ -761,7 +761,7 @@ public:
      * 
      *  @return The float at the specified index
      */
-    float getFloat(size_t index);
+    float getFloat(size_t index) const;
 
     /*! @brief Puts the specified double at the current position.
      *  
@@ -826,7 +826,7 @@ public:
      * 
      *  @return The double at the specified index
      */
-    double getDouble(size_t index);
+    double getDouble(size_t index) const;
 
     /*! @brief Check the remaining data of this buffer and the specified one
      *  for equality.

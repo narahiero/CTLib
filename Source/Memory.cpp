@@ -309,7 +309,7 @@ uint8_t Buffer::get()
     return ret;
 }
 
-uint8_t Buffer::get(size_t index)
+uint8_t Buffer::get(size_t index) const
 {
     ASSERT_REMAINING(index, 1);
     return (*this)[index];
@@ -389,7 +389,7 @@ uint16_t Buffer::getShort()
     return ret;
 }
 
-uint16_t Buffer::getShort(size_t index)
+uint16_t Buffer::getShort(size_t index) const
 {
     ASSERT_REMAINING(index, 2);
     return ((*this)[index + (endian)] << 8) + (*this)[index + (1 - endian)];
@@ -420,7 +420,7 @@ uint32_t Buffer::getInt()
     return ret;
 }
 
-uint32_t Buffer::getInt(size_t index)
+uint32_t Buffer::getInt(size_t index) const
 {
     ASSERT_REMAINING(index, 4);
     int32_t c = (endian ? 4 : -1), m = (endian * -2) + 1;
@@ -460,7 +460,7 @@ uint64_t Buffer::getLong()
     return ret;
 }
 
-uint64_t Buffer::getLong(size_t index)
+uint64_t Buffer::getLong(size_t index) const
 {
     ASSERT_REMAINING(index, 8);
     int32_t c = (endian ? 8 : -1), m = (endian * -2) + 1;
@@ -494,7 +494,7 @@ float Buffer::getFloat()
     return ret;
 }
 
-float Buffer::getFloat(size_t index)
+float Buffer::getFloat(size_t index) const
 {
     uint32_t val = getInt(index);
     return reinterpret_cast<float&>(val);
@@ -519,7 +519,7 @@ double Buffer::getDouble()
     return ret;
 }
 
-double Buffer::getDouble(size_t index)
+double Buffer::getDouble(size_t index) const
 {
     uint64_t val = getLong(index);
     return reinterpret_cast<double&>(val);
