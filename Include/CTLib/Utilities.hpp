@@ -37,60 +37,60 @@ class Strings final
 
 public:
 
-/*! @brief Returns a string representation of the specified binary data.
- *
- *  All bytes with their value `< 0x20 || >= 0x7F` will be replaced by `\xNN`,
- *  with _N_ being the hexadecimal representation of the value. Otherwise the
- *  byte is simply casted to `char`.
- *  
- *  @param[in] bytes The bytes to be 'stringified'
- *  @param[in] size The amount of bytes in the array
- * 
- *  @return The 'stringified' array of bytes
- */
-static std::string stringify(uint8_t* bytes, size_t size);
+    /*! @brief Returns a string representation of the specified binary data.
+    *
+    *  All bytes with their value `< 0x20 || >= 0x7F` will be replaced by `\xNN`,
+    *  with _N_ being the hexadecimal representation of the value. Otherwise the
+    *  byte is simply casted to `char`.
+    *  
+    *  @param[in] bytes The bytes to be 'stringified'
+    *  @param[in] size The amount of bytes in the array
+    * 
+    *  @return The 'stringified' array of bytes
+    */
+    static std::string stringify(uint8_t* bytes, size_t size);
 
-/*! @brief Returns the number of occurrences of the specified character in the
- *  specified string.
- *  
- *  @param[in] str The string to be searched
- *  @param[in] c The character to be counted
- * 
- *  @return The number of occurrences
- */
-static size_t count(const std::string& str, const char c);
+    /*! @brief Returns the number of occurrences of the specified character in the
+    *  specified string.
+    *  
+    *  @param[in] str The string to be searched
+    *  @param[in] c The character to be counted
+    * 
+    *  @return The number of occurrences
+    */
+    static size_t count(const std::string& str, const char c);
 
-/*! @brief Splits the specified string by the specified character.
- *  
- *  @param[in] str The string to be split
- *  @param[in] c The character to split by
- * 
- *  @return The split string
- */
-static std::vector<std::string> split(const std::string& str, const char c);
+    /*! @brief Splits the specified string by the specified character.
+    *  
+    *  @param[in] str The string to be split
+    *  @param[in] c The character to split by
+    * 
+    *  @return The split string
+    */
+    static std::vector<std::string> split(const std::string& str, const char c);
 
-/*! @brief Formats a string `sprintf`-style.
- *  
- *  @param[in] fmt The format string
- *  @param[in] args The format arguments
- * 
- *  @throw std::runtime_error If an error occurs while formatting.
- * 
- *  @return The formatted string
- */
-template <typename ... Args>
-static std::string format(const std::string& fmt, Args ... args)
-{
-    size_t size = snprintf(nullptr, 0, fmt.c_str(), args ...) + 1;
-    if (size <= 0)
+    /*! @brief Formats a string `sprintf`-style.
+    *  
+    *  @param[in] fmt The format string
+    *  @param[in] args The format arguments
+    * 
+    *  @throw std::runtime_error If an error occurs while formatting.
+    * 
+    *  @return The formatted string
+    */
+    template <typename ... Args>
+    static std::string format(const std::string& fmt, Args ... args)
     {
-        throw std::runtime_error("An error occured while formatting...");
+        size_t size = snprintf(nullptr, 0, fmt.c_str(), args ...) + 1;
+        if (size <= 0)
+        {
+            throw std::runtime_error("An error occured while formatting...");
+        }
+        std::string str(size, '\0');
+        snprintf(str.data(), size, fmt.c_str(), args ...);
+        str.erase(str.end() - 1);
+        return str;
     }
-    std::string str(size, '\0');
-    snprintf(str.data(), size, fmt.c_str(), args ...);
-    str.erase(str.end() - 1);
-    return str;
-}
 };
 
 /*! @brief Utility class containing various methods to analyse and modify

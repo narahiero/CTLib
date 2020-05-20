@@ -8,7 +8,7 @@
 #include <CTLib/Model.hpp>
 
 #include <CTLib/Utilities.hpp>
-#include <iostream>
+
 namespace CTLib
 {
 
@@ -314,6 +314,12 @@ uint32_t Model::getFaceCount(Type type) const
     }
 }
 
+Model::FaceIterator Model::iterateFaces(Type type) const
+{
+    assertHasData(type);
+    return FaceIterator(this, type);
+}
+
 void Model::addDefaultFormat(Type type)
 {
     formatMap.insert(std::map<Type, DataFormat>::value_type(type, DataFormat(type)));
@@ -349,6 +355,209 @@ void Model::assertHasIndexData(Type type) const
             "This model has no index data of the specified type! (%s)",
             nameOf(type)
         ));
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   Face class
+////
+
+uint32_t Model::Face::sizeOf(const Face& face)
+{
+    return face.count * face.size * Model::sizeOf(face.type);
+}
+
+Model::Face::Face(const Model* model, Type type, DataFormat format, uint32_t index) :
+    count{format.count},
+    size{format.size},
+    type{format.type},
+    values{}
+{
+    Buffer data = model->getData(type);
+    data = data.position(sizeOf(*this) * index).slice();
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        values.push_back(Value(size, format.type, i, data));
+    }
+}
+
+Model::Face::Face(
+    const Model* model, Type type, DataFormat format, uint32_t index,
+    Buffer& indices, DataType indexFormat
+) :
+    count{format.count},
+    size{format.size},
+    type{format.type},
+    values{}
+{
+    Buffer indexData = indices.position(Model::sizeOf(indexFormat) * count * index).slice();
+
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        uint64_t valueIdx = indexData.getShort(i << 1);
+        Buffer data = model->getData(type);
+        data = data.position(size * Model::sizeOf(format.type) * valueIdx).slice();
+
+        values.push_back(Value(size, format.type, 0, data));
+    }
+}
+
+uint32_t Model::Face::getCount() const
+{
+    return count;
+}
+
+Model::Face::Value Model::Face::get(uint32_t index) const
+{
+    assertValidIndex(index);
+    return values[index];
+}
+
+void Model::Face::assertValidIndex(uint32_t index) const
+{
+    if (index >= count)
+    {
+        throw ModelError(Strings::format(
+            "The specified face value index is out of range! (%d >= %d)",
+            index, count
+        ));
+    }
+}
+
+////// Value class ///////////
+
+uint32_t Model::Face::Value::sizeOf(const Value& value)
+{
+    return value.size * Model::sizeOf(value.type);
+}
+
+Model::Face::Value::Value(const Value& src) :
+    size{src.size},
+    type{src.type},
+    data{src.data.duplicate()}
+{
+
+}
+
+Model::Face::Value::Value(uint32_t size, DataType type, uint32_t index, Buffer& data) :
+    size{size},
+    type{type},
+    data{data.position(sizeOf(*this) * index).slice()}
+{
+
+}
+
+uint32_t Model::Face::Value::getSize() const
+{
+    return size;
+}
+
+Model::DataType Model::Face::Value::getType() const
+{
+    return type;
+}
+
+uint8_t Model::Face::Value::asByte(uint32_t index) const
+{
+    assertValidIndex(index);
+    assertAnyType({DataType::UInt8, DataType::Int8});
+    return data.get(index);
+}
+
+float Model::Face::Value::asFloat(uint32_t index) const
+{
+    assertValidIndex(index);
+    assertAnyType({DataType::Float});
+    return data.getFloat(index << 2);
+}
+
+void Model::Face::Value::assertAnyType(const std::vector<DataType>& types) const
+{
+    for (DataType find : types)
+    {
+        if (type == find)
+        {
+            return;
+        }
+    }
+
+    std::string str = nameOf(types[0]);
+    for (uint32_t i = 1; i < types.size(); ++i)
+    {
+        (str += ", ") += nameOf(types[i]);
+    }
+
+    throw ModelError(Strings::format(
+        "The DataType of this face value (%s) does not match any of the following: [%s]",
+        nameOf(type), str.c_str()
+    ));
+}
+
+void Model::Face::Value::assertValidIndex(uint32_t index) const
+{
+    if (index >= size)
+    {
+        throw ModelError(Strings::format(
+            "The specified face value component index is out of range! (%d >= %d)",
+            index, size
+        ));
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   FaceIterator class
+////
+
+Model::FaceIterator::FaceIterator(const Model* model, Type type) :
+    model{model},
+    type{type},
+    pos{0}
+{
+
+}
+
+Model::FaceIterator::operator bool() const
+{
+    return pos < model->getFaceCount(type);
+}
+
+Model::FaceIterator& Model::FaceIterator::operator++()
+{
+    ++pos;
+    return *this;
+}
+
+Model::Face Model::FaceIterator::get() const
+{
+    assertInBounds();
+
+    DataFormat format = model->getDataFormat(type);
+    if (model->globalIndices && (model->forceIndices || format.indexed))
+    {
+        return Face(model, type, format, pos, model->getGlobalIndexData(), model->globalIndexType);
+    }
+    else if (format.indexed)
+    {
+        return Face(model, type, format, pos, model->getIndexData(type), format.indexType);
+    }
+    else
+    {
+        return Face(model, type, format, pos);
+    }
+}
+
+void Model::FaceIterator::assertInBounds() const
+{
+    if (!(*this))
+    {
+        throw ModelError("FaceIterator out of bounds!");
     }
 }
 

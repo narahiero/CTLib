@@ -14,6 +14,7 @@
 
 
 #include <map>
+#include <vector>
 
 #include <CTLib/Math.hpp>
 #include <CTLib/Memory.hpp>
@@ -230,6 +231,157 @@ public:
         DataType indexType;
     };
 
+    class FaceIterator;
+
+    /*! @brief A face within a Model. */
+    class Face final
+    {
+
+        friend class FaceIterator;
+
+    public:
+
+        /*! @brief A value within a Face. */
+        class Value final
+        {
+
+            friend class Face;
+
+        public:
+
+            /*! @brief Constructs a copy of the specified Value. */
+            Value(const Value&);
+
+            /*! @brief Returns the size in bytes of the specified Value. */
+            static uint32_t sizeOf(const Value& value);
+
+            /*! @brief Returns the number of components in this Value. */
+            uint32_t getSize() const;
+
+            /*! @brief Returns the DataType of components in this Value. */
+            DataType getType() const;
+
+            /*! @brief Returns the specified byte component of this value.
+             *  
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the DataType of this Value is not
+             *  DataType::UInt8 or DataType::Int8, or the specified index is
+             *  more than or equal to the size of this Value.
+             */
+            uint8_t asByte(uint32_t index = 0) const;
+
+            /*! @brief Returns the specified float component of this value.
+             *  
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the DataType of this Value is not
+             *  DataType::Float, or the specified index is more than or equal to
+             *  the size of this Value.
+             */
+            float asFloat(uint32_t index = 0) const;
+
+        private:
+
+            Value(uint32_t size, DataType type, uint32_t index, Buffer& data);
+
+            // throws if 'types' does not contain 'type'
+            void assertAnyType(const std::vector<DataType>& types) const;
+
+            // throws if 'index' >= 'size'
+            void assertValidIndex(uint32_t index) const;
+
+            // component count
+            const uint32_t size;
+
+            // primitive type
+            const DataType type;
+
+            // buffer containing data
+            Buffer data;
+        };
+
+        /*! @brief Returns the size in bytes of the specified Face. */
+        static uint32_t sizeOf(const Face& face);
+
+        /*! @brief Returns the number of values in this Face. */
+        uint32_t getCount() const;
+
+        /*! @brief Returns the Value at the specified index.
+         *  
+         *  @throw CTLib::ModelError If the specified index is more than or
+         *  equal to the value count of this Face.
+         */
+        Value get(uint32_t index = 0) const;
+
+    private:
+
+        // direct (non-indexed) mode
+        Face(const Model* model, Type type, DataFormat format, uint32_t index);
+
+        // indexed mode
+        Face(
+            const Model* model, Type type, DataFormat format, uint32_t index,
+            Buffer& indices, DataType indexFormat
+        );
+
+        // throws if 'index' >= 'count'
+        void assertValidIndex(uint32_t index) const;
+
+        // value count
+        const uint32_t count;
+
+        // component count of values
+        const uint32_t size;
+
+        // primitive type of components of values
+        const DataType type;
+
+        // vector containing values
+        std::vector<Value> values;
+    };
+
+    /*! @brief A FaceIterator iterates over the faces in a Model. */
+    class FaceIterator final
+    {
+
+    public:
+
+        /*! @brief Constructs a FaceIterator to iterate over the faces of the
+         *  specified Type of the specified Model.
+         *  
+         *  @param[in] model A pointer to the Model to be iterated over
+         *  @param[in] type The type of data
+         *  
+         *  @throw CTLib::ModelError If the specified Model does not have data
+         *  of the specified Type.
+         */
+        FaceIterator(const Model* model, Type type);
+
+        /*! @brief Returns whether this FaceIterator is still in bounds. */
+        operator bool() const;
+
+        /*! @brief Pre-increments the position of this FaceIterator. */
+        FaceIterator& operator++();
+
+        /*! @brief Returns the Face at the current position. */
+        Face get() const;
+
+    private:
+
+        // throws if '!(*this)'
+        void assertInBounds() const;
+
+        // pointer to model
+        const Model* model;
+
+        // type of data
+        const Type type;
+
+        // current position
+        uint32_t pos;
+    };
+
     /*! @brief Returns the name of the specified Type. */
     static const char* nameOf(Type type);
 
@@ -380,6 +532,17 @@ public:
      *  specified Type.
      */
     uint32_t getFaceCount(Type type) const;
+
+    /*! @brief Returns a FaceIterator to iterate over the faces of the specified
+     *  Type of this Model.
+     *  
+     *  **Note**: Modifying this Model while using the returned FaceIterator is
+     *  _undefined behaviour_.
+     * 
+     *  @throw CTLib::ModelError If this Model does not have data of the
+     *  specified Type.
+     */
+    FaceIterator iterateFaces(Type type) const;
 
 private:
 
