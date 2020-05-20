@@ -119,11 +119,6 @@ TEST(ModelTests, NameOfDataType)
 TEST(ModelTests, DefaultCtor)
 {
     CTLib::Model model;
-    
-    EXPECT_EQ(false, model.isGlobalIndexModeEnabled());
-    EXPECT_EQ(false, model.isForceUseIndicesEnabled());
-    EXPECT_EQ(CTLib::Buffer(), model.getGlobalIndexData());
-    EXPECT_EQ(CTLib::Model::DataType::UInt16, model.getGlobalIndexDataType());
 
     EXPECT_EQ(false, model.hasData(CTLib::Model::Type::Position0));
     EXPECT_EQ(false, model.hasData(CTLib::Model::Type::Normal0));
@@ -260,26 +255,98 @@ TEST(ModelTests, GetFaceCount)
     model.setDataFormat(CTLib::Model::Type::Position0, format);
     EXPECT_EQ(6, model.getFaceCount(CTLib::Model::Type::Position0));
 
-    CTLib::Buffer globalIndexData(0x18);
-    globalIndexData.putShort(0).putShort(7).putShort(1)
-        .putShort(2).putShort(1).putShort(3)
-        .putShort(4).putShort(3).putShort(5)
-        .putShort(6).putShort(5).putShort(7);
-    globalIndexData.flip();
-
-    model.setGlobalIndexData(globalIndexData, CTLib::Model::DataType::UInt16);
-    EXPECT_EQ(6, model.getFaceCount(CTLib::Model::Type::Position0));
-
-    model.setGlobalIndicesMode(true, false);
-    EXPECT_EQ(4, model.getFaceCount(CTLib::Model::Type::Position0));
-
     format.setIsIndexed(false);
     model.setDataFormat(CTLib::Model::Type::Position0, format);
     EXPECT_EQ(3, model.getFaceCount(CTLib::Model::Type::Position0));
+}
 
-    model.setGlobalIndicesMode(true, true);
-    EXPECT_EQ(4, model.getFaceCount(CTLib::Model::Type::Position0));
+TEST(ModelTests, GetFace)
+{
+    CTLib::Model model;
 
-    model.setGlobalIndicesMode(false, true);
-    EXPECT_EQ(3, model.getFaceCount(CTLib::Model::Type::Position0));
+    CTLib::Buffer dataPos(0x6C);
+    dataPos.putFloat(-1.f).putFloat(1.f).putFloat(0.f)
+        .putFloat(0.f).putFloat(.5f).putFloat(0.f)
+        .putFloat(1.f).putFloat(1.f).putFloat(0.f)
+        .putFloat(.5f).putFloat(0.f).putFloat(0.f)
+        .putFloat(1.f).putFloat(-1.f).putFloat(0.f)
+        .putFloat(0.f).putFloat(-.5f).putFloat(0.f)
+        .putFloat(-1.f).putFloat(-1.f).putFloat(0.f)
+        .putFloat(-.5f).putFloat(0.f).putFloat(0.f);
+    dataPos.flip();
+
+    model.setData(CTLib::Model::Type::Position0, dataPos);
+    dataPos.flip();
+
+    ASSERT_EQ(2, model.getFaceCount(CTLib::Model::Type::Position0));
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        CTLib::Model::Face face = model.getFace(CTLib::Model::Type::Position0, i);
+
+        ASSERT_EQ(3, face.getCount());
+        for (uint32_t j = 0; j < 3; ++j)
+        {
+            CTLib::Model::Face::Value value = face.get(j);
+
+            ASSERT_EQ(3, value.getSize());
+            ASSERT_EQ(CTLib::Model::DataType::Float, value.getType());
+            for (uint32_t k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(dataPos.getFloat(), value.asFloat(k));
+            }
+        }
+    }
+}
+
+TEST(ModelTests, GetFaceIndexed)
+{
+    CTLib::Model model;
+
+    CTLib::Buffer dataPos(0x6C);
+    dataPos.putFloat(-1.f).putFloat(1.f).putFloat(0.f)
+        .putFloat(0.f).putFloat(.5f).putFloat(0.f)
+        .putFloat(1.f).putFloat(1.f).putFloat(0.f)
+        .putFloat(.5f).putFloat(0.f).putFloat(0.f)
+        .putFloat(1.f).putFloat(-1.f).putFloat(0.f)
+        .putFloat(0.f).putFloat(-.5f).putFloat(0.f)
+        .putFloat(-1.f).putFloat(-1.f).putFloat(0.f)
+        .putFloat(-.5f).putFloat(0.f).putFloat(0.f);
+    dataPos.flip();
+
+    model.setData(CTLib::Model::Type::Position0, dataPos);
+
+    CTLib::Buffer indexData(0x24);
+    indexData.putShort(0).putShort(7).putShort(1)
+        .putShort(2).putShort(1).putShort(3)
+        .putShort(4).putShort(3).putShort(5)
+        .putShort(6).putShort(5).putShort(7)
+        .putShort(1).putShort(7).putShort(5)
+        .putShort(1).putShort(5).putShort(3);
+    indexData.flip();
+
+    CTLib::Model::DataFormat format = model.getDataFormat(CTLib::Model::Type::Position0);
+    format.setIsIndexed(true);
+    model.setDataFormat(CTLib::Model::Type::Position0, format);
+    model.setIndexData(CTLib::Model::Type::Position0, indexData);
+    indexData.flip();
+
+    ASSERT_EQ(6, model.getFaceCount(CTLib::Model::Type::Position0));
+    for (uint32_t i = 0; i < 6; ++i)
+    {
+        CTLib::Model::Face face = model.getFace(CTLib::Model::Type::Position0, i);
+
+        ASSERT_EQ(3, face.getCount());
+        for (uint32_t j = 0; j < 3; ++j)
+        {
+            uint32_t offBase = indexData.getShort() * 3;
+            CTLib::Model::Face::Value value = face.get(j);
+
+            ASSERT_EQ(3, value.getSize());
+            ASSERT_EQ(CTLib::Model::DataType::Float, value.getType());
+            for (uint32_t k = 0; k < 3; ++k)
+            {
+                EXPECT_EQ(dataPos.getFloat((offBase + k) << 2), value.asFloat(k));
+            }
+        }
+    }
 }

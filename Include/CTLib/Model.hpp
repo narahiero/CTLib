@@ -237,7 +237,7 @@ public:
     class Face final
     {
 
-        friend class FaceIterator;
+        friend class Model;
 
     public:
 
@@ -271,6 +271,26 @@ public:
              */
             uint8_t asByte(uint32_t index = 0) const;
 
+            /*! @brief Returns the specified short component of this value.
+             *  
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the DataType of this Value is not
+             *  DataType::UInt16 or DataType::Int16, or the specified index is
+             *  more than or equal to the size of this Value.
+             */
+            uint16_t asShort(uint32_t index = 0) const;
+
+            /*! @brief Returns the specified int component of this value.
+             *  
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the DataType of this Value is not
+             *  DataType::UInt32 or DataType::Int32, or the specified index is
+             *  more than or equal to the size of this Value.
+             */
+            uint32_t asInt(uint32_t index = 0) const;
+
             /*! @brief Returns the specified float component of this value.
              *  
              *  @param[in] index The component index
@@ -281,9 +301,19 @@ public:
              */
             float asFloat(uint32_t index = 0) const;
 
+            /*! @brief Returns the specified double component of this value.
+             *  
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the DataType of this Value is not
+             *  DataType::Double, or the specified index is more than or equal
+             *  to the size of this Value.
+             */
+            double asDouble(uint32_t index = 0) const;
+
         private:
 
-            Value(uint32_t size, DataType type, uint32_t index, Buffer& data);
+            Value(DataFormat format, Buffer& data, uint32_t index);
 
             // throws if 'types' does not contain 'type'
             void assertAnyType(const std::vector<DataType>& types) const;
@@ -316,14 +346,7 @@ public:
 
     private:
 
-        // direct (non-indexed) mode
-        Face(const Model* model, Type type, DataFormat format, uint32_t index);
-
-        // indexed mode
-        Face(
-            const Model* model, Type type, DataFormat format, uint32_t index,
-            Buffer& indices, DataType indexFormat
-        );
+        Face(DataFormat format, Buffer& data, const std::vector<uint32_t>& indices);
 
         // throws if 'index' >= 'count'
         void assertValidIndex(uint32_t index) const;
@@ -386,7 +409,9 @@ public:
          *  @param[in] type The type of data
          *  
          *  @throw CTLib::ModelError If the Model being iterated by this
-         *  FaceIterator does not have data of the specified Type.
+         *  FaceIterator does not have data of the specified Type, or this
+         *  FaceIterator is 'out of bounds', or the data of the specified Type
+         *  is indexed and the current Face contains out of range indices.
          */
         Face get(Type type) const;
 
@@ -433,29 +458,6 @@ public:
 
     ~Model();
 
-    /*! @brief Sets the global indices mode of this Model.
-     *  
-     *  If the global indices mode is enabled, all indexed data will use the
-     *  global index data instead of their local one.
-     *  
-     *  If force use indices and global indices mode are enabled, all data will
-     *  use global index data, even if they are not indexed.
-     *  
-     *  @param[in] enable Whether to use global indices
-     *  @param[in] force Whether to force use indices
-     */
-    void setGlobalIndicesMode(bool enable, bool force);
-
-    /*! @brief Sets the global index data of this Model.
-     *  
-     *  @param[in] data The index data
-     *  @param[in] type The DataType
-     *  
-     *  @throw CTLib::ModelError If the specified DataType is not integral or
-     *  is not unsigned.
-     */
-    void setGlobalIndexData(Buffer& data, DataType type);
-
     /*! @brief Sets the data of the specified type of this Model to the data
      *  remaining in the specified buffer.
      * 
@@ -479,23 +481,6 @@ public:
      *  @param[in] format The DataFormat
      */
     void setDataFormat(Type type, DataFormat format);
-
-    /*! @brief Returns whether global index mode is enabled. */
-    bool isGlobalIndexModeEnabled() const;
-
-    /*! @brief Returns whether force use global indices is enabled. */
-    bool isForceUseIndicesEnabled() const;
-
-    /*! @brief Returns the global index data of this Model.
-     *  
-     *  The returned Buffer shares the same memory as the internal buffer of
-     *  this Model, so changes made to it will be reflected to the Model's
-     *  global index data.
-     */
-    Buffer getGlobalIndexData() const;
-
-    /*! @brief Returns the DataType of the global index data of this Model. */
-    DataType getGlobalIndexDataType() const;
 
     /*! @brief Returns whether this Model has data of the specified Type.
      *  
@@ -563,11 +548,22 @@ public:
      */
     uint32_t getFaceCount() const;
 
-    /*! @brief Returns the Face of this Model at the specified index.
+    /*! @brief Returns the Face of the specified Type of this Model at the
+     *  specified index.
      *  
-     *  If this Model has global indices enabled, and 
+     *  The index data (or global index data) is taken into consideration when
+     *  applicable.
+     * 
+     *  @param[in] type The type of data
+     *  @param[in] index The face index
+     *  
+     *  @throw CTLib::ModelError If this Model does not have data of the
+     *  specified Type, or the specified index is more than or equal to the
+     *  number of faces of the specified Type, or the data of the specified
+     *  Type is indexed and the Face at the specified index contains out of
+     *  range indices.
      */
-    Face getFace(uint32_t index) const;
+    Face getFace(Type type, uint32_t index) const;
 
     /*! @brief Returns a FaceIterator to iterate over the faces of this Model.
      *  
@@ -581,6 +577,9 @@ private:
     // adds the default format for the specified type to 'formatMap'
     void addDefaultFormat(Type type);
 
+    // returns the index at the current buffer position with the appropriate type
+    uint32_t getFaceIndex(Buffer& buffer, DataType type) const;
+
     // throws if '!isIntegral(type)' or 'isSigned(type)'
     void assertValidIndexType(DataType type) const;
 
@@ -590,17 +589,11 @@ private:
     // throws if 'indexMap.count(type) == 0'
     void assertHasIndexData(Type type) const;
 
-    // whether to use global indices
-    bool globalIndices;
+    // throws if 'index' >= 'getFaceCount(type)'
+    void assertValidFaceIndex(Type type, uint32_t index) const;
 
-    // whether to force use indices
-    bool forceIndices;
-
-    // buffer containing global index data of this model
-    Buffer globalIndexData;
-
-    // the data type of the global index data of this model
-    DataType globalIndexType;
+    // throws if 'index' >= the number of values
+    void assertValidValueIndex(Type type, uint32_t index) const;
 
     // map containing all data of this model
     std::map<Type, Buffer> dataMap;

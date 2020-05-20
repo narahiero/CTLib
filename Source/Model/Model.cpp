@@ -156,10 +156,6 @@ bool Model::isSigned(DataType type)
 }
 
 Model::Model() :
-    globalIndices{false},
-    forceIndices{false},
-    globalIndexData{},
-    globalIndexType{DataType::UInt16},
     dataMap{},
     indexMap{},
     formatMap{}
@@ -168,10 +164,6 @@ Model::Model() :
 }
 
 Model::Model(const Model& src) :
-    globalIndices{src.globalIndices},
-    forceIndices{src.forceIndices},
-    globalIndexData{src.globalIndexData},
-    globalIndexType{src.globalIndexType},
     dataMap{src.dataMap},
     indexMap{src.indexMap},
     formatMap{src.formatMap}
@@ -180,10 +172,6 @@ Model::Model(const Model& src) :
 }
 
 Model::Model(Model&& src) :
-    globalIndices{src.globalIndices},
-    forceIndices{src.forceIndices},
-    globalIndexData{std::move(src.globalIndexData)},
-    globalIndexType{src.globalIndexType},
     dataMap{std::move(src.dataMap)},
     indexMap{std::move(src.indexMap)},
     formatMap{std::move(src.formatMap)}
@@ -194,22 +182,6 @@ Model::Model(Model&& src) :
 Model::~Model()
 {
 
-}
-
-void Model::setGlobalIndicesMode(bool enable, bool force)
-{
-    globalIndices = enable;
-    forceIndices = force;
-}
-
-void Model::setGlobalIndexData(Buffer& data, DataType type)
-{
-    assertValidIndexType(type);
-
-    globalIndexData = Buffer(data.remaining());
-    globalIndexData.put(data).flip();
-
-    globalIndexType = type;
 }
 
 void Model::setData(Type type, Buffer& data)
@@ -239,26 +211,6 @@ void Model::setIndexData(Type type, Buffer& data)
 void Model::setDataFormat(Type type, DataFormat format)
 {
     formatMap[type] = format;
-}
-
-bool Model::isGlobalIndexModeEnabled() const
-{
-    return globalIndices;
-}
-
-bool Model::isForceUseIndicesEnabled() const
-{
-    return forceIndices;
-}
-
-Buffer Model::getGlobalIndexData() const
-{
-    return globalIndexData.duplicate();
-}
-
-Model::DataType Model::getGlobalIndexDataType() const
-{
-    return globalIndexType;
 }
 
 bool Model::hasData(Type type) const
@@ -294,13 +246,7 @@ uint32_t Model::getFaceCount(Type type) const
     assertHasData(type);
 
     DataFormat format = formatMap.at(type);
-    if (globalIndices && (forceIndices || format.indexed))
-    {
-        return static_cast<uint32_t>(
-            globalIndexData.capacity() / sizeOf(globalIndexType) / format.count
-        );
-    }
-    else if (format.indexed)
+    if (format.indexed)
     {
         return static_cast<uint32_t>(
             indexMap.at(type).capacity() / sizeOf(format.indexType) / format.count
@@ -330,6 +276,39 @@ uint32_t Model::getFaceCount() const
     return min;
 }
 
+Model::Face Model::getFace(Type type, uint32_t index) const
+{
+    assertHasData(type);
+    assertValidFaceIndex(type, index);
+
+    DataFormat format = formatMap.at(type);
+    if (format.indexed)
+    {
+        assertHasIndexData(type);
+
+        Buffer indexData = indexMap.at(type);
+        indexData.position(sizeOf(format.indexType) * format.count * index);
+
+        std::vector<uint32_t> indices;
+        for (uint32_t i = 0; i < format.count; ++i)
+        {
+            uint32_t idx = getFaceIndex(indexData, format.indexType);
+            assertValidValueIndex(type, idx);
+            indices.push_back(idx);
+        }
+        return Face(format, dataMap.at(type).duplicate(), indices);
+    }
+    else
+    {
+        std::vector<uint32_t> indices;
+        for (uint32_t i = 0; i < format.count; ++i)
+        {
+            indices.push_back(index * format.count + i);
+        }
+        return Face(format, dataMap.at(type).duplicate(), indices);
+    }
+}
+
 Model::FaceIterator Model::iterateFaces() const
 {
     return FaceIterator(this);
@@ -338,6 +317,24 @@ Model::FaceIterator Model::iterateFaces() const
 void Model::addDefaultFormat(Type type)
 {
     formatMap.insert(std::map<Type, DataFormat>::value_type(type, DataFormat(type)));
+}
+
+uint32_t Model::getFaceIndex(Buffer& buffer, DataType type) const
+{
+    switch (type)
+    {
+    case DataType::UInt8:
+        return buffer.get();
+
+    case DataType::UInt16:
+        return buffer.getShort();
+
+    case DataType::UInt32:
+        return buffer.getInt();
+
+    default:
+        return 0;
+    }
 }
 
 void Model::assertValidIndexType(DataType type) const
@@ -373,6 +370,31 @@ void Model::assertHasIndexData(Type type) const
     }
 }
 
+void Model::assertValidFaceIndex(Type type, uint32_t index) const
+{
+    uint32_t count = getFaceCount(type);
+    if (index >= count)
+    {
+        throw ModelError(Strings::format(
+            "Model face index out of range! (%d >= %d)",
+            index, count
+        ));
+    }
+}
+
+void Model::assertValidValueIndex(Type type, uint32_t index) const
+{
+    DataFormat format = formatMap.at(type);
+    size_t count = dataMap.at(type).capacity() / format.size / sizeOf(format.type);
+    if (index >= count)
+    {
+        throw ModelError(Strings::format(
+            "Model face has out of bounds index/indices for type %s! (%d >= %d)",
+            nameOf(type), index, count
+        ));
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -385,39 +407,17 @@ uint32_t Model::Face::sizeOf(const Face& face)
     return face.count * face.size * Model::sizeOf(face.type);
 }
 
-Model::Face::Face(const Model* model, Type type, DataFormat format, uint32_t index) :
+Model::Face::Face(DataFormat format, Buffer& data, const std::vector<uint32_t>& indices) :
     count{format.count},
     size{format.size},
     type{format.type},
     values{}
 {
-    Buffer data = model->getData(type);
-    data = data.position(sizeOf(*this) * index).slice();
+    values.reserve(count);
 
     for (uint32_t i = 0; i < count; ++i)
     {
-        values.push_back(Value(size, format.type, i, data));
-    }
-}
-
-Model::Face::Face(
-    const Model* model, Type type, DataFormat format, uint32_t index,
-    Buffer& indices, DataType indexFormat
-) :
-    count{format.count},
-    size{format.size},
-    type{format.type},
-    values{}
-{
-    Buffer indexData = indices.position(Model::sizeOf(indexFormat) * count * index).slice();
-
-    for (uint32_t i = 0; i < count; ++i)
-    {
-        uint64_t valueIdx = indexData.getShort(i << 1);
-        Buffer data = model->getData(type);
-        data = data.position(size * Model::sizeOf(format.type) * valueIdx).slice();
-
-        values.push_back(Value(size, format.type, 0, data));
+        values.push_back(Value(format, data.duplicate(), indices[i]));
     }
 }
 
@@ -458,9 +458,9 @@ Model::Face::Value::Value(const Value& src) :
 
 }
 
-Model::Face::Value::Value(uint32_t size, DataType type, uint32_t index, Buffer& data) :
-    size{size},
-    type{type},
+Model::Face::Value::Value(DataFormat format, Buffer& data, uint32_t index) :
+    size{format.size},
+    type{format.type},
     data{data.position(sizeOf(*this) * index).slice()}
 {
 
@@ -483,11 +483,32 @@ uint8_t Model::Face::Value::asByte(uint32_t index) const
     return data.get(index);
 }
 
+uint16_t Model::Face::Value::asShort(uint32_t index) const
+{
+    assertValidIndex(index);
+    assertAnyType({DataType::UInt16, DataType::Int16});
+    return data.getShort(index);
+}
+
+uint32_t Model::Face::Value::asInt(uint32_t index) const
+{
+    assertValidIndex(index);
+    assertAnyType({DataType::UInt32, DataType::Int32});
+    return data.getInt(index);
+}
+
 float Model::Face::Value::asFloat(uint32_t index) const
 {
     assertValidIndex(index);
     assertAnyType({DataType::Float});
     return data.getFloat(index << 2);
+}
+
+double Model::Face::Value::asDouble(uint32_t index) const
+{
+    assertValidIndex(index);
+    assertAnyType({DataType::Double});
+    return data.getDouble(index << 2);
 }
 
 void Model::Face::Value::assertAnyType(const std::vector<DataType>& types) const
@@ -551,20 +572,7 @@ Model::FaceIterator& Model::FaceIterator::operator++()
 Model::Face Model::FaceIterator::get(Type type) const
 {
     assertInBounds();
-
-    DataFormat format = model->getDataFormat(type);
-    if (model->globalIndices && (model->forceIndices || format.indexed))
-    {
-        return Face(model, type, format, pos, model->getGlobalIndexData(), model->globalIndexType);
-    }
-    else if (format.indexed)
-    {
-        return Face(model, type, format, pos, model->getIndexData(type), format.indexType);
-    }
-    else
-    {
-        return Face(model, type, format, pos);
-    }
+    return model->getFace(type, pos);
 }
 
 void Model::FaceIterator::assertInBounds() const
