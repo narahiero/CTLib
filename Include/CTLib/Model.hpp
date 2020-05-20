@@ -341,31 +341,54 @@ public:
         std::vector<Value> values;
     };
 
-    /*! @brief A FaceIterator iterates over the faces in a Model. */
+    /*! @brief A FaceIterator iterates over the faces in a Model.
+     *  
+     *  An example on how to use this class in a `for`-loop follows:
+     *  
+     *  ```{.cpp}
+     *  Model model;
+     *  
+     *  // setup 'model'...
+     *  
+     *  for (auto it = model.iterateFaces(); it; ++it)
+     *  {
+     *      Model::Face face = it.get(Model::Type::Position0);
+     *      
+     *      // use 'face'...
+     *  }
+     *  ```
+     */
     class FaceIterator final
     {
 
     public:
 
         /*! @brief Constructs a FaceIterator to iterate over the faces of the
-         *  specified Type of the specified Model.
+         *  specified Model.
          *  
          *  @param[in] model A pointer to the Model to be iterated over
-         *  @param[in] type The type of data
-         *  
-         *  @throw CTLib::ModelError If the specified Model does not have data
-         *  of the specified Type.
          */
-        FaceIterator(const Model* model, Type type);
+        FaceIterator(const Model* model);
 
-        /*! @brief Returns whether this FaceIterator is still in bounds. */
+        /*! @brief Returns whether this FaceIterator is still in bounds.
+         *  
+         *  This FaceIterator is 'in bounds', if its current position is less
+         *  than the return value of Model::getFaceCount().
+         */
         operator bool() const;
 
         /*! @brief Pre-increments the position of this FaceIterator. */
         FaceIterator& operator++();
 
-        /*! @brief Returns the Face at the current position. */
-        Face get() const;
+        /*! @brief Returns the Face of the specified Type at the current
+         *  position.
+         *  
+         *  @param[in] type The type of data
+         *  
+         *  @throw CTLib::ModelError If the Model being iterated by this
+         *  FaceIterator does not have data of the specified Type.
+         */
+        Face get(Type type) const;
 
     private:
 
@@ -374,9 +397,6 @@ public:
 
         // pointer to model
         const Model* model;
-
-        // type of data
-        const Type type;
 
         // current position
         uint32_t pos;
@@ -533,16 +553,28 @@ public:
      */
     uint32_t getFaceCount(Type type) const;
 
-    /*! @brief Returns a FaceIterator to iterate over the faces of the specified
-     *  Type of this Model.
+    /*! @brief Returns the number of 'complete' faces in this Model.
+     *  
+     *  A face is 'complete' if it has data for all set types.
+     *  
+     *  The returned value is simply the smallest value returned from calls to
+     *  Model::getFaceCount(Type), with it invoked once for every Type of data
+     *  set in this Model.
+     */
+    uint32_t getFaceCount() const;
+
+    /*! @brief Returns the Face of this Model at the specified index.
+     *  
+     *  If this Model has global indices enabled, and 
+     */
+    Face getFace(uint32_t index) const;
+
+    /*! @brief Returns a FaceIterator to iterate over the faces of this Model.
      *  
      *  **Note**: Modifying this Model while using the returned FaceIterator is
      *  _undefined behaviour_.
-     * 
-     *  @throw CTLib::ModelError If this Model does not have data of the
-     *  specified Type.
      */
-    FaceIterator iterateFaces(Type type) const;
+    FaceIterator iterateFaces() const;
 
 private:
 

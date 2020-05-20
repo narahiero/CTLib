@@ -314,10 +314,25 @@ uint32_t Model::getFaceCount(Type type) const
     }
 }
 
-Model::FaceIterator Model::iterateFaces(Type type) const
+uint32_t Model::getFaceCount() const
 {
-    assertHasData(type);
-    return FaceIterator(this, type);
+    if (dataMap.empty())
+    {
+        return 0;
+    }
+
+    uint32_t min = ~0;
+    for (auto& pair : dataMap)
+    {
+        uint32_t count = getFaceCount(pair.first);
+        min = min < count ? min : count;
+    }
+    return min;
+}
+
+Model::FaceIterator Model::iterateFaces() const
+{
+    return FaceIterator(this);
 }
 
 void Model::addDefaultFormat(Type type)
@@ -515,9 +530,8 @@ void Model::Face::Value::assertValidIndex(uint32_t index) const
 ////   FaceIterator class
 ////
 
-Model::FaceIterator::FaceIterator(const Model* model, Type type) :
+Model::FaceIterator::FaceIterator(const Model* model) :
     model{model},
-    type{type},
     pos{0}
 {
 
@@ -525,7 +539,7 @@ Model::FaceIterator::FaceIterator(const Model* model, Type type) :
 
 Model::FaceIterator::operator bool() const
 {
-    return pos < model->getFaceCount(type);
+    return pos < model->getFaceCount();
 }
 
 Model::FaceIterator& Model::FaceIterator::operator++()
@@ -534,7 +548,7 @@ Model::FaceIterator& Model::FaceIterator::operator++()
     return *this;
 }
 
-Model::Face Model::FaceIterator::get() const
+Model::Face Model::FaceIterator::get(Type type) const
 {
     assertInBounds();
 
