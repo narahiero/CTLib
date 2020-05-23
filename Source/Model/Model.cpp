@@ -479,58 +479,187 @@ Model::DataType Model::Face::Value::getType() const
 uint8_t Model::Face::Value::asByte(uint32_t index) const
 {
     assertValidIndex(index);
-    assertAnyType({DataType::UInt8, DataType::Int8});
-    return data.get(index);
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return data.get(index);
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return static_cast<uint8_t>(data.getShort(index << 1));
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return static_cast<uint8_t>(data.getInt(index << 2));
+
+    case DataType::Float:
+        return static_cast<uint8_t>(data.getFloat(index << 2));
+
+    case DataType::Double:
+        return static_cast<uint8_t>(data.getDouble(index << 3));
+
+    default:
+        return 0;
+    }
 }
 
 uint16_t Model::Face::Value::asShort(uint32_t index) const
 {
     assertValidIndex(index);
-    assertAnyType({DataType::UInt16, DataType::Int16});
-    return data.getShort(index);
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return data.get(index);
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return data.getShort(index << 1);
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return static_cast<uint16_t>(data.getInt(index << 2));
+
+    case DataType::Float:
+        return static_cast<uint16_t>(data.getFloat(index << 2));
+
+    case DataType::Double:
+        return static_cast<uint16_t>(data.getDouble(index << 3));
+
+    default:
+        return 0;
+    }
 }
 
 uint32_t Model::Face::Value::asInt(uint32_t index) const
 {
     assertValidIndex(index);
-    assertAnyType({DataType::UInt32, DataType::Int32});
-    return data.getInt(index);
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return data.get(index);
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return data.getShort(index << 1);
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return data.getInt(index << 2);
+
+    case DataType::Float:
+        return static_cast<uint32_t>(data.getFloat(index << 2));
+
+    case DataType::Double:
+        return static_cast<uint32_t>(data.getDouble(index << 3));
+
+    default:
+        return 0;
+    }
 }
 
 float Model::Face::Value::asFloat(uint32_t index) const
 {
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return asFloat(8, index);
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return asFloat(16, index);
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return asFloat(32, index);
+
+    default:
+        return asFloat(0, index);
+    }
+}
+
+float Model::Face::Value::asFloat(uint8_t divisor, uint32_t index) const
+{
     assertValidIndex(index);
-    assertAnyType({DataType::Float});
-    return data.getFloat(index << 2);
+
+    float div = powf(2.f, divisor);
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return static_cast<float>(data.get(index)) / div;
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return static_cast<float>(data.getShort(index << 1)) / div;
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return static_cast<float>(data.getInt(index << 2)) / div;
+
+    case DataType::Float:
+        return data.getFloat(index << 2);
+
+    case DataType::Double:
+        return static_cast<float>(data.getDouble(index << 3));
+
+    default:
+        return 0.f;
+    }
 }
 
 double Model::Face::Value::asDouble(uint32_t index) const
 {
-    assertValidIndex(index);
-    assertAnyType({DataType::Double});
-    return data.getDouble(index << 2);
+    switch (type)
+    {
+    case DataType::UInt8:
+    case DataType::Int8:
+        return asDouble(8, index);
+
+    case DataType::UInt16:
+    case DataType::Int16:
+        return asDouble(16, index);
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return asDouble(32, index);
+
+    default:
+        return asDouble(0, index);
+    }
 }
 
-void Model::Face::Value::assertAnyType(const std::vector<DataType>& types) const
+double Model::Face::Value::asDouble(uint8_t divisor, uint32_t index) const
 {
-    for (DataType find : types)
-    {
-        if (type == find)
-        {
-            return;
-        }
-    }
+    assertValidIndex(index);
 
-    std::string str = nameOf(types[0]);
-    for (uint32_t i = 1; i < types.size(); ++i)
+    double div = pow(2., divisor);
+    switch (type)
     {
-        (str += ", ") += nameOf(types[i]);
-    }
+    case DataType::UInt8:
+    case DataType::Int8:
+        return static_cast<double>(data.get(index)) / div;
 
-    throw ModelError(Strings::format(
-        "The DataType of this face value (%s) does not match any of the following: [%s]",
-        nameOf(type), str.c_str()
-    ));
+    case DataType::UInt16:
+    case DataType::Int16:
+        return static_cast<double>(data.getShort(index << 1)) / div;
+
+    case DataType::UInt32:
+    case DataType::Int32:
+        return static_cast<double>(data.getInt(index << 2)) / div;
+
+    case DataType::Float:
+        return data.getFloat(index << 2);
+
+    case DataType::Double:
+        return data.getDouble(index << 3);
+
+    default:
+        return 0.;
+    }
 }
 
 void Model::Face::Value::assertValidIndex(uint32_t index) const

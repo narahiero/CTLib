@@ -261,62 +261,149 @@ public:
             /*! @brief Returns the DataType of components in this Value. */
             DataType getType() const;
 
-            /*! @brief Returns the specified byte component of this value.
+            /*! @brief Returns the specified component of this Value casted as a
+             *  byte.
+             *  
+             *  If the DataType of this Value is integral and larger, some data
+             *  will probably be lost. It is then recommended to always use
+             *  Model::Face::Value::getInt(uint32_t) instead.
              *  
              *  @param[in] index The component index
              *  
-             *  @throw CTLib::ModelError If the DataType of this Value is not
-             *  DataType::UInt8 or DataType::Int8, or the specified index is
-             *  more than or equal to the size of this Value.
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
              */
             uint8_t asByte(uint32_t index = 0) const;
 
-            /*! @brief Returns the specified short component of this value.
+            /*! @brief Returns the specified component of this Value casted as a
+             *  short.
+             *  
+             *  If the DataType of this Value is integral and larger, some data
+             *  will probably be lost. It is then recommended to always use
+             *  Model::Face::Value::getInt(uint32_t) instead.
              *  
              *  @param[in] index The component index
              *  
-             *  @throw CTLib::ModelError If the DataType of this Value is not
-             *  DataType::UInt16 or DataType::Int16, or the specified index is
-             *  more than or equal to the size of this Value.
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
              */
             uint16_t asShort(uint32_t index = 0) const;
 
-            /*! @brief Returns the specified int component of this value.
+            /*! @brief Returns the specified component of this Value casted as
+             *  an integer.
              *  
              *  @param[in] index The component index
              *  
-             *  @throw CTLib::ModelError If the DataType of this Value is not
-             *  DataType::UInt32 or DataType::Int32, or the specified index is
-             *  more than or equal to the size of this Value.
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
              */
             uint32_t asInt(uint32_t index = 0) const;
 
-            /*! @brief Returns the specified float component of this value.
+            /*! @brief Returns the specified component of this Value casted as a
+             *  float.
+             *  
+             *  If the DataType of this Value is integral, returns a value
+             *  between `0.0` and `1.0`.
              *  
              *  @param[in] index The component index
              *  
-             *  @throw CTLib::ModelError If the DataType of this Value is not
-             *  DataType::Float, or the specified index is more than or equal to
-             *  the size of this Value.
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
              */
             float asFloat(uint32_t index = 0) const;
 
-            /*! @brief Returns the specified double component of this value.
+            /*! @brief Returns the specified component of this Value casted as a
+             *  float.
+             *  
+             *  If the DataType of this Value is integral, divides the value by
+             *  2 raised to the power of the specified divisor.
+             *  
+             *  @param[in] divisor The divisor
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
+             */
+            float asFloat(uint8_t divisor, uint32_t index = 0) const;
+
+            /*! @brief Returns the specified component of this Value casted as a
+             *  double.
+             *  
+             *  If the DataType of this Value is integral, returns a value
+             *  between `0.0` and `1.0`.
              *  
              *  @param[in] index The component index
              *  
-             *  @throw CTLib::ModelError If the DataType of this Value is not
-             *  DataType::Double, or the specified index is more than or equal
-             *  to the size of this Value.
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
              */
             double asDouble(uint32_t index = 0) const;
+
+            /*! @brief Returns the specified component of this Value casted as a
+             *  double.
+             *  
+             *  If the DataType of this Value is integral, divides the value by
+             *  2 raised to the power of the specified divisor.
+             *  
+             *  @param[in] divisor The divisor
+             *  @param[in] index The component index
+             *  
+             *  @throw CTLib::ModelError If the specified index is more than or
+             *  equal to the size of this Value.
+             */
+            double asDouble(uint8_t divisor, uint32_t index = 0) const;
+
+            /*! @brief Returns this Value as a Vectorf of the specified template
+             *  size.
+             *  
+             *  If the DataType of this Value is integral, the value of each
+             *  component will be divided by its bit count. This will ensure
+             *  that the value of each component is between `0.0` and `1.0`.
+             *  
+             *  @tparam Size The number of components
+             *  
+             *  @throw CTLib::ModelError If the specified template size is more
+             *  than or equal to the size of this Value.
+             */
+            template <uint32_t Size>
+            Vectorf<Size> asVectorf() const
+            {
+                assertValidIndex(Size);
+                Vectorf<Size> v;
+                for (uint32_t i = 0; i < Size; ++i)
+                {
+                    v[i] = asFloat(i);
+                }
+                return v;
+            }
+
+            /*! @brief Returns this Value as a Vectorf of the specified template
+             *  size.
+             *  
+             *  If the DataType of this Value is integral, the value of each
+             *  component will be divided by 2 raised to the power of the
+             *  specified divisor.
+             *  
+             *  @tparam Size The number of components
+             *  
+             *  @throw CTLib::ModelError If the specified template size is more
+             *  than or equal to the size of this Value.
+             */
+            template <uint32_t Size>
+            Vectorf<Size> asVectorf(uint8_t divisor) const
+            {
+                assertValidIndex(Size);
+                Vectorf<Size> v;
+                for (uint32_t i = 0; i < Size; ++i)
+                {
+                    v[i] = asFloat(divisor, i);
+                }
+                return v;
+            }
 
         private:
 
             Value(DataFormat format, Buffer& data, uint32_t index);
-
-            // throws if 'types' does not contain 'type'
-            void assertAnyType(const std::vector<DataType>& types) const;
 
             // throws if 'index' >= 'size'
             void assertValidIndex(uint32_t index) const;
@@ -551,8 +638,7 @@ public:
     /*! @brief Returns the Face of the specified Type of this Model at the
      *  specified index.
      *  
-     *  The index data (or global index data) is taken into consideration when
-     *  applicable.
+     *  **Note**: The index data is taken into consideration when applicable.
      * 
      *  @param[in] type The type of data
      *  @param[in] index The face index
