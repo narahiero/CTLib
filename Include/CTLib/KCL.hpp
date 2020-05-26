@@ -37,6 +37,71 @@ class KCL final
 
 public:
 
+    /*! @brief The structure of a triangle in a KCL. */
+    struct Triangle
+    {
+
+        /*! @brief The length of this triangle. */
+        float length;
+
+        /*! @brief The index in vertices array. */
+        uint16_t position;
+
+        /*! @brief An index in normals array. */
+        uint16_t direction;
+
+        /*! @brief Indices in normals array. */
+        uint16_t normA, normB, normC;
+
+        /*! @brief The KCL flag of this triangle. */
+        uint16_t flag;
+    };
+
+    /*! @brief A node in a KCL octree. */
+    class OctreeNode final
+    {
+
+        friend class KCL;
+
+    public:
+
+        /*! @brief Adds the specified triangle index to this node. */
+        void addTriangle(Triangle tri, uint16_t index);
+
+    private:
+
+        OctreeNode(KCL* kcl, Vector3f pos, Vector3f size, bool root = false);
+
+        // splits this node in 8 child nodes
+        void split();
+
+        void whichChilds(Vector3f pos, bool flags[8]) const;
+
+        // pointer to kcl owning this node
+        KCL* kcl;
+
+        // position of cube
+        Vector3f pos;
+
+        // size of cube
+        Vector3f size;
+
+        // whether this node is the root node of a kcl
+        bool root;
+
+        // whether this node points to other nodes
+        bool superNode;
+
+        // pointer to OctreeNode childs; unused if 'superNode' is false
+        OctreeNode* childs[8];
+
+        // triangles in this OctreeNode
+        std::vector<Triangle> tris;
+
+        // indices of triangles in this OctreeNode
+        std::vector<uint16_t> tIndices;
+    };
+
     /*! @brief Creates a KCL from the specified raw model data.
      *  
      *  The data buffers must be formatted as follows:
@@ -56,8 +121,8 @@ public:
      */
     static KCL fromRawModel(Buffer& vertices, Buffer& kclFlags, int32_t count = -1);
 
-    /*! @brief Constructs a copy of the specified KCL instance. */
-    KCL(const KCL&);
+    /*! @brief Delete copy constructor for move-only class. */
+    KCL(const KCL&) = delete;
 
     /*! @brief Moves the specified KCL instance to a newly created one.
      *  
@@ -69,31 +134,17 @@ public:
 
 private:
 
-    // structure of each entry in 'triangles'
-    struct Triangle
-    {
-
-        // length of this triangle
-        float length;
-
-        // index in 'vertices'
-        uint16_t position;
-
-        // index in 'normals'
-        uint16_t direction;
-
-        // indices in 'normals'
-        uint16_t normA, normB, normC;
-
-        // kcl flag
-        uint16_t flag;
-    };
-
     // constructs an empty KCL
     KCL();
 
-    // generate the spacial index of this kcl
-    void generateSpacialIndex();
+    // sets minPos and generates masks
+    void setBounds(Vector3f min, Vector3f max);
+
+    // returns the size of the root node based on the mask values
+    Vector3f calcRootNodeSize() const;
+
+    // generate the octree of this kcl
+    void generateOctree();
 
     // first coordinate
     Vector3f minPos;
@@ -109,6 +160,9 @@ private:
 
     // vector containing triangles in this kcl
     std::vector<Triangle> triangles;
+
+    // vector containing all OctreeNode pointers is this kcl
+    std::vector<OctreeNode*> nodes;
 };
 
 /*! @brief KCLError is the error class used by the methods in this header. */
