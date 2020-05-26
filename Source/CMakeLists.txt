@@ -32,12 +32,6 @@ target_sources(CTLib PRIVATE
     Image/Decode.cpp
 )
 
-# Model sources
-target_sources(CTLib PRIVATE
-    "${CT_LIB_INCLUDE_DIR}/CTLib/Model.hpp"
-    Model/Model.cpp
-)
-
 # Yaz module
 if(CT_LIB_MODULE_YAZ)
     target_sources(CTLib PRIVATE

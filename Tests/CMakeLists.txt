@@ -73,9 +73,6 @@ ct_lib_add_test(MemoryTest SOURCES Memory.cpp)
 # Tests for CT Lib image header
 ct_lib_add_test(ImageTest SOURCES Image.cpp)
 
-# Tests for CT Lib model header
-ct_lib_add_test(ModelTest SOURCES Model.cpp)
-
 # Tests for Yaz module
 if(CT_LIB_MODULE_YAZ)
     ct_lib_add_test(YazTest SOURCES Yaz.cpp)
