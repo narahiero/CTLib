@@ -65,17 +65,50 @@ public:
 
     public:
 
-        /*! @brief Adds the specified triangle index to this node. */
-        void addTriangle(Triangle tri, uint16_t index);
+        /*! @brief Returns whether this node points to other nodes. */
+        bool isSuperNode() const;
+
+        /*! @brief Returns the child node at the specified index.
+         *  
+         *  @param[in] index The child index (0-7)
+         *  
+         *  @throw CTLib::KCLError If this node is not a super node or the
+         *  specified index is more than or equal to 8.
+         */
+        OctreeNode* getChild(uint8_t index) const;
+
+        /*! @brief Returns the triangles in this node.
+         *  
+         *  @throw CTLib::KCLError If this node is a super node.
+         */
+        std::vector<Triangle> getTriangles() const;
+
+        /*! @brief Returns the triangle indices in this node.
+         *  
+         *  @throw CTLib::KCLError If this node is a super node.
+         */
+        std::vector<uint16_t> getIndices() const;
 
     private:
 
         OctreeNode(KCL* kcl, Vector3f pos, Vector3f size, bool root = false);
 
+        // adds the specified triangle to this node
+        void addTriangle(Triangle tri, uint16_t index);
+
         // splits this node in 8 child nodes
         void split();
 
         void whichChilds(Vector3f pos, bool flags[8]) const;
+
+        // throws if 'superNode' == false
+        void assertSuperNode() const;
+
+        // throws if 'superNode' == true
+        void assertNotSuperNode() const;
+
+        // throws if 'index' >= 8
+        void assertValidChildIndex(uint8_t index) const;
 
         // pointer to kcl owning this node
         KCL* kcl;
@@ -102,6 +135,9 @@ public:
         std::vector<uint16_t> tIndices;
     };
 
+    /*! @brief Writes the specified KCL to a newly created Buffer. */
+    static Buffer write(const KCL& kcl);
+
     /*! @brief Creates a KCL from the specified raw model data.
      *  
      *  The data buffers must be formatted as follows:
@@ -110,7 +146,7 @@ public:
      *  `kclFlags`: 1 KCL flag per face, 1 uint16 per flag
      * 
      *  If the last (4th) parameter is `-1`, the number of triangles will be
-     *  calculated _from the `vertices` vector_. Else the number of triangles
+     *  calculated _from the `vertices` buffer_. Else the number of triangles
      *  is that value.
      * 
      *  The normals are calculated by this function.
@@ -131,6 +167,30 @@ public:
     KCL(KCL&&);
 
     ~KCL();
+
+    /*! @brief Returns the minimum triangle position in this KCL. */
+    Vector3f getMinPos() const;
+
+    /*! @brief Returns the mask of the X-axis of this KCL. */
+    uint32_t getMaskX() const;
+
+    /*! @brief Returns the mask of the Y-axis of this KCL. */
+    uint32_t getMaskY() const;
+
+    /*! @brief Returns the mask of the Z-axis of this KCL. */
+    uint32_t getMaskZ() const;
+
+    /*! @brief Returns the vertices in this KCL. */
+    std::vector<Vector3f> getVertices() const;
+
+    /*! @brief Returns the normals in this KCL. */
+    std::vector<Vector3f> getNormals() const;
+
+    /*! @brief Returns the triangles in this KCL. */
+    std::vector<Triangle> getTriangles() const;
+
+    /*! @brief Rturns the root octree node in this KCL. */
+    OctreeNode* getRootNode() const;
 
 private:
 

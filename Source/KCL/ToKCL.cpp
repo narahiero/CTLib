@@ -227,6 +227,13 @@ KCL::OctreeNode::OctreeNode(KCL* kcl, Vector3f pos, Vector3f size, bool root) :
     {
         childs[i] = nullptr;
     }
+
+    kcl->nodes.push_back(this);
+
+    if (root)
+    {
+        split();
+    }
 }
 
 // max number of triangle in octree node
@@ -264,7 +271,7 @@ void KCL::OctreeNode::addTriangle(Triangle tri, uint16_t index)
 {
     if (superNode)
     {
-        Vector3f pos = kcl->vertices.at(tri.position);
+        Vector3f pos = kcl->vertices.at(tri.position) - kcl->getMinPos();
         bool flags[8];
         whichChilds(pos, flags);
         
@@ -297,7 +304,6 @@ void KCL::OctreeNode::split()
         Vector3f ns = size * .5f;
         Vector3f np(ns[0] * (i >> 2), ns[1] * ((i >> 1) & 1), ns[2] * (i & 1));
         OctreeNode* node = new OctreeNode(kcl, np + pos, ns);
-        kcl->nodes.push_back(node);
         childs[i] = node;
     }
 
@@ -314,9 +320,9 @@ Vector3f KCL::calcRootNodeSize() const
 {
     return
     {
-        -static_cast<float>(maskX),
-        -static_cast<float>(maskY),
-        -static_cast<float>(maskZ)
+        static_cast<float>(~maskX),
+        static_cast<float>(~maskY),
+        static_cast<float>(~maskZ)
     };
 }
 

@@ -75,6 +75,7 @@ if(CT_LIB_MODULE_KCL)
         "${CT_LIB_INCLUDE_DIR}/CTLib/KCL.hpp"
         KCL/KCL.cpp
         KCL/ToKCL.cpp
+        KCL/Write.cpp
     )
 endif()
 
