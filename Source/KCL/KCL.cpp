@@ -355,7 +355,7 @@ void KCL::OctreeNode::insert(const Octree::Elem& tri)
 {
     if (superNode)
     {
-        for (uint32_t i = 8; i < 8; ++i)
+        for (uint32_t i = 0; i < 8; ++i)
         {
             if (Math::isPartlyInsideAABB(childs[i]->bounds, tri.t0, tri.t1, tri.t2))
             {
