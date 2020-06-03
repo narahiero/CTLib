@@ -7,6 +7,7 @@
 
 #include <CTLib/KCL.hpp>
 
+#include <map>
 #include <vector>
 
 namespace CTLib
@@ -27,24 +28,70 @@ struct KCLInfo
 struct KCLOffsets
 {
 
+    // offsets to sections
     std::vector<uint32_t> sectionOffs;
+
+    // offsets to octree nodes relative to octree section start
+    std::map<KCL::OctreeNode*, uint32_t> nodeOffs;
+
+    // offset of octree triangle lists
+    uint32_t triListOff;
 };
+
+uint32_t calcNodeSizeAndOffsets(KCL::OctreeNode* node, uint32_t& pos, KCLOffsets* offsets)
+{
+    if (node->isSuperNode())
+    {
+        offsets->nodeOffs.insert(std::map<KCL::OctreeNode*, uint32_t>::value_type(node, pos));
+        pos += 0x20;
+
+        uint32_t size = 0;
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            size += calcNodeSizeAndOffsets(node->getChild(i), pos, offsets);
+        }
+        return 4 + size;
+    }
+    else
+    {
+        return 4;
+    }
+}
 
 void createKCLInfoAndOffsets(const KCL& kcl, KCLInfo* info, KCLOffsets* offsets)
 {
     info->size = 0x3C; // header
 
-    offsets->sectionOffs.push_back(info->size);
+    offsets->sectionOffs.push_back(info->size); // VERTICES
     info->size += static_cast<uint32_t>(kcl.getVertices().size()) * 0xC;
 
-    offsets->sectionOffs.push_back(info->size);
+    offsets->sectionOffs.push_back(info->size); // NORMALS
     info->size += static_cast<uint32_t>(kcl.getNormals().size()) * 0xC;
 
-    offsets->sectionOffs.push_back(info->size);
+    offsets->sectionOffs.push_back(info->size); // TRIANGLES
     info->size += static_cast<uint32_t>(kcl.getTriangles().size()) * 0x10;
 
-    offsets->sectionOffs.push_back(info->size);
-    info->size += 0x4000;
+    offsets->sectionOffs.push_back(info->size); // OCTREE
+
+    KCL::Octree* octree = kcl.getOctree();
+
+    uint32_t count = octree->getRootNodeCount();
+    uint32_t pos = count * 4;
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        info->size += calcNodeSizeAndOffsets(octree->getNode(i), pos, offsets);
+    }
+
+    offsets->triListOff = info->size;   
+    info->size += 2; // first empty list
+    for (KCL::OctreeNode* node : octree->getAllNodes())
+    {
+        if (!node->isSuperNode())
+        {
+            uint32_t size = static_cast<uint32_t>(node->getIndices().size());
+            info->size += size == 0 ? 0 : (size + 1) * 2;
+        }
+    }
 }
 
 void writeKCLHeader(Buffer& out, const KCL& kcl, KCLOffsets* offsets)
@@ -57,15 +104,19 @@ void writeKCLHeader(Buffer& out, const KCL& kcl, KCLOffsets* offsets)
 
     out.putFloat(300.f); // unknown
 
-    // area bounds
-    kcl.getMinPos().put(out);
-    out.putInt(kcl.getMaskX());
-    out.putInt(kcl.getMaskY());
-    out.putInt(kcl.getMaskZ());
+    // octree settings
+    KCL::Octree* octree = kcl.getOctree();
 
-    out.putInt(0x0); // coord-shift
-    out.putInt(0x1); // y-shift
-    out.putInt(0x2); // z-shift
+    // area bounds
+    octree->getMinPos().put(out);
+    out.putInt(octree->getMaskX());
+    out.putInt(octree->getMaskY());
+    out.putInt(octree->getMaskZ());
+
+    // coord shifts
+    out.putInt(octree->getShift());
+    out.putInt(octree->getShiftY());
+    out.putInt(octree->getShiftZ());
 
     out.putFloat(250.f); // unknown
 }
@@ -106,21 +157,55 @@ void writeKCLTriangles(Buffer& out, const KCL& kcl, KCLOffsets* offsets)
     }
 }
 
+void writeKCLOctreeNode(
+    Buffer& out, Buffer& triOut, KCL::OctreeNode* node, KCLOffsets* offsets, uint32_t pos
+)
+{
+    if (node->isSuperNode())
+    {
+        uint32_t off = offsets->nodeOffs.at(node);
+        out.putInt(off - pos);
+
+        Buffer tmp = out.duplicate(); // to prevent from changing the original buffer's position
+        tmp.position(offsets->sectionOffs.at(OCTREE) + off);
+        for (uint32_t i = 0; i < 8; ++i)
+        {
+            writeKCLOctreeNode(tmp, triOut, node->getChild(i), offsets, off);
+        }
+    }
+    else
+    {
+        uint32_t baseOff = offsets->triListOff - offsets->sectionOffs.at(OCTREE) - pos;
+        std::vector<uint16_t> tris = node->getIndices();
+        if (tris.empty())
+        {
+            out.putInt(0x80000000 | baseOff);
+        }
+        else
+        {
+            out.putInt(0x80000000 | (baseOff + static_cast<uint32_t>(triOut.position())));
+            for (uint16_t tri : tris)
+            {
+                triOut.putShort(tri + 1);
+            }
+            triOut.putShort(0x0000);
+        }
+    }
+}
+
 void writeKCLOctree(Buffer& out, const KCL& kcl, KCLOffsets* offsets)
 {
-    out.position(offsets->sectionOffs.at(OCTREE));
+    uint32_t baseOff = offsets->sectionOffs.at(OCTREE);
+    out.position(baseOff);
 
-    KCL::OctreeNode* root = kcl.getRootNode();
-    if (root == nullptr)
+    Buffer triOut = out.duplicate();
+    triOut = triOut.position(offsets->triListOff).slice();
+    triOut.putShort(0x0000); // empty list
+
+    KCL::Octree* octree = kcl.getOctree();
+    for (uint32_t i = 0; i < octree->getRootNodeCount(); ++i)
     {
-        return;
-    }
-
-    for (uint8_t i = 0; i < 8; ++i)
-    {
-        KCL::OctreeNode* node = root->getChild(i);
-
-        // write node ...
+        writeKCLOctreeNode(out, triOut, octree->getNode(i), offsets, 0);
     }
 }
 

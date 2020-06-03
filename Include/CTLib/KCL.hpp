@@ -57,6 +57,130 @@ public:
         uint16_t flag;
     };
 
+    class OctreeNode;
+
+    /*! @brief Class representing the octree in a KCL. */
+    class Octree final
+    {
+
+        friend class KCL;
+
+    public:
+
+        ~Octree();
+
+        /*! @brief Returns the minimum value for each axis of this Octree. */
+        Vector3f getMinPos() const;
+
+        /*! @brief Returns the mask value for the X-axis of this Octree. */
+        uint32_t getMaskX() const;
+
+        /*! @brief Returns the mask value for the Y-axis of this Octree. */
+        uint32_t getMaskY() const;
+
+        /*! @brief Returns the mask value for the Z-axis of this Octree. */
+        uint32_t getMaskZ() const;
+
+        /*! @brief Returns the mask value for each axis of this Octree. */
+        Vector<uint32_t, 3> getMasks() const;
+
+        /*! @brief Returns the coordinate shift value of this Octree. */
+        uint32_t getShift() const;
+
+        /*! @brief Returns the Y-axis shift value of this Octree. */
+        uint32_t getShiftY() const;
+
+        /*! @brief Returns the Z-axis shift value of this Octree. */
+        uint32_t getShiftZ() const;
+
+        /*! @brief Returns the number of blocks in each axis of this Octree.
+         *  
+         *  **Note**: The counts are always a power of 2.
+         */
+        Vector<uint32_t, 3> getSize() const;
+
+        /*! @brief Returns the size of blocks in this Octree. */
+        Vector3f getBlockSize() const;
+
+        /*! @brief Returns the number of root nodes in this Octree. */
+        uint32_t getRootNodeCount() const;
+
+        /*! @brief Returns the root node at the specified index.
+         *  
+         *  @param[in] index The node index
+         *  
+         *  @throw CTLib::KCLError If the specified index is more than or
+         *  equal to the root node count of this KCL.
+         */
+        OctreeNode* getNode(uint32_t index) const;
+
+        /*! @brief Returns the root node at the specified 3D index.
+         *  
+         *  **Note**: `Y` is shifted left by `shiftY` and `Z` is shifted left
+         *  by `shiftZ`.
+         *  
+         *  @param[in] index The 3D index
+         *  
+         *  @throw CTLib::KCLError If a component of the specified 3D index is
+         *  more than or equal to its corresponding component of the size of
+         *  this KCL.
+         */
+        OctreeNode* getNode(const Vector<uint32_t, 3>& index) const;
+
+        /*! @brief Returns a std::vector containing all nodes in this Octree,
+         *  including all non-root nodes.
+         *  
+         *  **Note**: The nodes are not ordered in any particular way.
+         */
+        std::vector<OctreeNode*> getAllNodes() const;
+
+    private:
+
+        struct Elem
+        {
+            uint16_t idx;
+            Vector3f t0, t1, t2;
+        };
+
+        Octree(KCL* kcl);
+
+        // sets 'minPos' and 'mask*'
+        void setBounds(const Vector3f& min, const Vector3f& max);
+
+        // sets 'shift' and 'shift*'
+        void calculateShifts();
+
+        // generate nodes
+        void genRootNodes();
+
+        // inserts the specified triangle in this octree
+        void insert(uint16_t idx, const Vector3f& t0, const Vector3f& t1, const Vector3f& t2);
+
+        // throws if 'index' >= 'getRootNodeCount()'
+        void assertValidIndex(uint32_t index) const;
+
+        // throws if 'index[N]' >= 'getSize()[N]' with N in range(0, 3)
+        void assertValidIndex(const Vector<uint32_t, 3>& index) const;
+
+        // pointer to kcl owing this node
+        KCL* kcl;
+
+        // first coordinate
+        Vector3f minPos;
+
+        // coord masks
+        uint32_t maskX, maskY, maskZ;
+
+        // coord right shift
+        uint32_t shift;
+
+        // coord left shifts
+        uint32_t shiftY, shiftZ;
+
+        // vector containing all nodes in this octree
+        std::vector<OctreeNode*> nodes;
+    };
+
     /*! @brief A node in a KCL octree. */
     class OctreeNode final
     {
@@ -64,6 +188,13 @@ public:
         friend class KCL;
 
     public:
+
+        ~OctreeNode();
+
+        /*! @brief Returns the bounds of this node. The returned AABB is
+         *  relative to the Octree's minimum position.
+         */
+        AABB getBounds() const;
 
         /*! @brief Returns whether this node points to other nodes. */
         bool isSuperNode() const;
@@ -77,11 +208,17 @@ public:
          */
         OctreeNode* getChild(uint8_t index) const;
 
-        /*! @brief Returns the triangles in this node.
+        /*! @brief Returns the child node at the specified 3D index.
          *  
-         *  @throw CTLib::KCLError If this node is a super node.
+         *  **Note**: `Y` is shifted left by 1 and `Z` is shifted left by 2.
+         *  
+         *  @param[in] index The 3D index
+         *  
+         *  @throw CTLib::KCLError If this node is not a super node or the
+         *  specified 3D index has one or more of its components more than or
+         *  equal to 1.
          */
-        std::vector<Triangle> getTriangles() const;
+        OctreeNode* getChild(const Vector<uint32_t, 3>& index) const;
 
         /*! @brief Returns the triangle indices in this node.
          *  
@@ -89,17 +226,25 @@ public:
          */
         std::vector<uint16_t> getIndices() const;
 
-    private:
+    private:public:
 
-        OctreeNode(KCL* kcl, Vector3f pos, Vector3f size, bool root = false);
+        // root constructor (used by Octree)
+        OctreeNode(Octree* octree, const Vector<uint32_t, 3>& index);
 
-        // adds the specified triangle to this node
-        void addTriangle(Triangle tri, uint16_t index);
+        // child constructor (used by split())
+        OctreeNode(Octree* octree, OctreeNode* node, const Vector<uint32_t, 3>& index);
 
-        // splits this node in 8 child nodes
+        // calculates the AABB of this node from the specified index in the octree
+        AABB calcAABBRoot(const Vector<uint32_t, 3>& index);
+
+        // calculates the AABB of this node from the specified index in specified parent node
+        AABB calcAABBChild(OctreeNode* node, const Vector<uint32_t, 3>& index);
+
+        // inserts the specified triangle element in this node
+        void insert(const Octree::Elem& tri);
+
+        // mark this node as 'superNode' and create 8 child nodes
         void split();
-
-        void whichChilds(Vector3f pos, bool flags[8]) const;
 
         // throws if 'superNode' == false
         void assertSuperNode() const;
@@ -110,17 +255,14 @@ public:
         // throws if 'index' >= 8
         void assertValidChildIndex(uint8_t index) const;
 
-        // pointer to kcl owning this node
-        KCL* kcl;
+        // throw if 'index[N]' >= 1 with N in range(0, 3)
+        void assertValidChildIndex(const Vector<uint32_t, 3>& index) const;
 
-        // position of cube
-        Vector3f pos;
+        // pointer to octree owning this node
+        Octree* octree;
 
-        // size of cube
-        Vector3f size;
-
-        // whether this node is the root node of a kcl
-        bool root;
+        // bounding box of this node
+        AABB bounds;
 
         // whether this node points to other nodes
         bool superNode;
@@ -128,34 +270,31 @@ public:
         // pointer to OctreeNode childs; unused if 'superNode' is false
         OctreeNode* childs[8];
 
-        // triangles in this OctreeNode
-        std::vector<Triangle> tris;
-
-        // indices of triangles in this OctreeNode
-        std::vector<uint16_t> tIndices;
+        // triangles in this node; unused if 'superNode'
+        std::vector<Octree::Elem> elems;
     };
 
     /*! @brief Writes the specified KCL to a newly created Buffer. */
     static Buffer write(const KCL& kcl);
 
-    /*! @brief Creates a KCL from the specified raw model data.
+    /*! @brief Creates a KCL from the specified model data.
      *  
      *  The data buffers must be formatted as follows:
      *  
      *  `vertices`: 3 vertex per face, 3 floats per vertex
-     *  `kclFlags`: 1 KCL flag per face, 1 uint16 per flag
-     * 
-     *  If the last (4th) parameter is `-1`, the number of triangles will be
+     *  `flags`: 1 KCL flag per face, 1 uint16 per flag
+     *  
+     *  If the last parameter is negative, the number of triangles will be
      *  calculated _from the `vertices` buffer_. Else the number of triangles
      *  is that value.
-     * 
+     *  
      *  The normals are calculated by this function.
      *  
      *  @param[in] vertices The vertex data
-     *  @param[in] kclFlags The KCL flags
+     *  @param[in] flags The KCL flags
      *  @param[in] count The triangle count
      */
-    static KCL fromRawModel(Buffer& vertices, Buffer& kclFlags, int32_t count = -1);
+    static KCL fromModel(Buffer& vertices, Buffer& flags, int32_t count = -1);
 
     /*! @brief Delete copy constructor for move-only class. */
     KCL(const KCL&) = delete;
@@ -168,18 +307,6 @@ public:
 
     ~KCL();
 
-    /*! @brief Returns the minimum triangle position in this KCL. */
-    Vector3f getMinPos() const;
-
-    /*! @brief Returns the mask of the X-axis of this KCL. */
-    uint32_t getMaskX() const;
-
-    /*! @brief Returns the mask of the Y-axis of this KCL. */
-    uint32_t getMaskY() const;
-
-    /*! @brief Returns the mask of the Z-axis of this KCL. */
-    uint32_t getMaskZ() const;
-
     /*! @brief Returns the vertices in this KCL. */
     std::vector<Vector3f> getVertices() const;
 
@@ -189,28 +316,13 @@ public:
     /*! @brief Returns the triangles in this KCL. */
     std::vector<Triangle> getTriangles() const;
 
-    /*! @brief Rturns the root octree node in this KCL. */
-    OctreeNode* getRootNode() const;
+    /*! @brief Returns the Octree of this KCL. */
+    Octree* getOctree() const;
 
 private:
 
     // constructs an empty KCL
     KCL();
-
-    // sets minPos and generates masks
-    void setBounds(Vector3f min, Vector3f max);
-
-    // returns the size of the root node based on the mask values
-    Vector3f calcRootNodeSize() const;
-
-    // generate the octree of this kcl
-    void generateOctree();
-
-    // first coordinate
-    Vector3f minPos;
-
-    // coord masks
-    uint32_t maskX, maskY, maskZ;
 
     // vector containing vertices in this kcl
     std::vector<Vector3f> vertices;
@@ -221,8 +333,8 @@ private:
     // vector containing triangles in this kcl
     std::vector<Triangle> triangles;
 
-    // vector containing all OctreeNode pointers is this kcl
-    std::vector<OctreeNode*> nodes;
+    // the octree of this kcl
+    Octree* octree;
 };
 
 /*! @brief KCLError is the error class used by the methods in this header. */

@@ -60,6 +60,19 @@ public:
         }
     }
 
+    /*! @brief Constructs a vector instance with its components set to the
+     *  specified values.
+     *  
+     *  **Note**: Any arguments at index `>= Size` will be ignored.
+     */
+    Vector(std::initializer_list<Type> l) noexcept
+    {
+        for (uint32_t i = 0; i < (Size < l.size() ? Size : l.size()); ++i)
+        {
+            array[i] = *(l.begin() + i);
+        }
+    }
+
     virtual ~Vector() = default;
 
     /*! @brief Sets the components of this vector to the specified vector's. */
@@ -124,7 +137,7 @@ std::ostream& operator<<(std::ostream& os, const Vector<Type, Size>& v)
     os << "[" << v[0];
     for (uint32_t i = 1; i < Size; ++i)
     {
-        os << ", " << v[1];
+        os << ", " << v[i];
     }
     os << "]";
     return os;
@@ -341,5 +354,62 @@ public:
 
     /*! @brief Returns the cross product of this vector and the specified one. */
     Vector3f cross(const Vector3f& rhs) const;
+};
+
+/*! @brief **A**xis-**A**ligned **B**ounding **B**ox. */
+class AABB final
+{
+
+    friend class Math;
+
+public:
+
+    /*! @brief Constructs a AABB instance from the specified points. */
+    AABB(const Vector3f& a, const Vector3f& b);
+
+    /*! @brief Returns the minimum bounds of this AABB. */
+    Vector3f getMin() const;
+
+    /*! @brief Returns the maximum bounds of this AABB. */
+    Vector3f getMax() const;
+
+    /*! @brief Returns the dimensions of this AABB. */
+    Vector3f getSize() const;
+
+private:
+
+    // points
+    Vector3f min, max;
+};
+
+/*! @brief Math utility functions. */
+class Math final
+{
+
+public:
+
+    /*! @brief Returns whether the specified point is inside the specified AABB.
+     *  
+     *  @param[in] aabb The AABB
+     *  @param[in] p The point
+     */
+    static bool isInsideAABB(const AABB& aabb, const Vector3f& p);
+
+    /*! @brief Returns whether the triangle defined by `t0`, `t1` and `t2` is
+     *  either partly or fully inside the specified AABB.
+     *  
+     *  A triangle is considered (partly) inside if ...
+     *  - ... at least one vertex of the triangle lies inside the AABB
+     *  - ... the plane defined by the triangle intersects with at least one
+     *    face of the AABB
+     *  
+     *  @param[in] aabb The AABB
+     *  @param[in] t0 The first vertex of the triangle
+     *  @param[in] t1 The second vertex of the triangle
+     *  @param[in] t2 The third vertex of the triangle
+     */
+    static bool isPartlyInsideAABB(
+        const AABB& aabb, const Vector3f& t0, const Vector3f& t1, const Vector3f& t2
+    );
 };
 }
