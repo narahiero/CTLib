@@ -175,7 +175,7 @@ void writeKCLOctreeNode(
     }
     else
     {
-        uint32_t baseOff = offsets->triListOff - offsets->sectionOffs.at(OCTREE) - pos;
+        uint32_t baseOff = offsets->triListOff - offsets->sectionOffs.at(OCTREE) - pos - 2;
         std::vector<uint16_t> tris = node->getIndices();
         if (tris.empty())
         {
