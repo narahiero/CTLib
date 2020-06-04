@@ -62,6 +62,56 @@ KCL::Octree* KCL::getOctree() const
     return octree;
 }
 
+void KCL::assertValidTriangleIndex(uint16_t index) const
+{
+    if (index >= triangles.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle index out of range! (%d >= %d)",
+            index, triangles.size()
+        ));
+    }
+}
+
+void KCL::assertValidTriangle(const Triangle& tri) const
+{
+    if (tri.position >= vertices.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle position index out of range! (%d >= %d)",
+            tri.position, vertices.size()
+        ));
+    }
+    if (tri.direction >= normals.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle direction index out of range! (%d >= %d)",
+            tri.direction, normals.size()
+        ));
+    }
+    if (tri.normA >= normals.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle normal A index out of range! (%d >= %d)",
+            tri.normA, normals.size()
+        ));
+    }
+    if (tri.normB >= normals.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle normal B index out of range! (%d >= %d)",
+            tri.normB, normals.size()
+        ));
+    }
+    if (tri.normC >= normals.size())
+    {
+        throw KCLError(Strings::format(
+            "KCL: Triangle normal C index out of range! (%d >= %d)",
+            tri.normC, normals.size()
+        ));
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -242,6 +292,31 @@ void KCL::Octree::insert(uint16_t idx, const Vector3f& t0, const Vector3f& t1, c
             node->insert(tri);
         }
     }
+}
+
+KCL::Octree::Elem KCL::Octree::toElem(uint16_t triIdx) const
+{
+    kcl->assertValidTriangleIndex(triIdx);
+
+    Triangle t = kcl->triangles.at(triIdx);
+    kcl->assertValidTriangle(t);
+
+    Vector3f pos = kcl->vertices.at(t.position);
+    Vector3f dir = kcl->normals.at(t.direction);
+    Vector3f normA = kcl->normals.at(t.normA);
+    Vector3f normB = kcl->normals.at(t.normB);
+    Vector3f normC = kcl->normals.at(t.normC);
+
+    Vector3f crossA = CTLib::Vector3f::cross(normA, dir);
+    Vector3f crossB = CTLib::Vector3f::cross(normB, dir);
+
+    Elem e;
+    e.idx = triIdx;
+    e.t0 = pos;
+    e.t1 = pos + (crossB * (t.length / CTLib::Vector3f::dot(crossB, normC)));
+    e.t2 = pos + (crossA * (t.length / CTLib::Vector3f::dot(crossA, normC)));
+
+    return e;
 }
 
 void KCL::Octree::assertValidIndex(uint32_t index) const

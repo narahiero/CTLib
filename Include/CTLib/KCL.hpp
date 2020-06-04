@@ -156,6 +156,9 @@ public:
         // inserts the specified triangle in this octree
         void insert(uint16_t idx, const Vector3f& t0, const Vector3f& t1, const Vector3f& t2);
 
+        // converts the KCL::Triangle at the specified index to an Elem instance
+        Elem toElem(uint16_t triIdx) const;
+
         // throws if 'index' >= 'getRootNodeCount()'
         void assertValidIndex(uint32_t index) const;
 
@@ -226,7 +229,7 @@ public:
          */
         std::vector<uint16_t> getIndices() const;
 
-    private:public:
+    private:
 
         // root constructor (used by Octree)
         OctreeNode(Octree* octree, const Vector<uint32_t, 3>& index);
@@ -273,6 +276,12 @@ public:
         // triangles in this node; unused if 'superNode'
         std::vector<Octree::Elem> elems;
     };
+
+    /*! @brief Reads a KCL from the specified buffer.
+     *  
+     *  @throw CTLib::KCLError If the specified data is invalid.
+     */
+    static KCL read(Buffer& data);
 
     /*! @brief Writes the specified KCL to a newly created Buffer. */
     static Buffer write(const KCL& kcl);
@@ -321,8 +330,18 @@ public:
 
 private:
 
+    // methods part of KCL class to access private members of Octree
+    static void readOctree(Buffer& data, Octree* octree);
+    static void readOctreeNode(Buffer& data, OctreeNode* octree, uint32_t pos);
+
     // constructs an empty KCL
     KCL();
+
+    // throws if 'index' >= 'triangles.size()'
+    void assertValidTriangleIndex(uint16_t index) const;
+
+    // throws if one or more data index is out of range
+    void assertValidTriangle(const Triangle& tri) const;
 
     // vector containing vertices in this kcl
     std::vector<Vector3f> vertices;
