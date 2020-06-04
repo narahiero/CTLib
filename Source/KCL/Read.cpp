@@ -196,10 +196,17 @@ void KCL::readOctree(Buffer& buffer, KCL::Octree* octree)
 {
     Buffer data = buffer.slice();
 
-    octree->genRootNodes();
-    for (uint32_t i = 0; i < octree->getRootNodeCount(); ++i)
+    try
     {
-        readOctreeNode(data, octree->getNode(i), 0);
+        octree->genRootNodes();
+        for (uint32_t i = 0; i < octree->getRootNodeCount(); ++i)
+        {
+            readOctreeNode(data, octree->getNode(i), 0);
+        }
+    }
+    catch (const BufferError&)
+    {
+        throw KCLError("KCL: Invalid octree data!");
     }
 }
 

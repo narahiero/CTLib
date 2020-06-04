@@ -18,6 +18,20 @@ namespace CTLib
 ////   KCL class
 ////
 
+KCL::Settings KCL::settings = KCL::Settings();
+
+void KCL::setSettings(const KCL::Settings& settings)
+{
+    KCL::settings = settings;
+}
+
+KCL::Settings KCL::getSettings()
+{
+    return KCL::settings;
+}
+
+#define BLOW_V Vector3f{KCL::settings.blowFactor, KCL::settings.blowFactor, KCL::settings.blowFactor}
+
 KCL::KCL() :
     vertices{},
     normals{},
@@ -242,9 +256,6 @@ uint32_t toMask(float f)
     return ~m;
 }
 
-constexpr float BLOW_FACTOR = 400.f;
-const Vector3f BLOW_V = {BLOW_FACTOR, BLOW_FACTOR, BLOW_FACTOR};
-
 void KCL::Octree::setBounds(const Vector3f& min, const Vector3f& max)
 {
     minPos = min - BLOW_V;
@@ -423,9 +434,6 @@ AABB KCL::OctreeNode::calcAABBChild(OctreeNode* node, const Vector<uint32_t, 3>&
     return {pos - BLOW_V, pos + size + BLOW_V};
 }
 
-// maximum number of triangles per node
-constexpr uint32_t MAX_NODE_CAPACITY = 32;
-
 void KCL::OctreeNode::insert(const Octree::Elem& tri)
 {
     if (superNode)
@@ -441,7 +449,7 @@ void KCL::OctreeNode::insert(const Octree::Elem& tri)
     else
     {
         elems.push_back(tri);
-        if (elems.size() > MAX_NODE_CAPACITY)
+        if (elems.size() > KCL::settings.maxTriangles)
         {
             split();
         }

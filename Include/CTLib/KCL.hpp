@@ -37,6 +37,15 @@ class KCL final
 
 public:
 
+    /*! @brief Reads a KCL from the specified buffer.
+     *  
+     *  @throw CTLib::KCLError If the specified data is invalid.
+     */
+    static KCL read(Buffer& data);
+
+    /*! @brief Writes the specified KCL to a newly created Buffer. */
+    static Buffer write(const KCL& kcl);
+
     /*! @brief The structure of a triangle in a KCL. */
     struct Triangle
     {
@@ -277,14 +286,31 @@ public:
         std::vector<Octree::Elem> elems;
     };
 
-    /*! @brief Reads a KCL from the specified buffer.
-     *  
-     *  @throw CTLib::KCLError If the specified data is invalid.
-     */
-    static KCL read(Buffer& data);
+    /*! @brief KCL creation settings. */
+    struct Settings final
+    {
 
-    /*! @brief Writes the specified KCL to a newly created Buffer. */
-    static Buffer write(const KCL& kcl);
+        /*! @brief The blow factor controls by how many game units the bounding
+         *  box of an octree node should be extended in each direction.
+         *  
+         *  The default value `400.0` is perfect for most cases, but one might
+         *  need to increase it to around `600.0` for speed factors >= `1.5`.
+         */
+        float blowFactor = 400.f;
+
+        /*! @brief The maximum number of triangles per octree node.
+         *  
+         *  If an octree node exceeds this limit, it will be 'split' into 8
+         *  smaller nodes.
+         */
+        uint32_t maxTriangles = 32;
+    };
+
+    /*! @brief Sets the KCL creation settings. */
+    static void setSettings(const Settings& settings);
+
+    /*! @brief Returns the KCL creation settings. */
+    static Settings getSettings();
 
     /*! @brief Creates a KCL from the specified model data.
      *  
@@ -302,6 +328,9 @@ public:
      *  @param[in] vertices The vertex data
      *  @param[in] flags The KCL flags
      *  @param[in] count The triangle count
+     *  
+     *  @throw CTLib::KCLError If there is not enough data remaining in the
+     *  specified data buffers.
      */
     static KCL fromModel(Buffer& vertices, Buffer& flags, int32_t count = -1);
 
@@ -342,6 +371,9 @@ private:
 
     // throws if one or more data index is out of range
     void assertValidTriangle(const Triangle& tri) const;
+
+    // kcl creation settings
+    static Settings settings;
 
     // vector containing vertices in this kcl
     std::vector<Vector3f> vertices;
