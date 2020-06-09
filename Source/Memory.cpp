@@ -56,11 +56,11 @@ Buffer::Buffer(size_t size) :
 
 Buffer::Buffer(const Buffer& src) :
     buffer{nullptr},
-    size{src.size},
-    off{src.off},
-    pos{src.pos},
-    max{src.max},
-    endian{src.endian}
+    size{src.getSize()},
+    off{src.offset()},
+    pos{src.position()},
+    max{src.limit()},
+    endian{src.order()}
 {
     if (size > 0)
     {
@@ -74,27 +74,27 @@ Buffer::Buffer(const Buffer& src) :
 
 Buffer::Buffer(Buffer&& src) noexcept :
     buffer{std::move(src.buffer)},
-    size{src.size},
-    off{src.off},
-    pos{src.pos},
-    max{src.max},
-    endian{src.endian}
+    size{src.getSize()},
+    off{src.offset()},
+    pos{src.position()},
+    max{src.limit()},
+    endian{src.order()}
 {
-    src.size = 0;
-    src.off = 0;
-    src.pos = 0;
-    src.max = 0;
+    src.setSize(0);
+    src.offset(0);
+    src.position(0);
+    src.limit(0);
 }
 
 Buffer::Buffer(const Buffer* src, size_t off) :
     buffer{src->buffer},
-    size{src->size},
-    off{src->off + off},
-    pos{src->pos - off},
-    max{src->max - off},
-    endian{src->endian}
+    size{src->getSize()},
+    off{src->offset() + off},
+    pos{src->position() - off},
+    max{src->limit() - off},
+    endian{src->order()}
 {
-    
+
 }
 
 Buffer::~Buffer()
@@ -108,16 +108,16 @@ Buffer& Buffer::operator=(const Buffer& src)
     {
         return *this;
     }
-    if (src.size > 0)
+    if (src.getSize() > 0)
     {
-        buffer = std::shared_ptr<uint8_t[]>(new uint8_t[src.size]);
+        buffer = std::shared_ptr<uint8_t[]>(new uint8_t[src.getSize()]);
     }
-    size = src.size;
-    off = src.off;
-    pos = src.pos;
-    max = src.max;
-    endian = src.endian;
-    for (size_t i = 0; i < size; ++i)
+    setSize(src.getSize());
+    offset(src.offset());
+    position(src.position());
+    limit(src.limit());
+    order(src.order());
+    for (size_t i = 0; i < getSize(); ++i)
     {
         (*this)[i] = src[i];
     }
@@ -127,26 +127,26 @@ Buffer& Buffer::operator=(const Buffer& src)
 Buffer& Buffer::operator=(Buffer&& src) noexcept
 {
     buffer = std::move(src.buffer);
-    size = src.size;
-    off = src.off;
-    pos = src.pos;
-    max = src.max;
-    endian = src.endian;
-    src.size = 0;
-    src.off = 0;
-    src.pos = 0;
-    src.max = 0;
+    setSize(src.getSize());
+    offset(src.offset());
+    position(src.position());
+    limit(src.limit());
+    order(src.order());
+    src.setSize(0);
+    src.offset(0);
+    src.position(0);
+    src.limit(0);
     return *this;
 }
 
 uint8_t* Buffer::operator*() const noexcept
 {
-    return buffer.get() + off;
+    return buffer.get() + offset();
 }
 
 uint8_t& Buffer::operator[](size_t index) const
 {
-    return buffer[off + index];
+    return buffer[offset() + index];
 }
 
 bool Buffer::operator==(const Buffer& other) const
@@ -202,77 +202,106 @@ Buffer Buffer::duplicate() const
 
 Buffer Buffer::slice() const
 {
-    return Buffer(this, pos);
+    return Buffer(this, position());
 }
 
 Buffer& Buffer::order(bool endian) noexcept
 {
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    this->endian.store(endian, std::memory_order_relaxed);
+#else
     this->endian = endian;
+#endif
     return *this;
 }
 
 bool Buffer::order() const noexcept
 {
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return endian.load(std::memory_order_relaxed);
+#else
     return endian;
+#endif
 }
 
 size_t Buffer::capacity() const noexcept
 {
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return size.load(std::memory_order_relaxed) - offset();
+#else
     return size - off;
+#endif
 }
 
 Buffer& Buffer::position(size_t pos)
 {
     ASSERT_VALID_POS(pos);
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    this->pos.store(pos, std::memory_order_relaxed);
+#else
     this->pos = pos;
+#endif
     return *this;
 }
 
 size_t Buffer::position() const noexcept
 {
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return pos.load(std::memory_order_relaxed);
+#else
     return pos;
+#endif
 }
 
 Buffer& Buffer::limit(size_t limit)
 {
     ASSERT_VALID_LIMIT(limit);
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    max.store(limit, std::memory_order_relaxed);
+    pos.store(position() > limit ? limit : position());
+#else
     max = limit;
     pos = pos > limit ? limit : pos;
+#endif
     return *this;
 }
 
 size_t Buffer::limit() const noexcept
 {
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return max.load(std::memory_order_relaxed);
+#else
     return max;
+#endif
 }
 
 size_t Buffer::remaining() const noexcept
 {
-    return max - pos;
+    return limit() - position();
 }
 
 bool Buffer::hasRemaining() const noexcept
 {
-    return pos < max;
+    return position() < limit();
 }
 
 Buffer& Buffer::clear() noexcept
 {
-    pos = 0;
-    max = capacity();
+    position(0);
+    limit(capacity());
     return *this;
 }
 
 Buffer& Buffer::flip() noexcept
 {
-    max = pos;
-    pos = 0;
+    limit(position());
+    position(0);
     return *this;
 }
 
 Buffer& Buffer::rewind() noexcept
 {
-    pos = 0;
+    position(0);
     return *this;
 }
 
@@ -281,17 +310,17 @@ Buffer& Buffer::compact()
     size_t r = remaining();
     for (size_t i = 0; i < r; ++i)
     {
-        (*this)[i] = (*this)[pos + i];
+        (*this)[i] = (*this)[position() + i];
     }
-    pos = r;
-    max = capacity();
+    position(r);
+    limit(capacity());
     return *this;
 }
 
 Buffer& Buffer::put(uint8_t data)
 {
-    put(pos, data); // doing this in two statements prevents position from
-    ++pos;          // incrementing in case of buffer overflow
+    put(position(), data); // doing this in two statements prevents position from
+    move(1);               // incrementing in case of buffer overflow
     return *this;
 }
 
@@ -304,8 +333,8 @@ Buffer& Buffer::put(size_t index, uint8_t data)
 
 uint8_t Buffer::get()
 {
-    uint8_t ret = get(pos); // same as put()
-    ++pos;
+    uint8_t ret = get(position()); // same as put()
+    move(1);
     return ret;
 }
 
@@ -318,8 +347,8 @@ uint8_t Buffer::get(size_t index) const
 Buffer& Buffer::put(Buffer& data)
 {
     size_t r = data.remaining();
-    put(pos, data);
-    pos += r;
+    put(position(), data);
+    move(r);
     return *this;
 }
 
@@ -335,8 +364,8 @@ Buffer& Buffer::put(size_t index, Buffer& data)
 
 Buffer& Buffer::putArray(uint8_t* data, size_t size)
 {
-    putArray(pos, data, size);
-    pos += size;
+    putArray(position(), data, size);
+    move(size);
     return *this;
 }
 
@@ -352,8 +381,8 @@ Buffer& Buffer::putArray(size_t index, uint8_t* data, size_t size)
 
 Buffer& Buffer::getArray(uint8_t* out, size_t size)
 {
-    getArray(pos, out, size);
-    pos += size;
+    getArray(position(), out, size);
+    move(size);
     return *this;
 }
 
@@ -369,43 +398,43 @@ Buffer& Buffer::getArray(size_t index, uint8_t* out, size_t size)
 
 Buffer& Buffer::putShort(uint16_t data)
 {
-    putShort(pos, data);
-    pos += 2;
+    putShort(position(), data);
+    move(2);
     return *this;
 }
 
 Buffer& Buffer::putShort(size_t index, uint16_t data)
 {
     ASSERT_REMAINING(index, 2);
-    (*this)[index + (    endian)] = (data >> 8) & 0xFF;
-    (*this)[index + (1 - endian)] = (data     ) & 0xFF;
+    (*this)[index + (    order())] = (data >> 8) & 0xFF;
+    (*this)[index + (1 - order())] = (data     ) & 0xFF;
     return *this;
 }
 
 uint16_t Buffer::getShort()
 {
-    uint16_t ret = getShort(pos);
-    pos += 2;
+    uint16_t ret = getShort(position());
+    move(2);
     return ret;
 }
 
 uint16_t Buffer::getShort(size_t index) const
 {
     ASSERT_REMAINING(index, 2);
-    return ((*this)[index + (endian)] << 8) + (*this)[index + (1 - endian)];
+    return ((*this)[index + (order())] << 8) + (*this)[index + (1 - order())];
 }
 
 Buffer& Buffer::putInt(uint32_t data)
 {
-    putInt(pos, data);
-    pos += 4;
+    putInt(position(), data);
+    move(4);
     return *this;
 }
 
 Buffer& Buffer::putInt(size_t index, uint32_t data)
 {
     ASSERT_REMAINING(index, 4);
-    int32_t c = (endian ? 4 : -1), m = (endian * -2) + 1;
+    int32_t c = (order() ? 4 : -1), m = (order() * -2) + 1;
     (*this)[index + (c += m)] = (data >> 24) & 0xFF;
     (*this)[index + (c += m)] = (data >> 16) & 0xFF;
     (*this)[index + (c += m)] = (data >>  8) & 0xFF;
@@ -415,15 +444,15 @@ Buffer& Buffer::putInt(size_t index, uint32_t data)
 
 uint32_t Buffer::getInt()
 {
-    uint32_t ret = getInt(pos);
-    pos += 4;
+    uint32_t ret = getInt(position());
+    move(4);
     return ret;
 }
 
 uint32_t Buffer::getInt(size_t index) const
 {
     ASSERT_REMAINING(index, 4);
-    int32_t c = (endian ? 4 : -1), m = (endian * -2) + 1;
+    int32_t c = (order() ? 4 : -1), m = (order() * -2) + 1;
     uint32_t ret = static_cast<uint32_t>((*this)[index + (c += m)]) << 24;
     ret +=         static_cast<uint32_t>((*this)[index + (c += m)]) << 16;
     ret +=         static_cast<uint32_t>((*this)[index + (c += m)]) <<  8;
@@ -433,15 +462,15 @@ uint32_t Buffer::getInt(size_t index) const
 
 Buffer& Buffer::putLong(uint64_t data)
 {
-    putLong(pos, data);
-    pos += 8;
+    putLong(position(), data);
+    move(8);
     return *this;
 }
 
 Buffer& Buffer::putLong(size_t index, uint64_t data)
 {
     ASSERT_REMAINING(index, 8);
-    int32_t c = (endian ? 8 : -1), m = (endian * -2) + 1;
+    int32_t c = (order() ? 8 : -1), m = (order() * -2) + 1;
     (*this)[index + (c += m)] = (data >> 56) & 0xFF;
     (*this)[index + (c += m)] = (data >> 48) & 0xFF;
     (*this)[index + (c += m)] = (data >> 40) & 0xFF;
@@ -455,15 +484,15 @@ Buffer& Buffer::putLong(size_t index, uint64_t data)
 
 uint64_t Buffer::getLong()
 {
-    uint64_t ret = getLong(pos);
-    pos += 8;
+    uint64_t ret = getLong(position());
+    move(8);
     return ret;
 }
 
 uint64_t Buffer::getLong(size_t index) const
 {
     ASSERT_REMAINING(index, 8);
-    int32_t c = (endian ? 8 : -1), m = (endian * -2) + 1;
+    int32_t c = (order() ? 8 : -1), m = (order() * -2) + 1;
     uint64_t ret = static_cast<uint64_t>((*this)[index + (c += m)]) << 56;
     ret +=         static_cast<uint64_t>((*this)[index + (c += m)]) << 48;
     ret +=         static_cast<uint64_t>((*this)[index + (c += m)]) << 40;
@@ -477,8 +506,8 @@ uint64_t Buffer::getLong(size_t index) const
 
 Buffer& Buffer::putFloat(float data)
 {
-    putFloat(pos, data);
-    pos += 4;
+    putFloat(position(), data);
+    move(4);
     return *this;
 }
 
@@ -489,8 +518,8 @@ Buffer& Buffer::putFloat(size_t index, float data)
 
 float Buffer::getFloat()
 {
-    float ret = getFloat(pos);
-    pos += 4;
+    float ret = getFloat(position());
+    move(4);
     return ret;
 }
 
@@ -502,8 +531,8 @@ float Buffer::getFloat(size_t index) const
 
 Buffer& Buffer::putDouble(double data)
 {
-    putDouble(pos, data);
-    pos += 8;
+    putDouble(position(), data);
+    move(8);
     return *this;
 }
 
@@ -514,8 +543,8 @@ Buffer& Buffer::putDouble(size_t index, double data)
 
 double Buffer::getDouble()
 {
-    double ret = getDouble(pos);
-    pos += 8;
+    double ret = getDouble(position());
+    move(8);
     return ret;
 }
 
@@ -538,7 +567,7 @@ bool Buffer::equals(const Buffer& other) const
     }
     for (size_t i = 0; i < r; ++i)
     {
-        if ((*this)[pos + i] != other[other.pos + i])
+        if ((*this)[position() + i] != other[other.position() + i])
         {
             return false;
         }
@@ -556,17 +585,53 @@ int Buffer::compareTo(const Buffer& other) const
     size_t c = r0 > r1 ? r1 : r0;
     for (size_t i = 0; i < c; ++i)
     {
-        if ((*this)[pos + i] != other[other.pos + i])
+        if ((*this)[position() + i] != other[other.position() + i])
         {
-            return ((*this)[pos + i] > other[other.pos + i]) ? 1 : -1;
+            return ((*this)[position() + i] > other[other.position() + i]) ? 1 : -1;
         }
     }
     return r0 > r1 ? 1 : r0 < r1 ? -1 : 0;
 }
 
+void Buffer::setSize(size_t size)
+{
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    this->size.store(size, std::memory_order_relaxed);
+#else
+    this->size = size;
+#endif
+}
+
+size_t Buffer::getSize() const
+{
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return size.load(std::memory_order_relaxed);
+#else
+    return size;
+#endif;
+}
+
+void Buffer::offset(size_t off)
+{
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    this->off.store(off, std::memory_order_relaxed);
+#else
+    this->off = off;
+#endif
+}
+
+size_t Buffer::offset() const
+{
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    return off.load(std::memory_order_relaxed);
+#else
+    return off;
+#endif
+}
+
 void Buffer::assertValidPos(size_t pos) const
 {
-    if (pos > max)
+    if (pos > limit())
     {
         throw BufferError(BufferError::BUFFER_OVERFLOW);
     }
@@ -582,7 +647,7 @@ void Buffer::assertValidLimit(size_t limit) const
 
 void Buffer::assertRemaining(size_t index, size_t count) const
 {
-    if ((index + count) > max)
+    if ((index + count) > limit())
     {
         throw BufferError(BufferError::BUFFER_OVERFLOW);
     }
@@ -604,6 +669,15 @@ int Buffer::fullCompare(const Buffer& other) const
         }
     }
     return tc > oc ? 1 : tc < oc ? -1 : 0;
+}
+
+void Buffer::move(size_t amount)
+{
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    pos.fetch_add(amount, std::memory_order_relaxed);
+#else
+    pos += amount;
+#endif
 }
 
 

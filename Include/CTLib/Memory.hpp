@@ -18,6 +18,10 @@
 #include <string>
 #include <memory>
 
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+#include <atomic>
+#endif
+
 
 namespace CTLib
 {
@@ -66,6 +70,12 @@ namespace CTLib
  *  equality.
  * 
  *  - Equality and relational operators, to compare the data of two buffers.
+ *  
+ *  The `CT_LIB_USE_ATOMIC_BUFFER_STATES` macro can be defined if one wants all
+ *  buffer states (position, limit, _etc_.) to be atomic. This allows states of
+ *  a buffer be queried by a thread while another thread is reading/writing to
+ *  it. However, this does not allow multiple threads to read/write to a buffer
+ *  simultaneously.
  *  
  *  <a name="__ctlib_buffer__diffs"></a>
  *  Here is a list of the main differences between this buffer class and Java's
@@ -855,6 +865,18 @@ private:
     // constructor used for duplicate() and slice()
     Buffer(const Buffer*, size_t off);
 
+    // sets the size
+    void setSize(size_t size);
+
+    // returns the size
+    size_t getSize() const;
+
+    // sets the offset
+    void offset(size_t off);
+
+    // returns the offset
+    size_t offset() const;
+
     // throws BUFFER_OVERFLOW if pos is more than the limit
     void assertValidPos(size_t pos) const;
 
@@ -867,23 +889,36 @@ private:
     // used in the relational operators
     int fullCompare(const Buffer& other) const;
 
+    // adds the specified amount to the position
+    void move(size_t amount);
+
     // the data of this buffer
     std::shared_ptr<uint8_t[]> buffer;
 
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    using SizeType = std::atomic_size_t;
+#else
+    using SizeType = size_t;
+#endif
+
     // the size of this buffer
-    size_t size;
+    SizeType size;
 
     // the offset in the data of this buffer
-    size_t off;
+    SizeType off;
 
     // the current position of this buffer
-    size_t pos;
+    SizeType pos;
 
     // the current limit of this buffer
-    size_t max;
+    SizeType max;
 
     // the current endianness of this buffer
+#ifdef CT_LIB_USE_ATOMIC_BUFFER_STATES
+    std::atomic_bool endian;
+#else
     bool endian;
+#endif
 };
 
 /*! The error class used by the CTLib::Buffer class. */
