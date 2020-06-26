@@ -39,6 +39,28 @@ void TEX0::setTextureData(const Image& image)
     height = static_cast<uint16_t>(image.getHeight());
 }
 
+void TEX0::setTextureData(Buffer& data, uint16_t width, uint16_t height, ImageFormat format)
+{
+    this->format = format;
+    setTextureData(data, width, height);
+}
+
+void TEX0::setTextureData(Buffer& data, uint16_t width, uint16_t height)
+{
+    assertValidTextureData(data, width, height, format);
+
+    deleteMipmaps();
+
+    const size_t size = ImageCoder::sizeFor(width, height, format);
+    this->data = Buffer(size);
+    this->data.putArray(*data + data.position(), size).clear();
+
+    this->width = width;
+    this->height = height;
+
+    data.position(data.position() + size);
+}
+
 uint16_t TEX0::getWidth() const
 {
     return width;
@@ -74,6 +96,28 @@ void TEX0::setMipmapTextureData(uint32_t index, const Image& image)
     {
         mipmaps.at(index) = std::move(mipmapData);
     }
+}
+
+void TEX0::setMipmapTextureData(uint32_t index, Buffer& data)
+{
+    assertValidMipmapCount(index + 1);
+    assertValidMipmapInsert(index);
+    assertValidMipmapTextureData(index, data);
+
+    const size_t size = ImageCoder::sizeFor(getMipmapWidth(index), getMipmapHeight(index), format);
+    Buffer mipmapData(size);
+    mipmapData.putArray(*data + data.position(), size).clear();
+
+    if (mipmaps.size() == index)
+    {
+        mipmaps.push_back(std::move(mipmapData));
+    }
+    else
+    {
+        mipmaps.at(index) = std::move(mipmapData);
+    }
+
+    data.position(data.position() + size);
 }
 
 void TEX0::generateMipmaps(uint32_t count, const Image& image)
@@ -118,6 +162,19 @@ Buffer TEX0::getMipmapTextureData(uint32_t index) const
 {
     assertValidMipmap(index);
     return mipmaps[index].duplicate();
+}
+
+void TEX0::assertValidTextureData(
+    const Buffer& data, uint16_t width, uint16_t height, ImageFormat format) const
+{
+    const size_t size = ImageCoder::sizeFor(width, height, format);
+    if (data.remaining() < size)
+    {
+        throw BRRESError(Strings::format(
+            "TEX0: Not enough bytes remaining in buffer for base texture data! (%d < %d)",
+            data.remaining(), size
+        ));
+    }
 }
 
 void TEX0::assertValidMipmap(uint32_t index) const
@@ -171,6 +228,18 @@ void TEX0::assertValidMipmapImage(uint32_t index, const Image& image) const
         throw BRRESError(Strings::format(
             "TEX0: Invalid image height for mipmap index (%d)! (%d != %d)",
             index, image.getHeight(), getMipmapHeight(index)
+        ));
+    }
+}
+
+void TEX0::assertValidMipmapTextureData(uint32_t index, const Buffer& data) const
+{
+    const size_t size = ImageCoder::sizeFor(getMipmapWidth(index), getMipmapHeight(index), format);
+    if (data.remaining() < size)
+    {
+        throw BRRESError(Strings::format(
+            "TEX0: Not enough bytes remaining in buffer for mipmap (%d) texture data! (%d < %d)",
+            index, data.remaining(), size
         ));
     }
 }

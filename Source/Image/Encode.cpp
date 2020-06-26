@@ -351,4 +351,53 @@ Buffer ImageCoder::encode(const Image& image, ImageFormat format)
         throw ImageError("Unsupported encoding format!");
     }
 }
+
+struct FormatInfo
+{
+    uint8_t bw, bh;
+    int8_t sshift;
+};
+
+FormatInfo formatInfo(ImageFormat format)
+{
+    switch (format)
+    {
+    case ImageFormat::I4:
+        return {8, 8, -1};
+
+    case ImageFormat::I8:
+        return {8, 4, 0};
+
+    case ImageFormat::IA4:
+        return {8, 4, 0};
+
+    case ImageFormat::IA8:
+        return {4, 4, 1};
+
+    case ImageFormat::RGB565:
+        return {4, 4, 1};
+
+    case ImageFormat::RGB5A3:
+        return {4, 4, 1};
+
+    case ImageFormat::RGBA8:
+        return {4, 4, 2};
+
+    case ImageFormat::CMPR:
+        return {8, 8, -1};
+
+    default:
+        throw ImageError("Unsupported encoding format!");
+    }
+}
+
+size_t ImageCoder::sizeFor(uint32_t width, uint32_t height, ImageFormat format)
+{
+    FormatInfo info = formatInfo(format);
+
+    uint32_t nw = (width & ~(info.bw - 1)) + ((width & (info.bw - 1)) > 0 ? info.bw : 0);
+    uint32_t nh = (height & ~(info.bh - 1)) + ((height & (info.bh - 1)) > 0 ? info.bh : 0);
+
+    return info.sshift < 0 ? ((nw * nh) >> -info.sshift) : ((nw * nh) << info.sshift);
+}
 }

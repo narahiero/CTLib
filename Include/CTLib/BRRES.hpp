@@ -1938,6 +1938,41 @@ public:
      */
     void setTextureData(const Image& image);
 
+    /*! @brief Sets the texture data of this TEX0 to the contents of the
+     *  specified buffer, and sets the width, height, and format of this
+     *  TEX0.
+     *  
+     *  This will also delete all mipmaps.
+     *  
+     *  @param[in] data The encoded texture data
+     *  @param[in] width The width of the encoded texture data
+     *  @param[in] height The height of the encoded texture data
+     *  @param[in] format The format of the encoded texture data
+     *  
+     *  @throw CTLib::BRRESError If there are not enough bytes remaining in the
+     *  texture data buffer.
+     *  
+     *  @throw CTLib::ImageError If the specified format is not supported.
+     */
+    void setTextureData(Buffer& data, uint16_t width, uint16_t height, ImageFormat format);
+
+    /*! @brief Sets the texture data of this TEX0 to the contents of the
+     *  specified buffer, and sets the width and height of this TEX0.
+     *  
+     *  This will also delete all mipmaps.
+     *  
+     *  @param[in] data The encoded texture data
+     *  @param[in] width The width of the encoded texture data
+     *  @param[in] height The height of the encoded texture data
+     *  
+     *  @throw CTLib::BRRESError If there are not enough bytes remaining in the
+     *  texture data buffer.
+     *  
+     *  @throw CTLib::ImageError If this TEX0's current format is not
+     *  supported.
+     */
+    void setTextureData(Buffer& data, uint16_t width, uint16_t height);
+
     /*! @brief Returns the width of the base texture data of this TEX0. */
     uint16_t getWidth() const;
 
@@ -1965,6 +2000,20 @@ public:
      *  supported.
      */
     void setMipmapTextureData(uint32_t index, const Image& image);
+
+    /*! @brief Sets the texture data of the mipmap at the specified index.
+     *  
+     *  @param[in] index The 0-based mipmap index
+     *  @param[in] image The encoded mipmap texture data
+     *  
+     *  @throw CTLib::BRRESError If there are not enough bytes remaining in the
+     *  texture data buffer, or the specified index is greater than the mipmap
+     *  count of this TEX0.
+     *  
+     *  @throw CTLib::ImageError If this TEX0's current format is not
+     *  supported.
+     */
+    void setMipmapTextureData(uint32_t index, Buffer& data);
 
     /*! @brief Generates the specified count of mipmaps based on the specified
      *  image.
@@ -2036,6 +2085,10 @@ private:
 
     TEX0(BRRES* brres, const std::string& name);
 
+    // throws if data.remaining() < ImageCoder::sizeFor(width, height, format)
+    void assertValidTextureData(
+        const Buffer& data, uint16_t width, uint16_t height, ImageFormat format) const;
+
     // throws if index >= mipmaps.size()
     void assertValidMipmap(uint32_t index) const;
 
@@ -2047,6 +2100,9 @@ private:
 
     // throws if the dimensions of image are invalid for index
     void assertValidMipmapImage(uint32_t index, const Image& image) const;
+
+    // throws if data.remaining() < buffer size for the specified mipmap index
+    void assertValidMipmapTextureData(uint32_t index, const Buffer& data) const;
 
     // width of the texture data
     uint16_t width;
@@ -2069,7 +2125,11 @@ class BRRES final
 
 public:
 
-    /*! @brief  */
+    /*! @brief Reads a BRRES from the specified buffer.
+     *  
+     *  @throw CTLib::BRRESError If the specified data cannot be parsed as a
+     *  valid BRRES.
+     */
     static BRRES read(Buffer& data);
 
     /*! @brief Writes the specified BRRES to a new buffer. */

@@ -33,7 +33,7 @@ uint32_t padNumber(uint32_t num, uint8_t pad);
 
 uint32_t flipBits(uint32_t num, uint8_t lowI, uint8_t highI);
 
-std::string readString(Buffer& in, uint32_t off);
+std::string readBRRESString(Buffer& in, uint32_t off);
 
 struct BRRESStringTable
 {
@@ -111,6 +111,9 @@ public:
 
     // returns the id of this entry
     uint16_t getId() const;
+
+    // returns whether this entry is the root entry (id == 0xFFFF)
+    bool isRoot() const;
 
     // returns the index of this entry
     uint16_t getIndex() const;
@@ -190,6 +193,8 @@ void writeMDL0(
 void addTEX0StringsToTable(BRRESStringTable* table, TEX0* mdl0);
 
 uint32_t calculateTEX0Size(TEX0* tex0);
+
+void readTEX0(Buffer& data, TEX0* tex0);
 
 void writeTEX0(
     Buffer& out, TEX0* tex0, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff

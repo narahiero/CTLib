@@ -213,6 +213,15 @@ public:
      *  @return The decoded image
      */
     static Image decode(Buffer& data, uint32_t width, uint32_t height, ImageFormat format);
+
+    /*! @brief Returns the minimum number of bytes required to contain encoded
+     *  image data of the specified width and height for the specified format.
+     *  
+     *  @param[in] width The width of the encoded image data
+     *  @param[in] height The height of the encoded image data
+     *  @param[in] format The format of the encoded image data
+     */
+    static size_t sizeFor(uint32_t width, uint32_t height, ImageFormat format);
 };
 
 /*! @brief Enumeration of supported image formats when writing. */

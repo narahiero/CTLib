@@ -37,7 +37,7 @@ void readKMPHeader(Buffer& data, KMPHeader* header)
     {
         throw KMPError(Strings::format(
             "KMP: Invalid KMP header! Invalid magic! (Expected 'RKMD', Got '%s')",
-            Strings::stringify(*data + 0x00, 4)
+            Strings::stringify(*data + 0x00, 4).c_str()
         ));
     }
     data.getInt(); // move 4 bytes

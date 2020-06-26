@@ -40,25 +40,25 @@ uint32_t flipBits(uint32_t num, uint8_t lowI, uint8_t highI)
 
 std::string readBRRESString(Buffer& in, uint32_t off)
 {
-    if (off > in.capacity())
+    if (off > in.limit())
     {
         throw BRRESError(Strings::format(
-            "String offset out of bounds! (%d)", off
+            "BRRES: String offset out of bounds! (%d)", off
         ));
     }
 
     if (off < 4)
     {
         throw BRRESError(Strings::format(
-            "Invalid string offset: missing size! (%d)", off
+            "BRRES: Invalid string offset: missing size! (%d)", off
         ));
     }
 
     uint32_t size = in.getInt(off - 4);
-    if (off + size > in.capacity())
+    if (off + size > in.limit())
     {
         throw BRRESError(Strings::format(
-            "String overflows bounds! (%d)", off + size
+            "BRRES: String overflows bounds! (%d)", off + size
         ));
     }
 
@@ -66,7 +66,7 @@ std::string readBRRESString(Buffer& in, uint32_t off)
     if (str.size() != size)
     {
         throw BRRESError(Strings::format(
-            "String size is not matching! (%d != %d)", size, str.size()
+            "BRRES: String size is not matching! (%d != %d)", size, str.size()
         ));
     }
 
@@ -175,9 +175,21 @@ uint32_t BRRESIndexGroup::getEntryCount() const
 
 void BRRESIndexGroup::read(Buffer& in)
 {
+    if (in.remaining() < 0x8)
+    {
+        throw BRRESError("BRRES: Not enough bytes in buffer for index group header!");
+    }
+
+    Buffer base = in.slice();
+
     deleteAll();
 
-    in.getInt(); // ignore size in bytes
+    uint32_t size = in.getInt();
+    if (base.remaining() < size)
+    {
+        throw BRRESError("BRRES: Not enough bytes in buffer for index group entries!");
+    }
+
     uint32_t count = in.getInt();
 
     // left and right indices
@@ -191,15 +203,35 @@ void BRRESIndexGroup::read(Buffer& in)
         entry->id = in.getShort();
         in.getShort(); // ignore unknown/unused value
 
-        indices.push_back(std::make_pair(in.getShort(), in.getShort()));
+        uint16_t left = in.getShort(), right = in.getShort();
+        indices.push_back(std::make_pair(left, right));
 
-        readBRRESString(in, in.getInt());
+        uint32_t off = in.getInt();
+        if (i != 0)
+        {
+            entry->name = readBRRESString(base, off);
+        }
 
         entry->dataOff = in.getInt();
     }
 
     for (size_t i = 0; i < entries.size(); ++i)
     {
+        if (indices[i].first >= entries.size())
+        {
+            throw BRRESError(Strings::format(
+                "BRRES: Invalid index group! Left index out of range for entry %d! (%d >= %d)",
+                i, indices[i].first, entries.size()
+            ));
+        }
+        if (indices[i].second >= entries.size())
+        {
+            throw BRRESError(Strings::format(
+                "BRRES: Invalid index group! Right index out of range for entry %d! (%d >= %d)",
+                i, indices[i].second, entries.size()
+            ));
+        }
+
         BRRESIndexGroupEntry* entry = entries[i];
         entry->left = entries[indices[i].first];
         entry->right = entries[indices[i].second];
@@ -257,6 +289,11 @@ BRRESIndexGroupEntry::~BRRESIndexGroupEntry()
 uint16_t BRRESIndexGroupEntry::getId() const
 {
     return id;
+}
+
+bool BRRESIndexGroupEntry::isRoot() const
+{
+    return id == 0xFFFF;
 }
 
 uint16_t BRRESIndexGroupEntry::getIndex() const
