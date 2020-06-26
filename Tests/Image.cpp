@@ -109,6 +109,18 @@ TEST(ImageCoderTests, RGBA8)
     EXPECT_EQ(expectImg, decoded);
 }
 
+TEST(ImageCoderTests, SizeFor)
+{
+    EXPECT_EQ(672, CTLib::ImageCoder::sizeFor(19, 53, CTLib::ImageFormat::I4));
+    EXPECT_EQ(1056, CTLib::ImageCoder::sizeFor(81, 12, CTLib::ImageFormat::I8));
+    EXPECT_EQ(1440, CTLib::ImageCoder::sizeFor(39, 34, CTLib::ImageFormat::IA4));
+    EXPECT_EQ(2688, CTLib::ImageCoder::sizeFor(27, 45, CTLib::ImageFormat::IA8));
+    EXPECT_EQ(1632, CTLib::ImageCoder::sizeFor(66, 10, CTLib::ImageFormat::RGB565));
+    EXPECT_EQ(3520, CTLib::ImageCoder::sizeFor(41, 38, CTLib::ImageFormat::RGB5A3));
+    EXPECT_EQ(4224, CTLib::ImageCoder::sizeFor(9, 87, CTLib::ImageFormat::RGBA8));
+    EXPECT_EQ(1120, CTLib::ImageCoder::sizeFor(55, 39, CTLib::ImageFormat::CMPR));
+}
+
 TEST(ImageIOTests, Read)
 {
     uint8_t expectPNG[4 * 4 * 4] = {
