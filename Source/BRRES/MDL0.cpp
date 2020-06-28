@@ -164,6 +164,28 @@ void MDL0::sectionRemoved(Section* instance)
     }
 }
 
+/// Model info methods /////////////////
+
+void MDL0::setBoxMin(const Vector3f& boxMin)
+{
+    this->boxMin = boxMin;
+}
+
+void MDL0::setBoxMax(const Vector3f& boxMax)
+{
+    this->boxMax = boxMax;
+}
+
+Vector3f MDL0::getBoxMin() const
+{
+    return boxMin;
+}
+
+Vector3f MDL0::getBoxMax() const
+{
+    return boxMax;
+}
+
 /// Section-specific methods ///////////
 
 MDL0::Links* MDL0::getDrawOpaSection() const
@@ -206,6 +228,48 @@ void MDL0::assertSameBRRES(BRRESSubFile* subfile) const
 ////
 ////   Base section classes
 ////
+
+const char* MDL0::Section::nameForType(SectionType type)
+{
+    switch (type)
+    {
+    case SectionType::Links:
+        return "Links";
+
+    case SectionType::Bone:
+        return "Bone";
+
+    case SectionType::VertexArray:
+        return "VertexArray";
+
+    case SectionType::NormalArray:
+        return "NormalArray";
+
+    case SectionType::ColourArray:
+        return "ColourArray";
+
+    case SectionType::TexCoordArray:
+        return "TexCoordArray";
+
+    case SectionType::Material:
+        return "Material";
+
+    case SectionType::Shader:
+        return "Shader";
+
+    case SectionType::Object:
+        return "Object";
+
+    case SectionType::TextureLink:
+        return "TextureLink";
+
+    case SectionType::NONE:
+        return "NONE";
+
+    default:
+        return "???";
+    }
+}
 
 MDL0::Section::Section(MDL0* mdl0, const std::string& name) :
     mdl0{mdl0},
@@ -772,9 +836,31 @@ uint8_t MDL0::VertexArray::componentCount(Components comps)
     }
 }
 
+uint8_t MDL0::VertexArray::byteCount(Format format)
+{
+    switch (format)
+    {
+    case Format::UInt8:
+    case Format::Int8:
+        return 1;
+
+    case Format::UInt16:
+    case Format::Int16:
+        return 2;
+
+    case Format::Float:
+        return 4;
+
+    default:
+        return 0;
+    }
+}
+
 MDL0::VertexArray::VertexArray(MDL0* mdl0, const std::string& name) :
     ArraySection(mdl0, name),
-    comps{Components::XYZ}
+    comps{Components::XYZ},
+    format{Format::Float},
+    divisor{0}
 {
 
 }
@@ -786,11 +872,42 @@ MDL0::SectionType MDL0::VertexArray::getType() const
     return SectionType::VertexArray;
 }
 
-void MDL0::VertexArray::setData(Buffer& buffer, Components comps)
+float MDL0::VertexArray::getComponent(Buffer& buffer)
+{
+    uint8_t b; uint16_t s; float f;
+    switch (format)
+    {
+    case Format::UInt8:
+    case Format::Int8:
+        b = buffer.get();
+        data.put(b);
+        return (format == Format::UInt8 ? (float)b : (float)((int8_t)b)) / (1 << divisor);
+
+    case Format::UInt16:
+    case Format::Int16:
+        s = buffer.getShort();
+        data.putShort(s);
+        return (format == Format::UInt16 ? (float)s : (float)((int16_t)s)) / (1 << divisor);
+
+    case Format::Float:
+        f = buffer.getFloat();
+        data.putFloat(f);
+        return f;
+
+    default:
+        return 0.f;
+    }
+}
+
+void MDL0::VertexArray::setData(Buffer& buffer, Components comps, Format format)
 {
     const uint8_t compCount = componentCount(comps);
-    const uint8_t elemSize = compCount * 4;
+    const uint8_t compSize = byteCount(format);
+    const uint8_t elemSize = compCount * compSize;
     count = static_cast<uint16_t>(buffer.remaining() / elemSize);
+
+    this->comps = comps;
+    this->format = format;
 
     const float min = count == 0 ? 0 : std::numeric_limits<float>::lowest();
     const float max = count == 0 ? 0 : std::numeric_limits<float>::max();
@@ -803,8 +920,7 @@ void MDL0::VertexArray::setData(Buffer& buffer, Components comps)
     {
         for (uint32_t i = 0; i < compCount; ++i)
         {
-            float val = buffer.getFloat();
-            data.putFloat(val);
+            float val = getComponent(buffer);
 
             boxMin[i] = boxMin[i] > val ? val : boxMin[i];
             boxMax[i] = boxMax[i] < val ? val : boxMax[i];
@@ -817,13 +933,36 @@ void MDL0::VertexArray::setData(Buffer& buffer, Components comps)
         boxMin[i] = 0.f;
         boxMax[i] = 0.f;
     }
+}
 
-    this->comps = comps;
+void MDL0::VertexArray::setDivisor(uint8_t divisor)
+{
+    this->divisor = divisor;
+}
+
+void MDL0::VertexArray::setBoxMin(const Vector3f& boxMin)
+{
+    this->boxMin = boxMin;
+}
+
+void MDL0::VertexArray::setBoxMax(const Vector3f& boxMax)
+{
+    this->boxMax = boxMax;
 }
 
 MDL0::VertexArray::Components MDL0::VertexArray::getComponentsType() const
 {
     return comps;
+}
+
+MDL0::VertexArray::Format MDL0::VertexArray::getFormat() const
+{
+    return format;
+}
+
+uint8_t MDL0::VertexArray::getDivisor() const
+{
+    return divisor;
 }
 
 Vector3f MDL0::VertexArray::getBoxMin() const
@@ -861,9 +1000,31 @@ uint8_t MDL0::NormalArray::componentCount(Components comps)
     }
 }
 
+uint8_t MDL0::NormalArray::byteCount(Format format)
+{
+    switch (format)
+    {
+    case Format::UInt8:
+    case Format::Int8:
+        return 1;
+
+    case Format::UInt16:
+    case Format::Int16:
+        return 2;
+
+    case Format::Float:
+        return 4;
+
+    default:
+        return 0;
+    }
+}
+
 MDL0::NormalArray::NormalArray(MDL0* mdl0, const std::string& name) :
     ArraySection(mdl0, name),
-    comps{Components::Normal}
+    comps{Components::Normal},
+    format{Format::Float},
+    divisor{0}
 {
 
 }
@@ -875,9 +1036,9 @@ MDL0::SectionType MDL0::NormalArray::getType() const
     return SectionType::NormalArray;
 }
 
-void MDL0::NormalArray::setData(Buffer& buffer, Components comps)
+void MDL0::NormalArray::setData(Buffer& buffer, Components comps, Format format)
 {
-    const uint8_t elemSize = componentCount(comps) * 4;
+    const uint8_t elemSize = componentCount(comps) * byteCount(format);
     count = static_cast<uint16_t>(buffer.remaining() / elemSize);
 
     data = Buffer(count * elemSize);
@@ -886,11 +1047,27 @@ void MDL0::NormalArray::setData(Buffer& buffer, Components comps)
     data.flip();
 
     this->comps = comps;
+    this->format = format;
+}
+
+void MDL0::NormalArray::setDivisor(uint8_t divisor)
+{
+    this->divisor = divisor;
 }
 
 MDL0::NormalArray::Components MDL0::NormalArray::getComponentsType() const
 {
     return comps;
+}
+
+MDL0::NormalArray::Format MDL0::NormalArray::getFormat() const
+{
+    return format;
+}
+
+uint8_t MDL0::NormalArray::getDivisor() const
+{
+    return divisor;
 }
 
 
@@ -993,9 +1170,31 @@ uint8_t MDL0::TexCoordArray::componentCount(Components comps)
     }
 }
 
+uint8_t MDL0::TexCoordArray::byteCount(Format format)
+{
+    switch (format)
+    {
+    case Format::UInt8:
+    case Format::Int8:
+        return 1;
+
+    case Format::UInt16:
+    case Format::Int16:
+        return 2;
+
+    case Format::Float:
+        return 4;
+
+    default:
+        return 0;
+    }
+}
+
 MDL0::TexCoordArray::TexCoordArray(MDL0* mdl0, const std::string& name) :
     ArraySection(mdl0, name),
-    comps{Components::ST}
+    comps{Components::ST},
+    format{Format::Float},
+    divisor{0}
 {
 
 }
@@ -1007,11 +1206,42 @@ MDL0::SectionType MDL0::TexCoordArray::getType() const
     return SectionType::TexCoordArray;
 }
 
-void MDL0::TexCoordArray::setData(Buffer& buffer, Components comps)
+float MDL0::TexCoordArray::getComponent(Buffer& buffer)
+{
+    uint8_t b; uint16_t s; float f;
+    switch (format)
+    {
+    case Format::UInt8:
+    case Format::Int8:
+        b = buffer.get();
+        data.put(b);
+        return (format == Format::UInt8 ? (float)b : (float)((int8_t)b)) / (1 << divisor);
+
+    case Format::UInt16:
+    case Format::Int16:
+        s = buffer.getShort();
+        data.putShort(s);
+        return (format == Format::UInt16 ? (float)s : (float)((int16_t)s)) / (1 << divisor);
+
+    case Format::Float:
+        f = buffer.getFloat();
+        data.putFloat(f);
+        return f;
+
+    default:
+        return 0.f;
+    }
+}
+
+void MDL0::TexCoordArray::setData(Buffer& buffer, Components comps, Format format)
 {
     const uint8_t compCount = componentCount(comps);
-    const uint8_t elemSize = compCount * 4;
+    const uint8_t compSize = byteCount(format);
+    const uint8_t elemSize = compCount * compSize;
     count = static_cast<uint16_t>(buffer.remaining() / elemSize);
+
+    this->comps = comps;
+    this->format = format;
 
     const float min = count == 0 ? 0 : std::numeric_limits<float>::lowest();
     const float max = count == 0 ? 0 : std::numeric_limits<float>::max();
@@ -1024,8 +1254,7 @@ void MDL0::TexCoordArray::setData(Buffer& buffer, Components comps)
     {
         for (uint32_t i = 0; i < compCount; ++i)
         {
-            float val = buffer.getFloat();
-            data.putFloat(val);
+            float val = getComponent(buffer);
 
             boxMin[i] = boxMin[i] > val ? val : boxMin[i];
             boxMax[i] = boxMax[i] < val ? val : boxMax[i];
@@ -1038,13 +1267,36 @@ void MDL0::TexCoordArray::setData(Buffer& buffer, Components comps)
         boxMin[i] = 0.f;
         boxMax[i] = 0.f;
     }
+}
 
-    this->comps = comps;
+void MDL0::TexCoordArray::setDivisor(uint8_t divisor)
+{
+    this->divisor = divisor;
+}
+
+void MDL0::TexCoordArray::setBoxMin(const Vector2f& boxMin)
+{
+    this->boxMin = boxMin;
+}
+
+void MDL0::TexCoordArray::setBoxMax(const Vector2f& boxMax)
+{
+    this->boxMax = boxMax;
 }
 
 MDL0::TexCoordArray::Components MDL0::TexCoordArray::getComponentsType() const
 {
     return comps;
+}
+
+MDL0::TexCoordArray::Format MDL0::TexCoordArray::getFormat() const
+{
+    return format;
+}
+
+uint8_t MDL0::TexCoordArray::getDivisor() const
+{
+    return divisor;
 }
 
 Vector2f MDL0::TexCoordArray::getBoxMin() const

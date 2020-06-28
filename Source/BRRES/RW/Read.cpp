@@ -120,10 +120,13 @@ void readBRRESSectionEntry(
     Buffer& data, BRRES& brres, const std::string& name, BRRESIndexGroupEntry* entry
 )
 {
-    if (name == "Textures(NW4R)")
+    if (name == "3DModels(NW4R)")
     {
-        TEX0* tex0 = brres.add<TEX0>(entry->getName());
-        readTEX0(data, tex0);
+        readMDL0(data, brres.add<MDL0>(entry->getName()));
+    }
+    else if (name == "Textures(NW4R)")
+    {
+        readTEX0(data, brres.add<TEX0>(entry->getName()));
     }
 }
 

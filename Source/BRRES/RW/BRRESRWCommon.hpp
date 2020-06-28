@@ -180,6 +180,8 @@ private:
 
 /// MDL0 ///////////////////////////////
 
+void readMDL0(Buffer& data, MDL0* mdl0);
+
 void addMDL0StringsToTable(BRRESStringTable* table, MDL0* mdl0);
 
 uint32_t calculateMDL0Size(MDL0* mdl0);
@@ -190,11 +192,11 @@ void writeMDL0(
 
 /// TEX0 ///////////////////////////////
 
+void readTEX0(Buffer& data, TEX0* tex0);
+
 void addTEX0StringsToTable(BRRESStringTable* table, TEX0* mdl0);
 
 uint32_t calculateTEX0Size(TEX0* tex0);
-
-void readTEX0(Buffer& data, TEX0* tex0);
 
 void writeTEX0(
     Buffer& out, TEX0* tex0, int32_t offToBRRES, BRRESStringTable* table, uint32_t tableOff

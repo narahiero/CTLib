@@ -465,8 +465,8 @@ void writeMDL0Header(Buffer& out, MDL0* mdl0)
     out.putInt(mdl0->count<MDL0::Bone>()); // bone count
     out.putInt(0x01000000); // unknown
     out.putInt(0x40); // bone table offset
-    out.putFloat(0.f).putFloat(0.f).putFloat(0.f); // box min
-    out.putFloat(0.f).putFloat(0.f).putFloat(0.f); // box max
+    mdl0->getBoxMin().put(out);
+    mdl0->getBoxMax().put(out);
 }
 
 void writeMDL0BoneTable(Buffer& out, MDL0* mdl0)
@@ -613,6 +613,12 @@ void writeMDL0BoneSections(
     }
 }
 
+uint8_t calcMDL0VerticesStride(MDL0::VertexArray* instance)
+{
+    return MDL0::VertexArray::componentCount(instance->getComponentsType())
+            * MDL0::VertexArray::byteCount(instance->getFormat());
+}
+
 void writeMDL0VerticesSections(
     Buffer& out, MDL0* mdl0, MDL0Offsets* offsets, MDL0SectionIndices* indices,
     BRRESStringTable* table, uint32_t tableOff
@@ -633,9 +639,9 @@ void writeMDL0VerticesSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(instance)); // section index
         out.putInt(static_cast<uint32_t>(instance->getComponentsType()));
-        out.putInt(0x4); // floats
-        out.put(0); // divisor; unused for floats
-        out.put(0x0C); // stride
+        out.putInt(static_cast<uint32_t>(instance->getFormat()));
+        out.put(instance->getDivisor());
+        out.put(calcMDL0VerticesStride(instance));
         out.putShort(instance->getCount()); // vertex count
         boxMin.put(out);
         boxMax.put(out);
@@ -643,6 +649,12 @@ void writeMDL0VerticesSections(
         out.position(pos + 0x40);
         out.put(instance->getData());
     }
+}
+
+uint8_t calcMDL0NormalsStride(MDL0::NormalArray* instance)
+{
+    return MDL0::NormalArray::componentCount(instance->getComponentsType())
+            * MDL0::NormalArray::byteCount(instance->getFormat());
 }
 
 void writeMDL0NormalsSections(
@@ -663,9 +675,9 @@ void writeMDL0NormalsSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(instance)); // section index
         out.putInt(static_cast<uint32_t>(instance->getComponentsType()));
-        out.putInt(0x4); // floats
-        out.put(0); // divisor; unused for floats
-        out.put(0x0C); // stride
+        out.putInt(static_cast<uint32_t>(instance->getFormat()));
+        out.put(instance->getDivisor());
+        out.put(calcMDL0NormalsStride(instance));
         out.putShort(instance->getCount()); // normal count
 
         out.position(pos + 0x20);
@@ -695,13 +707,19 @@ void writeMDL0ColoursSections(
         out.putInt(indices->indices.at(instance)); // section index
         out.putInt(compType);
         out.putInt(static_cast<uint32_t>(instance->getFormat()));
-        out.put(0x04); // stride
+        out.put(MDL0::ColourArray::byteCount(instance->getFormat())); // stride
         out.put(0); // unknown/unused
         out.putShort(instance->getCount()); // colour count
 
         out.position(pos + 0x20);
         out.put(instance->getData());
     }
+}
+
+uint8_t calcMDL0TexCoordsStride(MDL0::TexCoordArray* instance)
+{
+    return MDL0::TexCoordArray::componentCount(instance->getComponentsType())
+            * MDL0::TexCoordArray::byteCount(instance->getFormat());
 }
 
 void writeMDL0TextureCoordsSections(
@@ -724,9 +742,9 @@ void writeMDL0TextureCoordsSections(
         out.putInt(nameOff);
         out.putInt(indices->indices.at(instance)); // section index
         out.putInt(static_cast<uint32_t>(instance->getComponentsType()));
-        out.putInt(0x4); // floats
-        out.put(0); // divisor; unused for floats
-        out.put(0x0C); // stride
+        out.putInt(static_cast<uint32_t>(instance->getFormat()));
+        out.put(instance->getDivisor());
+        out.put(calcMDL0TexCoordsStride(instance));
         out.putShort(instance->getCount()); // texture coord count
         boxMin.put(out);
         boxMax.put(out);
@@ -778,7 +796,7 @@ void writeMDL0MaterialSections(
         out.putInt(instance->isXLU() ? 0x80000000 : 0x0); // flags
         out.put(static_cast<uint8_t>(instance->getLayerCount())); // texgens
         out.put(1); // light channels
-        out.put(instance->getShader()->getStageCount());
+        out.put(instance->getShader() == nullptr ? 0 : instance->getShader()->getStageCount());
         out.put(0); // indirect textures
         out.putInt(static_cast<uint32_t>(instance->getCullMode()));
         out.put(1); // alpha function

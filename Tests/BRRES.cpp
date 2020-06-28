@@ -577,6 +577,8 @@ TEST(MDL0VertexArrayTests, SetData)
     EXPECT_EQ(0, va->getCount());
     EXPECT_EQ(CTLib::Buffer(), va->getData());
     EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Format::Float, va->getFormat());
+    EXPECT_EQ(0, va->getDivisor());
     EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMin());
     EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMax());
 
@@ -594,6 +596,8 @@ TEST(MDL0VertexArrayTests, SetData)
     EXPECT_EQ(7, va->getCount());
     EXPECT_EQ(buffer, va->getData());
     EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Format::Float, va->getFormat());
+    EXPECT_EQ(0, va->getDivisor());
     EXPECT_EQ(CTLib::Vector3f(-2.5f, -2.f, -3.5f), va->getBoxMin());
     EXPECT_EQ(CTLib::Vector3f(3.5f, 3.f, 4.f), va->getBoxMax());
 
@@ -601,8 +605,36 @@ TEST(MDL0VertexArrayTests, SetData)
     EXPECT_EQ(0, va->getCount());
     EXPECT_EQ(CTLib::Buffer(), va->getData());
     EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XY, va->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Format::Float, va->getFormat());
+    EXPECT_EQ(0, va->getDivisor());
     EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMin());
     EXPECT_EQ(CTLib::Vector3f(0, 0, 0), va->getBoxMax());
+
+    buffer = CTLib::Buffer(3 * 3 * 2);
+    buffer.putShort(100).putShort(256).putShort(64);
+    buffer.putShort(512).putShort(40000).putShort(128);
+    buffer.putShort(50000).putShort(32).putShort(2000);
+    buffer.flip();
+
+    va->setData(buffer, CTLib::MDL0::VertexArray::Components::XYZ, CTLib::MDL0::VertexArray::Format::Int16);
+    EXPECT_EQ(3, va->getCount());
+    EXPECT_EQ(buffer, va->getData());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Format::Int16, va->getFormat());
+    EXPECT_EQ(0, va->getDivisor());
+    EXPECT_EQ(CTLib::Vector3f(-15536.f, -25536.f, 64.f), va->getBoxMin());
+    EXPECT_EQ(CTLib::Vector3f(512.f, 256.f, 2000.f), va->getBoxMax());
+
+    buffer.flip();
+    va->setDivisor(3);
+    va->setData(buffer, CTLib::MDL0::VertexArray::Components::XYZ, CTLib::MDL0::VertexArray::Format::Int16);
+    EXPECT_EQ(3, va->getCount());
+    EXPECT_EQ(buffer, va->getData());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Components::XYZ, va->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::VertexArray::Format::Int16, va->getFormat());
+    EXPECT_EQ(3, va->getDivisor());
+    EXPECT_EQ(CTLib::Vector3f(-1942.f, -3192.f, 8.f), va->getBoxMin());
+    EXPECT_EQ(CTLib::Vector3f(64.f, 32.f, 250.f), va->getBoxMax());
 }
 
 TEST(MDL0NormalArrayTests, SetData)
@@ -614,6 +646,8 @@ TEST(MDL0NormalArrayTests, SetData)
     EXPECT_EQ(0, na->getCount());
     EXPECT_EQ(CTLib::Buffer(), na->getData());
     EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal, na->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Format::Float, na->getFormat());
+    EXPECT_EQ(0, na->getDivisor());
 
     CTLib::Buffer buffer(4 * 4 * 3);
     buffer.putFloat(0.f).putFloat(1.f).putFloat(0.f);
@@ -626,11 +660,31 @@ TEST(MDL0NormalArrayTests, SetData)
     EXPECT_EQ(4, na->getCount());
     EXPECT_EQ(buffer, na->getData());
     EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal, na->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Format::Float, na->getFormat());
+    EXPECT_EQ(0, na->getDivisor());
 
     na->setData(CTLib::Buffer(), CTLib::MDL0::NormalArray::Components::Normal_BiNormal_Tangent);
     EXPECT_EQ(0, na->getCount());
     EXPECT_EQ(CTLib::Buffer(), na->getData());
     EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal_BiNormal_Tangent, na->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Format::Float, na->getFormat());
+    EXPECT_EQ(0, na->getDivisor());
+
+    buffer = CTLib::Buffer(5 * 3 * 2);
+    buffer.putShort(0).putShort(0).putShort(32767);
+    buffer.putShort(32768).putShort(0).putShort(0);
+    buffer.putShort(32767).putShort(0).putShort(0);
+    buffer.putShort(0).putShort(32767).putShort(0);
+    buffer.putShort(0).putShort(0).putShort(32768);
+    buffer.flip();
+
+    na->setDivisor(14);
+    na->setData(buffer, CTLib::MDL0::NormalArray::Components::Normal, CTLib::MDL0::NormalArray::Format::Int16);
+    EXPECT_EQ(5, na->getCount());
+    EXPECT_EQ(buffer, na->getData());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Components::Normal, na->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::NormalArray::Format::Int16, na->getFormat());
+    EXPECT_EQ(14, na->getDivisor());
 }
 
 TEST(MDL0ColourArrayTests, SetData)
@@ -677,6 +731,8 @@ TEST(MDL0TexCoordArrayTests, SetData)
     EXPECT_EQ(0, tca->getCount());
     EXPECT_EQ(CTLib::Buffer(), tca->getData());
     EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::ST, tca->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Format::Float, tca->getFormat());
+    EXPECT_EQ(0, tca->getDivisor());
     EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMin());
     EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMax());
 
@@ -693,6 +749,8 @@ TEST(MDL0TexCoordArrayTests, SetData)
     EXPECT_EQ(6, tca->getCount());
     EXPECT_EQ(buffer, tca->getData());
     EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::ST, tca->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Format::Float, tca->getFormat());
+    EXPECT_EQ(0, tca->getDivisor());
     EXPECT_EQ(CTLib::Vector2f(0.f, .25f), tca->getBoxMin());
     EXPECT_EQ(CTLib::Vector2f(.875f, .85f), tca->getBoxMax());
 
@@ -700,8 +758,27 @@ TEST(MDL0TexCoordArrayTests, SetData)
     EXPECT_EQ(0, tca->getCount());
     EXPECT_EQ(CTLib::Buffer(), tca->getData());
     EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::S, tca->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Format::Float, tca->getFormat());
+    EXPECT_EQ(0, tca->getDivisor());
     EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMin());
     EXPECT_EQ(CTLib::Vector2f(0.f, 0.f), tca->getBoxMax());
+
+    buffer = CTLib::Buffer(4 * 2);
+    buffer.put(32).put(0);
+    buffer.put(248).put(128);
+    buffer.put(64).put(16);
+    buffer.put(128).put(32);
+    buffer.flip();
+
+    tca->setDivisor(8);
+    tca->setData(buffer, CTLib::MDL0::TexCoordArray::Components::ST, CTLib::MDL0::TexCoordArray::Format::UInt8);
+    EXPECT_EQ(4, tca->getCount());
+    EXPECT_EQ(buffer, tca->getData());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Components::ST, tca->getComponentsType());
+    EXPECT_EQ(CTLib::MDL0::TexCoordArray::Format::UInt8, tca->getFormat());
+    EXPECT_EQ(8, tca->getDivisor());
+    EXPECT_EQ(CTLib::Vector2f(.125f, 0.f), tca->getBoxMin());
+    EXPECT_EQ(CTLib::Vector2f(.96875f, .5f), tca->getBoxMax());
 }
 
 TEST(TEX0Tests, SetData)

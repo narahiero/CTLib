@@ -159,6 +159,9 @@ public:
 
     public:
 
+        /*! @brief Returns a string representation of the specified type. */
+        static const char* nameForType(SectionType type);
+
         virtual ~Section();
 
         /*! @brief Returns the SectionType of this section. */
@@ -535,24 +538,79 @@ public:
             XYZ = 0x1
         };
 
+        /*! @brief Enumeration of the possible primitive type values. */
+        enum class Format
+        {
+            /*! @brief Unsigned byte (8-bit integer). */
+            UInt8 = 0x0,
+
+            /*! @brief Signed byte (8-bit integer). */
+            Int8 = 0x1,
+
+            /*! @brief Unsigned short (16-bit integer). */
+            UInt16 = 0x2,
+
+            /*! @brief Signed short (16-bit integer). */
+            Int16 = 0x3,
+
+            /*! @brief Float (32-bit single-precision floating-point). */
+            Float = 0x4
+        };
+
         /*! @brief Returns the number of components for the specified type. */
         static uint8_t componentCount(Components comps);
+
+        /*! @brief Returns the size in bytes of the specified format. */
+        static uint8_t byteCount(Format format);
 
         ~VertexArray();
 
         /*! @brief Returns SectionType::VertexArray. */
         SectionType getType() const override;
 
-        /*! @brief Sets the vertex data and components type of this vertex
-         *  section.
+        /*! @brief Sets the vertex data, components type, and format of this
+         *  vertex section.
          *  
-         *  @param[in] data The vertex data, containing floats
+         *  **Note**: If the specified format is not Float, the divisor should
+         *  be set _before_ invoking this method. **Failure to do so will result
+         *  in the box minimum and maximum values to be incorrectly set!**
+         *  
+         *  @param[in] data The vertex data
          *  @param[in] comps The vertex components type
+         *  @param[in] format The components primitive type
          */
-        void setData(Buffer& data, Components comps = Components::XYZ);
+        void setData(Buffer& data, Components comps = Components::XYZ,
+            Format format = Format::Float);
+
+        /*! @brief Sets the divisor of this vertex section.
+         *  
+         *  If the format of this vertex section is not Float, each component
+         *  will be divided by `2 ^ divisor` in game.
+         */
+        void setDivisor(uint8_t divisor);
+
+        /*! @brief Sets the box minimum of this vertex section.
+         *  
+         *  **Note**: Invoking setData() after this method will overwrite the
+         *  value set here.
+         */
+        void setBoxMin(const Vector3f& boxMin);
+
+        /*! @brief Sets the box maximum of this vertex section.
+         *  
+         *  **Note**: Invoking setData() after this method will overwrite the
+         *  value set here.
+         */
+        void setBoxMax(const Vector3f& boxMax);
 
         /*! @brief Returns the components type of this vertex section. */
         Components getComponentsType() const;
+
+        /*! @brief Returns the components' format of this vertex section. */
+        Format getFormat() const;
+
+        /*! @brief Returns the divisor of this vertex section. */
+        uint8_t getDivisor() const;
 
         /*! @brief Returns the box minimum of this vertex section. */
         Vector3f getBoxMin() const;
@@ -564,8 +622,17 @@ public:
 
         VertexArray(MDL0* mdl0, const std::string& name);
 
+        // helper method for setData()
+        float getComponent(Buffer& buffer);
+
         // the components type
         Components comps;
+
+        // the components' primitive type
+        Format format;
+
+        // the component divisor
+        uint8_t divisor;
 
         // vec3f of box min
         Vector3f boxMin;
@@ -598,24 +665,61 @@ public:
             Normal_OR_BiNormal_OR_Tangent = 0x2
         };
 
+        /*! @brief Enumeration of the possible primitive type values. */
+        enum class Format
+        {
+            /*! @brief Unsigned byte (8-bit integer). */
+            UInt8 = 0x0,
+
+            /*! @brief Signed byte (8-bit integer). */
+            Int8 = 0x1,
+
+            /*! @brief Unsigned short (16-bit integer). */
+            UInt16 = 0x2,
+
+            /*! @brief Signed short (16-bit integer). */
+            Int16 = 0x3,
+
+            /*! @brief Float (32-bit single-precision floating-point). */
+            Float = 0x4
+        };
+
         /*! @brief Returns the number of components for the specified type. */
         static uint8_t componentCount(Components comps);
+
+        /*! @brief Returns the size in bytes of the specified format. */
+        static uint8_t byteCount(Format format);
 
         ~NormalArray();
 
         /*! @brief Returns SectionType::NormalArray. */
         SectionType getType() const override;
 
-        /*! @brief Sets the normal data and components type of this normal
-         *  section.
+        /*! @brief Sets the normal data, components type, and format of this
+         *  normal section.
          *  
-         *  @param[in] data The normal data, containing floats
+         *  @param[in] data The normal data
          *  @param[in] comps The normal components type
+         *  @param[in] format The components primitive type
          */
-        void setData(Buffer& data, Components comps = Components::Normal);
+        void setData(Buffer& data, Components comps = Components::Normal,
+            Format format = Format::Float);
+
+        /*! @brief Sets the divisor of this normal section.
+         *  
+         *  If the format of this normal section is not Float, each component
+         *  will be divided by `2 ^ divisor` in game.
+         */
+        void setDivisor(uint8_t divisor);
 
         /*! @brief Returns the components type of this normal section. */
         Components getComponentsType() const;
+
+        /*! @brief Returns the components' format of this normal section. */
+        Format getFormat() const;
+
+        /*! @brief Returns the divisor of this normal section. */
+        uint8_t getDivisor() const;
 
     private:
 
@@ -623,6 +727,12 @@ public:
 
         // the components type
         Components comps;
+
+        // the components' primitive type
+        Format format;
+
+        // the component divisor
+        uint8_t divisor;
     };
 
     /*! @brief Contains colour data of a MDL0. (Section #4) */
@@ -710,24 +820,80 @@ public:
             ST = 0x1
         };
 
+        /*! @brief Enumeration of the possible primitive type values. */
+        enum class Format
+        {
+            /*! @brief Unsigned byte (8-bit integer). */
+            UInt8 = 0x0,
+
+            /*! @brief Signed byte (8-bit integer). */
+            Int8 = 0x1,
+
+            /*! @brief Unsigned short (16-bit integer). */
+            UInt16 = 0x2,
+
+            /*! @brief Signed short (16-bit integer). */
+            Int16 = 0x3,
+
+            /*! @brief Float (32-bit single-precision floating-point). */
+            Float = 0x4
+        };
+
         /*! @brief Returns the number of components for the specified type. */
         static uint8_t componentCount(Components comps);
+
+        /*! @brief Returns the size in bytes of the specified format. */
+        static uint8_t byteCount(Format format);
 
         ~TexCoordArray();
 
         /*! @brief Returns SectionType::TexCoordArray. */
         SectionType getType() const override;
 
-        /*! @brief Sets the texture coord data and components type of this
-         *  texture coord section.
+        /*! @brief Sets the texture coord data, components type, and format of
+         *  this texture coord section.
          *  
-         *  @param[in] data The texture coord data, containing floats
+         *  **Note**: If the specified format is not Float, the divisor should
+         *  be set _before_ invoking this method. **Failure to do so will result
+         *  in the box minimum and maximum values to be incorrectly set!**
+         *  
+         *  @param[in] data The texture coord data
          *  @param[in] comps The texture coord components type
+         *  @param[in] format The components primitive type
          */
-        void setData(Buffer& data, Components comps = Components::ST);
+        void setData(Buffer& data, Components comps = Components::ST,
+            Format format = Format::Float);
+
+        /*! @brief Sets the divisor of this texture coord section.
+         *  
+         *  If the format of this texture coord section is not Float, each
+         *  component will be divided by `2 ^ divisor` in game.
+         */
+        void setDivisor(uint8_t divisor);
+
+        /*! @brief Sets the box minimum of this texture coord section.
+         *  
+         *  **Note**: Invoking setData() after this method will overwrite the
+         *  value set here.
+         */
+        void setBoxMin(const Vector2f& boxMin);
+
+        /*! @brief Sets the box maximum of this texture coord section.
+         *  
+         *  **Note**: Invoking setData() after this method will overwrite the
+         *  value set here.
+         */
+        void setBoxMax(const Vector2f& boxMax);
 
         /*! @brief Returns the components type of this texture coord section. */
         Components getComponentsType() const;
+
+        /*! @brief Returns the components' format of this texture coord section.
+         */
+        Format getFormat() const;
+
+        /*! @brief Returns the divisor of this texture coord section. */
+        uint8_t getDivisor() const;
 
         /*! @brief Returns the box minimum of this texture coord section. */
         Vector2f getBoxMin() const;
@@ -739,8 +905,17 @@ public:
 
         TexCoordArray(MDL0* mdl0, const std::string& name);
 
+        // helper method for setData()
+        float getComponent(Buffer& buffer);
+
         // components type
         Components comps;
+
+        // the components' primitive type
+        Format format;
+
+        // the component divisor
+        uint8_t divisor;
 
         // vec2f of box min
         Vector2f boxMin;
@@ -1791,6 +1966,26 @@ public:
     template <class Type>
     uint16_t count() const;
 
+    /// Model info methods /////////////
+
+    /*! @brief Sets the box minimum of this MDL0. */
+    void setBoxMin(const Vector3f& boxMin);
+
+    /*! @brief Sets the box maximum of this MDL0. */
+    void setBoxMax(const Vector3f& boxMax);
+
+    /*! @brief Returns the box minimum of this MDL0.
+     *  
+     *  **Note**: This value is not calculated automatically.
+     */
+    Vector3f getBoxMin() const;
+
+    /*! @brief Returns the box maximum of this MDL0.
+     *  
+     *  **Note**: This value is not calculated automatically.
+     */
+    Vector3f getBoxMax() const;
+
     /// Section-specific methods ///////
 
     /*! @brief Returns the DrawOpa Links section instance. */
@@ -1899,6 +2094,9 @@ private:
     SectionContainer<TextureLink> textureLinkSections;
 
     std::vector<SectionCallback*> entryCallbacks;
+
+    // box minimum and maximum
+    Vector3f boxMin, boxMax;
 
     // pointer to first (root) bone
     Bone* rootBone;
