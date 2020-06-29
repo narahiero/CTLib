@@ -33,6 +33,16 @@ struct MDL0Header
     uint32_t boneTableOff;
 };
 
+struct MDL0SectionsInfo
+{
+
+    // bones by absolute offset
+    std::map<uint32_t, MDL0::Bone*> boneMap;
+
+    // absolute offsets to link bones
+    std::map<MDL0::Bone*, uint32_t> boneParentMap, boneChildMap, bonePrevMap, boneNextMap;
+};
+
 void readMDL0Header(Buffer& data, MDL0* mdl0, MDL0Header* header)
 {
     const uint32_t dataSize = static_cast<uint32_t>(data.remaining());
@@ -162,11 +172,107 @@ void readMDL0ModelInfo(Buffer& data, MDL0* mdl0, MDL0Header* header)
 }
 
 template <class Type>
-void readMDL0Section(Buffer& data, Type* instance, uint32_t size)
+void readMDL0Section(
+    Buffer& data, Type* instance, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
 {} // temporarily define method to prevent linker errors
 
+void addMDL0BoneLinkIfPresent(
+    Buffer& data, MDL0::Bone* bone, std::map<MDL0::Bone*, uint32_t>& m, uint32_t off, uint32_t size,
+    const char* linkName
+)
+{
+    int32_t linkOff = static_cast<int32_t>(data.getInt());
+    if (linkOff != 0)
+    {
+        if (static_cast<int32_t>(off) - linkOff < 0)
+        {
+            throw BRRESError(Strings::format(
+                "MDL0: Bone (%s) %s link offset out of range! (%d < 0)",
+                bone->getName().c_str(), linkName, static_cast<int32_t>(off) - linkOff
+            ));
+        }
+        else if (linkOff > 0 && static_cast<uint32_t>(linkOff) > size)
+        {
+            throw BRRESError(Strings::format(
+                "MDL0: Bone (%s) %s link offset out of range! (%d > %d)",
+                bone->getName().c_str(), linkName, linkOff + off, size + off
+            ));
+        }
+
+        m.insert({bone, off + linkOff});
+    }
+}
+
 template <>
-void readMDL0Section<MDL0::VertexArray>(Buffer& data, MDL0::VertexArray* va, uint32_t size)
+void readMDL0Section<MDL0::Bone>(
+    Buffer& data, MDL0::Bone* bone, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
+{
+    if (size < 0xD0)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Not enought bytes in Bone section (%s)! (%d < 208)",
+            bone->getName().c_str(), size
+        ));
+    }
+
+    uint32_t len = data.getInt();
+    if (len != 0xD0)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Invalid Bone section (%s) length! (%d != 208)",
+            bone->getName().c_str(), len
+        ));
+    }
+
+    data.getInt(); // ignore offset to MDL0
+
+    std::string name = readBRRESString(data, data.getInt());
+    if (name != bone->getName())
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Bone section name does not match index group entry! (%s != %s)",
+            bone->getName().c_str(), name.c_str()
+        ));
+    }
+
+    data.getInt(); // ignore section index
+    data.getInt(); // ignore section ID
+
+    data.getInt(); // ignore flags
+    data.getInt(); // ignore billboard setting
+
+    data.getInt(); // unknown/unused
+
+    Vector3f pos, rot, scale;
+    pos.get(data);
+    rot.get(data);
+    scale.get(data);
+
+    bone->setPosition(pos);
+    bone->setRotation(rot);
+    bone->setScale(scale);
+
+    data.getFloat(); //
+    data.getFloat(); // ignore box minimum
+    data.getFloat(); //
+
+    data.getFloat(); //
+    data.getFloat(); // ignore box maximum
+    data.getFloat(); //
+
+    info->boneMap.insert({off, bone});
+    addMDL0BoneLinkIfPresent(data, bone, info->boneParentMap, off, size, "parent");
+    addMDL0BoneLinkIfPresent(data, bone, info->boneChildMap, off, size, "first child");
+    addMDL0BoneLinkIfPresent(data, bone, info->bonePrevMap, off, size, "previous");
+    addMDL0BoneLinkIfPresent(data, bone, info->boneNextMap, off, size, "next");
+}
+
+template <>
+void readMDL0Section<MDL0::VertexArray>(
+    Buffer& data, MDL0::VertexArray* va, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
 {
     if (size < 0x38)
     {
@@ -272,7 +378,9 @@ void readMDL0Section<MDL0::VertexArray>(Buffer& data, MDL0::VertexArray* va, uin
 }
 
 template <>
-void readMDL0Section<MDL0::NormalArray>(Buffer& data, MDL0::NormalArray* na, uint32_t size)
+void readMDL0Section<MDL0::NormalArray>(
+    Buffer& data, MDL0::NormalArray* na, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
 {
     if (size < 0x20)
     {
@@ -371,7 +479,9 @@ void readMDL0Section<MDL0::NormalArray>(Buffer& data, MDL0::NormalArray* na, uin
 }
 
 template <>
-void readMDL0Section<MDL0::ColourArray>(Buffer& data, MDL0::ColourArray* ca, uint32_t size)
+void readMDL0Section<MDL0::ColourArray>(
+    Buffer& data, MDL0::ColourArray* ca, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
 {
     if (size < 0x20)
     {
@@ -477,7 +587,9 @@ void readMDL0Section<MDL0::ColourArray>(Buffer& data, MDL0::ColourArray* ca, uin
 }
 
 template <>
-void readMDL0Section<MDL0::TexCoordArray>(Buffer& data, MDL0::TexCoordArray* tca, uint32_t size)
+void readMDL0Section<MDL0::TexCoordArray>(
+    Buffer& data, MDL0::TexCoordArray* tca, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
 {
     if (size < 0x30)
     {
@@ -576,7 +688,7 @@ void readMDL0Section<MDL0::TexCoordArray>(Buffer& data, MDL0::TexCoordArray* tca
 }
 
 template <class Type>
-void readMDL0SectionIndexGroup(Buffer& data, MDL0* mdl0, MDL0Header* header)
+void readMDL0SectionIndexGroup(Buffer& data, MDL0* mdl0, MDL0Header* header, MDL0SectionsInfo* info)
 {
     if (header->sectionOffs.count(Type::TYPE) == 0)
     {
@@ -597,24 +709,46 @@ void readMDL0SectionIndexGroup(Buffer& data, MDL0* mdl0, MDL0Header* header)
         }
 
         Buffer entryData = data.position(off + entry->getDataOff()).slice();
+        uint32_t pos = static_cast<uint32_t>(data.position());
 
         Type* obj = mdl0->add<Type>(entry->getName());
-        readMDL0Section<Type>(entryData, obj, header->size - static_cast<uint32_t>(data.position()));
+        readMDL0Section<Type>(entryData, obj, info, pos, header->size - pos);
     }
 }
 
-void readMDL0Sections(Buffer& data, MDL0* mdl0, MDL0Header* header)
+void readMDL0Sections(Buffer& data, MDL0* mdl0, MDL0Header* header, MDL0SectionsInfo* info)
 {
     //readMDL0SectionIndexGroup<MDL0::Links>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::Bone>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::VertexArray>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::NormalArray>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::ColourArray>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::TexCoordArray>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::Material>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::Shader>(data, mdl0, header);
-    readMDL0SectionIndexGroup<MDL0::Object>(data, mdl0, header);
+    readMDL0SectionIndexGroup<MDL0::Bone>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::VertexArray>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::NormalArray>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::ColourArray>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::TexCoordArray>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::Material>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::Shader>(data, mdl0, header, info);
+    readMDL0SectionIndexGroup<MDL0::Object>(data, mdl0, header, info);
     //readMDL0SectionIndexGroup<MDL0::TextureLink>(data, mdl0, header);
+}
+
+void resolveMDL0BoneLinks(MDL0* mdl0, MDL0SectionsInfo* info)
+{
+    // TODO: ensure other links (first child, previous, next) are valid
+    for (MDL0::Bone* bone : mdl0->getAll<MDL0::Bone>())
+    {
+        if (info->boneParentMap.count(bone) > 0)
+        {
+            uint32_t off = info->boneParentMap.at(bone);
+            if (info->boneMap.count(off) == 0)
+            {
+                throw BRRESError(Strings::format(
+                    "MDL0: Bone (%s) parent offset does not point to another Bone! (%d)",
+                    bone->getName().c_str(), off
+                ));
+            }
+
+            bone->moveTo(info->boneMap.at(off));
+        }
+    }
 }
 
 void readMDL0(Buffer& buffer, MDL0* mdl0)
@@ -627,6 +761,10 @@ void readMDL0(Buffer& buffer, MDL0* mdl0)
     readMDL0ModelInfo(data, mdl0, &header);
 
     ////// Read sections ///////////////
-    readMDL0Sections(data, mdl0, &header);
+    MDL0SectionsInfo info;
+    readMDL0Sections(data, mdl0, &header, &info);
+
+    ////// Resolve links ///////////////
+    resolveMDL0BoneLinks(mdl0, &info);
 }
 }
