@@ -1238,8 +1238,8 @@ public:
             {
                 Colour0 = 0x0,
                 Colour1 = 0x1,
-                AlphaBump = 0x4,
-                NormalizedAlphaBump = 0x5,
+                AlphaBump = 0x5,
+                NormalizedAlphaBump = 0x6,
                 Zero = 0x7
             };
 
