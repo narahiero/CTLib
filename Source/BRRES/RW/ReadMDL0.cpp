@@ -42,6 +42,9 @@ struct MDL0SectionsInfo
     // absolute offsets to link bones
     std::map<MDL0::Bone*, uint32_t> boneParentMap, boneChildMap, bonePrevMap, boneNextMap;
 
+    // absolute offsets of material shaders
+    std::map<MDL0::Material*, uint32_t> matShaderMap;
+
     // shaders by absolute offset
     std::map<uint32_t, MDL0::Shader*> shaderMap;
 };
@@ -691,10 +694,158 @@ void readMDL0Section<MDL0::TexCoordArray>(
 }
 
 template <>
+void readMDL0Section<MDL0::Material>(
+    Buffer& data, MDL0::Material* mat, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
+{
+    if (size < 0x418)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Not enough bytes in Material section (%s) header! (%d < 1048)",
+            mat->getName().c_str(), size
+        ));
+    }
+
+    uint32_t len = data.getInt();
+    if (len > size)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material section (%s) overflows out of MDL0! (%d > %d)",
+            mat->getName().c_str(), len, size
+        ));
+    }
+
+    data.getInt(); // ignore offset to MDL0
+
+    std::string name = readBRRESString(data, data.getInt());
+    if (name != mat->getName())
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material section name does not match index group entry name! (%s != %s)",
+            mat->getName().c_str(), name.c_str()
+        ));
+    }
+
+    data.getInt(); // ignore section index
+
+    uint32_t flags = data.getInt();
+    mat->setIsXLU((flags & 0x80000000) != 0);
+
+    uint8_t texGens = data.get();
+    data.get(); // ignore light channels
+    uint8_t stageCount = data.get();
+    data.get(); // ignore indirect textures
+
+    uint32_t cullModeE = data.getInt();
+    if (cullModeE > 0x3)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Invalid Material (%s) cull mode enum! (%d)",
+            mat->getName().c_str(), cullModeE
+        ));
+    }
+    mat->setCullMode(static_cast<MDL0::Material::CullMode>(cullModeE));
+
+    data.get(); // ignore alpha function
+    data.get(); // ignore lightset
+    data.get(); // ignore fogset
+    data.get(); // unknown/unused
+
+    data.getInt(); // ignore indirect normal maps
+    data.getInt(); //
+
+    int32_t shaderOff = static_cast<int32_t>(off) + static_cast<int32_t>(data.getInt());
+    if (shaderOff < 0 || static_cast<uint32_t>(shaderOff) > size)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material (%s) shader offset out of bounds! (%d %s %d)",
+            mat->getName().c_str(), shaderOff, (shaderOff < 0 ? "<" : ">"), (shaderOff < 0 ? 0 : size)
+        ));
+    }
+    info->matShaderMap.insert({mat, static_cast<uint32_t>(shaderOff)});
+
+    uint32_t layerCount = data.getInt();
+    if (texGens != layerCount)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material (%s) texgens does not match layer count! (%d != %d)",
+            mat->getName().c_str(), texGens, layerCount
+        ));
+    }
+
+    uint32_t layerDataOff = data.getInt();
+    if (layerCount > 0 && layerDataOff > len)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material (%s) layer data offset out of range! (%d > %d)",
+            mat->getName().c_str(), layerDataOff, len
+        ));
+    }
+
+    data.getInt(); // ignore fur data offset
+    data.getInt(); // unused in MDL0 v11
+
+    uint32_t wgcOff = data.getInt(); // wgc = Wii Graphics Code
+    if (wgcOff > len)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Material (%s) graphics code offset out of range! (%d > %d)",
+            mat->getName().c_str(), wgcOff, len
+        ));
+    }
+
+    // ignore unused space for precompiled texture and palette information
+    for (uint32_t i = 0; i < 0x168; ++i)
+    {
+        data.get();
+    }
+
+    data.getInt(); // ignore layer flags
+    data.getInt(); // ignore matrix mode
+
+    // ignore layer transforms
+    for (uint32_t i = 0; i < 8; ++i)
+    {
+        data.getFloat(); data.getFloat(); // scale
+        data.getFloat(); data.getFloat(); // rotation
+        data.getFloat(); data.getFloat(); // translation
+    }
+
+    // ignore texture matrices
+    for (uint32_t i = 0; i < 8; ++i)
+    {
+        data.get(); // SCN0 camera ref
+        data.get(); // SCN0 light ref
+        data.get(); // map mode
+        data.get(); // identity matrix enabled
+
+        // 4x3 texture matrix
+        data.getFloat(); data.getFloat(); data.getFloat(); data.getFloat();
+        data.getFloat(); data.getFloat(); data.getFloat(); data.getFloat();
+        data.getFloat(); data.getFloat(); data.getFloat(); data.getFloat();
+    }
+
+    // ignore light channels
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        data.getInt(); // flags
+        data.getInt(); // diffuse colour
+        data.getInt(); // ambient colour
+        data.getInt(); // colour control
+        data.getInt(); // alpha control
+    }
+}
+
+template <>
 void readMDL0Section<MDL0::Shader>(
     Buffer& data, MDL0::Shader* shader, MDL0SectionsInfo* info, uint32_t off, uint32_t size
 )
 {
+    if (info->shaderMap.count(off) > 0) // ignore duplicate entries in index group
+    {
+        return;
+    }
+
     if (size < 0x20)
     {
         throw BRRESError(Strings::format(
@@ -883,6 +1034,8 @@ void readMDL0Section<MDL0::Shader>(
             break; // silently ignore unused/invalid addresses
         }
     }
+
+    info->shaderMap.insert({off, shader});
 }
 
 template <class Type>
@@ -931,6 +1084,7 @@ void readMDL0Sections(Buffer& data, MDL0* mdl0, MDL0Header* header, MDL0Sections
 void resolveMDL0BoneLinks(MDL0* mdl0, MDL0SectionsInfo* info)
 {
     // TODO: ensure other links (first child, previous, next) are valid
+    // TODO: ensure NodeTree Links section bone structure matches this
     for (MDL0::Bone* bone : mdl0->getAll<MDL0::Bone>())
     {
         if (info->boneParentMap.count(bone) > 0)
@@ -945,6 +1099,27 @@ void resolveMDL0BoneLinks(MDL0* mdl0, MDL0SectionsInfo* info)
             }
 
             bone->moveTo(info->boneMap.at(off));
+        }
+    }
+}
+
+void resolveMDL0MaterialShaderLinks(MDL0* mdl0, MDL0SectionsInfo* info)
+{
+    // TODO: ensure Material and Shader stage count matches
+    for (MDL0::Material* mat : mdl0->getAll<MDL0::Material>())
+    {
+        if (info->matShaderMap.count(mat) > 0)
+        {
+            uint32_t off = info->matShaderMap.at(mat);
+            if (info->shaderMap.count(off) == 0)
+            {
+                throw BRRESError(Strings::format(
+                    "MDL0: Material (%s) shader offset does not point to a Shader instance! (%d)",
+                    mat->getName().c_str(), off
+                ));
+            }
+
+            mat->setShader(info->shaderMap.at(off));
         }
     }
 }
@@ -964,5 +1139,6 @@ void readMDL0(Buffer& buffer, MDL0* mdl0)
 
     ////// Resolve links ///////////////
     resolveMDL0BoneLinks(mdl0, &info);
+    resolveMDL0MaterialShaderLinks(mdl0, &info);
 }
 }
