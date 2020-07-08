@@ -41,6 +41,9 @@ struct MDL0SectionsInfo
 
     // absolute offsets to link bones
     std::map<MDL0::Bone*, uint32_t> boneParentMap, boneChildMap, bonePrevMap, boneNextMap;
+
+    // shaders by absolute offset
+    std::map<uint32_t, MDL0::Shader*> shaderMap;
 };
 
 void readMDL0Header(Buffer& data, MDL0* mdl0, MDL0Header* header)
@@ -685,6 +688,201 @@ void readMDL0Section<MDL0::TexCoordArray>(
     texCoordData.limit(dataSize);
 
     tca->setData(texCoordData, comps, format);
+}
+
+template <>
+void readMDL0Section<MDL0::Shader>(
+    Buffer& data, MDL0::Shader* shader, MDL0SectionsInfo* info, uint32_t off, uint32_t size
+)
+{
+    if (size < 0x20)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Not enough bytes in Shader section (%s) header! (%d < 32)",
+            shader->getName().c_str(), size
+        ));
+    }
+
+    uint32_t len = data.getInt();
+    if (len > size)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Shader section (%s) overflows out of MDL0! (%d > %d)",
+            shader->getName().c_str(), len, size
+        ));
+    }
+
+    data.getInt(); // ignore offset to MDL0
+
+    data.getInt(); // ignore section index
+
+    uint8_t stageCount = data.get();
+    if (stageCount == 0)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Shader (%s) stage count is 0!",
+            shader->getName().c_str()
+        ));
+    }
+    else if (stageCount >= 8)
+    {
+        throw BRRESError(Strings::format(
+            "MDL0: Shader (%s) stage count is out of range! (%d >= 8)",
+            shader->getName().c_str()
+        ));
+    }
+
+    data.get(); //
+    data.get(); // ignore unused values
+    data.get(); //
+
+    for (uint8_t i = 0; i < 8; ++i)
+    {
+        uint8_t texRef = data.get();
+        if (texRef != 0xFF && texRef >= 8)
+        {
+            throw BRRESError(Strings::format(
+                "MDL0: Shader (%s) texture reference %d is invalid! (%d >= 8)",
+                shader->getName().c_str(), i, texRef
+            ));
+        }
+
+        shader->setTexRef(i, texRef);
+    }
+
+    data.getLong(); // unknown/unused
+
+    for (uint8_t i = 0; i < stageCount; ++i)
+    {
+        shader->addStage();
+    }
+
+    uint32_t remaining = len - 0x20; // remove header from length
+    while (remaining > 0) // read graphics code
+    {
+        uint8_t cmd = data.get();
+        --remaining;
+
+        if (cmd == 0x00) // noop
+        {
+            continue;
+        }
+        else if (cmd != 0x61)
+        {
+            throw BRRESError(Strings::format(
+                "MDL0: Invalid Shader (%s) graphics code! A non-BP command (not 0x61) was found! (0x%02X)",
+                shader->getName().c_str(), cmd
+            ));
+        }
+
+        if (remaining < 4)
+        {
+            throw BRRESError(Strings::format(
+                "MDL0: Invalid Shader (%s) graphics code! Not enough bytes in BP command! (%d < 5)",
+                shader->getName().c_str(), remaining + 1
+            ));
+        }
+        remaining -= 4; // next command
+
+        uint32_t pack = data.getInt();
+        uint8_t addr = static_cast<uint8_t>(pack >> 24);
+        uint32_t value = pack & 0x00FFFFFF;
+
+        uint8_t stageIdx;
+        MDL0::Shader::Stage* stage;
+
+        // variables needed in switch
+        MDL0::Shader::Stage::ColourOp cop;
+        MDL0::Shader::Stage::AlphaOp aop;
+
+        switch (addr)
+        {
+        case 0x28: // texture references; stages 0, 1
+        case 0x29: //                     stages 2, 3
+        case 0x2A: //                     stages 4, 5
+        case 0x2B: //                     stages 6, 7
+            stageIdx = ((addr & 0x0F) - 0x8) << 1;
+            if (stageIdx >= stageCount)
+            {
+                break;
+            }
+            stage = shader->getStage(stageIdx);
+
+            stage->setTexCoordIndex(static_cast<uint8_t                         >((value >>  3) & 0x7));
+            stage->setUsesTexture  (static_cast<bool                            >((value >>  6) & 0x1));
+            stage->setRasterInput  (static_cast<MDL0::Shader::Stage::RasterInput>((value >>  7) & 0x7));
+
+            if (stageIdx + 1 == stageCount)
+            {
+                break;
+            }
+            stage = shader->getStage(stageIdx + 1);
+
+            stage->setTexCoordIndex(static_cast<uint8_t                         >((value >> 15) & 0x7));
+            stage->setUsesTexture  (static_cast<bool                            >((value >> 18) & 0x1));
+            stage->setRasterInput  (static_cast<MDL0::Shader::Stage::RasterInput>((value >> 19) & 0x7));
+            break;
+
+        case 0xC0: // colour operation; stage 0
+        case 0xC2: //                   stage 1
+        case 0xC4: //                   stage 2
+        case 0xC6: //                   stage 3
+        case 0xC8: //                   stage 4
+        case 0xCA: //                   stage 5
+        case 0xCC: //                   stage 6
+        case 0xCE: //                   stage 7
+            stageIdx = (addr & 0x0F) >> 1;
+            if (stageIdx >= stageCount)
+            {
+                break;
+            }
+            stage = shader->getStage(stageIdx);
+
+            cop.argD  = static_cast<MDL0::Shader::Stage::ColourOp::Arg>((value      ) & 0xF);
+            cop.argC  = static_cast<MDL0::Shader::Stage::ColourOp::Arg>((value >>  4) & 0xF);
+            cop.argB  = static_cast<MDL0::Shader::Stage::ColourOp::Arg>((value >>  8) & 0xF);
+            cop.argA  = static_cast<MDL0::Shader::Stage::ColourOp::Arg>((value >> 12) & 0xF);
+            cop.bias  = static_cast<MDL0::Shader::Stage::Bias         >((value >> 16) & 0x3);
+            cop.op    = static_cast<MDL0::Shader::Stage::Op           >((value >> 18) & 0x1);
+            cop.clamp = static_cast<bool                              >((value >> 19) & 0x1);
+            cop.scale = static_cast<MDL0::Shader::Stage::Scale        >((value >> 20) & 0x3);
+            cop.dest  = static_cast<MDL0::Shader::Stage::Dest         >((value >> 22) & 0x3);
+
+            stage->setColourOp(cop);
+            break;
+
+        case 0xC1: // alpha operation; stage 0
+        case 0xC3: //                  stage 1
+        case 0xC5: //                  stage 2
+        case 0xC7: //                  stage 3
+        case 0xC9: //                  stage 4
+        case 0xCB: //                  stage 5
+        case 0xCD: //                  stage 6
+        case 0xCF: //                  stage 7
+            stageIdx = ((addr & 0x0F) - 0x1) >> 1;
+            if (stageIdx >= stageCount)
+            {
+                break;
+            }
+            stage = shader->getStage(stageIdx);
+
+            aop.argD  = static_cast<MDL0::Shader::Stage::AlphaOp::Arg>((value >>  4) & 0x7);
+            aop.argC  = static_cast<MDL0::Shader::Stage::AlphaOp::Arg>((value >>  7) & 0x7);
+            aop.argB  = static_cast<MDL0::Shader::Stage::AlphaOp::Arg>((value >> 10) & 0x7);
+            aop.argA  = static_cast<MDL0::Shader::Stage::AlphaOp::Arg>((value >> 13) & 0x7);
+            aop.bias  = static_cast<MDL0::Shader::Stage::Bias        >((value >> 16) & 0x3);
+            aop.op    = static_cast<MDL0::Shader::Stage::Op          >((value >> 18) & 0x1);
+            aop.clamp = static_cast<bool                             >((value >> 19) & 0x1);
+            aop.scale = static_cast<MDL0::Shader::Stage::Scale       >((value >> 20) & 0x3);
+            aop.dest  = static_cast<MDL0::Shader::Stage::Dest        >((value >> 22) & 0x3);
+
+            stage->setAlphaOp(aop);
+            break;
+
+        default:
+            break; // silently ignore unused/invalid addresses
+        }
+    }
 }
 
 template <class Type>
