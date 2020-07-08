@@ -434,6 +434,13 @@ AABB KCL::OctreeNode::calcAABBChild(OctreeNode* node, const Vector<uint32_t, 3>&
     return {pos - BLOW_V, pos + size + BLOW_V};
 }
 
+bool KCL::OctreeNode::canSplit() const
+{
+    // TODO: make minimum block size configurable
+    Vector3f size = bounds.getSize() - (BLOW_V * 2.f);
+    return size[0] > 512;
+}
+
 void KCL::OctreeNode::insert(const Octree::Elem& tri)
 {
     if (superNode)
@@ -449,7 +456,7 @@ void KCL::OctreeNode::insert(const Octree::Elem& tri)
     else
     {
         elems.push_back(tri);
-        if (elems.size() > KCL::settings.maxTriangles)
+        if (canSplit() && elems.size() > KCL::settings.maxTriangles)
         {
             split();
         }

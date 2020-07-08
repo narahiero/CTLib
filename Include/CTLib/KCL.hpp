@@ -252,6 +252,9 @@ public:
         // calculates the AABB of this node from the specified index in specified parent node
         AABB calcAABBChild(OctreeNode* node, const Vector<uint32_t, 3>& index);
 
+        // returns whether this node can be split
+        bool canSplit() const;
+
         // inserts the specified triangle element in this node
         void insert(const Octree::Elem& tri);
 
