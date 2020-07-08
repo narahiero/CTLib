@@ -399,10 +399,15 @@ public:
         /*! @brief Returns the parent bone, or `nullptr` if none. */
         Bone* getParent() const;
 
-        /*! @brief Returns whether the specified bone is a child of this. */
+        /*! @brief Returns whether the specified bone is a child of this.
+         *  
+         *  @throw CTLib::BRRESError If the specified bone is `nullptr`.
+         */
         bool isChild(Bone* bone) const;
 
         /*! @brief Returns whether the specified bone is a direct child of this.
+         *  
+         *  @throw CTLib::BRRESError If the specified bone is `nullptr`.
          */
         bool isDirectChild(Bone* bone) const;
 
