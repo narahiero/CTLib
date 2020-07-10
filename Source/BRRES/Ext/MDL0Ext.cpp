@@ -28,19 +28,36 @@ inline uint32_t toBPIndirectIDsValue(const uint32_t* ms, const uint32_t* cs)
         |  ((cs[3] & 0x7) <<  3) | ( ms[3] & 0x7);
 }
 
-#define CMD_NOOP(c) for (uint32_t _i = 0; _i < c; ++_i) gcode.put(0x00)
-#define BP_CMD(addr, val) gcode.put(0x61).putInt((addr << 24) | val)
-#define BP_MASK(mask) BP_CMD(0xFE, mask)
+inline uint32_t toBPConstSelectionsValue(
+    const std::vector<ShaderCode::Stage>& stages, uint32_t idx, bool two
+)
+{
+    return (static_cast<uint32_t>(stages[idx].getColourOpConstantSource()) <<  4)
+        |  (static_cast<uint32_t>(stages[idx].getAlphaOpConstantSource() ) <<  9)
+        | (!two ? 0 :
+              (static_cast<uint32_t>(stages[idx + 1].getColourOpConstantSource()) << 14)
+            | (static_cast<uint32_t>(stages[idx + 1].getAlphaOpConstantSource() ) << 19)
+        );
+}
+
+#define CMD_NOOP(c) for (uint32_t _i = 0; _i < (c); ++_i) gcode.put(0x00)
+#define BP_CMD(addr, val) gcode.put(0x61).putInt(((addr) << 24) | (val))
+#define BP_MASK(mask) BP_CMD(0xFE, (mask))
 
 #define BP_SWAP_TABLE(idx) \
     BP_MASK(0x00000F); \
-    BP_CMD(0xF6 + (idx << 1), toBPSwapTableValue(tables[idx].red, tables[idx].green)); \
+    BP_CMD(0xF6 + ((idx) << 1), toBPSwapTableValue(tables[idx].red, tables[idx].green)); \
     BP_MASK(0x00000F); \
-    BP_CMD(0xF7 + (idx << 1), toBPSwapTableValue(tables[idx].blue, tables[idx].alpha))
+    BP_CMD(0xF7 + ((idx) << 1), toBPSwapTableValue(tables[idx].blue, tables[idx].alpha))
+
+#define BP_SHADER_STAGE(idx, two) \
+    BP_MASK(0xFFFFF0); \
+    BP_CMD(0xF6 + ((idx) >> 1), toBPConstSelectionsValue(stages, idx, two)); \
+    CMD_NOOP(0x26) /* temp space filling */
 
 Buffer ShaderCode::toStandardLayout() const
 {
-    Buffer gcode(0x60);
+    Buffer gcode(0x1D0);
 
     BP_SWAP_TABLE(0);
     BP_SWAP_TABLE(1);
@@ -51,7 +68,17 @@ Buffer ShaderCode::toStandardLayout() const
 
     CMD_NOOP(0xB);
 
-    return gcode;
+    uint32_t stageCount = getStageCount();
+    for (uint32_t i = 0; i < (stageCount & ~1); i += 2)
+    {
+        BP_SHADER_STAGE(i, true);
+    }
+    if (stageCount & 1)
+    {
+        BP_SHADER_STAGE(stageCount - 1, false);
+    }
+
+    return gcode.clear();
 }
 
 #undef BP_SWAP_TABLE
@@ -112,6 +139,23 @@ uint32_t ShaderCode::getTexCoordIndex(uint32_t stage) const
     return texCoords[stage];
 }
 
+ShaderCode::Stage& ShaderCode::addStage()
+{
+    assertCanAddStage();
+    return stages.emplace_back();
+}
+
+ShaderCode::Stage& ShaderCode::getStage(uint32_t index)
+{
+    assertValidStageIndex(index);
+    return stages.at(index);
+}
+
+uint32_t ShaderCode::getStageCount() const
+{
+    return static_cast<uint32_t>(stages.size());
+}
+
 void ShaderCode::assertValidSwapTableIndex(uint32_t index) const
 {
     if (index >= SWAP_TABLE_COUNT)
@@ -154,6 +198,57 @@ void ShaderCode::assertValidTexCoordIndex(uint32_t index) const
             index, MDL0::Object::TEX_COORD_ARRAY_COUNT
         ));
     }
+}
+
+void ShaderCode::assertCanAddStage() const
+{
+    if (stages.size() >= MAX_STAGE_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ShaderCode: This shader already has the maximum number of stages! (%d)",
+            MAX_STAGE_COUNT
+        ));
+    }
+}
+
+void ShaderCode::assertValidStageIndex(uint32_t index) const
+{
+    if (index >= stages.size())
+    {
+        throw BRRESError(Strings::format(
+            "ShaderCode: Stage index out of range! (%d >= %d)",
+            index, stages.size()
+        ));
+    }
+}
+
+////////// Stage class /////////////////
+
+ShaderCode::Stage::Stage() :
+    colourCSrc{ColourConstant::MaterialConstColour0_RGB},
+    alphaCSrc{AlphaConstant::MaterialConstColour0_Alpha}
+{
+
+}
+
+void ShaderCode::Stage::setColourOpConstantSource(ColourConstant source)
+{
+    colourCSrc = source;
+}
+
+void ShaderCode::Stage::setAlphaOpConstantSource(AlphaConstant source)
+{
+    alphaCSrc = source;
+}
+
+ShaderCode::Stage::ColourConstant ShaderCode::Stage::getColourOpConstantSource() const
+{
+    return colourCSrc;
+}
+
+ShaderCode::Stage::AlphaConstant ShaderCode::Stage::getAlphaOpConstantSource() const
+{
+    return alphaCSrc;
 }
 }
 }
