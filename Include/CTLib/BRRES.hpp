@@ -2207,7 +2207,7 @@ public:
     /*! @brief Sets the texture data of the mipmap at the specified index.
      *  
      *  @param[in] index The 0-based mipmap index
-     *  @param[in] image The encoded mipmap texture data
+     *  @param[in] data The encoded mipmap texture data
      *  
      *  @throw CTLib::BRRESError If there are not enough bytes remaining in the
      *  texture data buffer, or the specified index is greater than the mipmap
@@ -2323,6 +2323,7 @@ private:
     std::vector<Buffer> mipmaps;
 };
 
+/*! @brief An object representation of Nintendo's BRRES file format. */
 class BRRES final
 {
 
