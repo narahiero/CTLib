@@ -55,6 +55,32 @@ inline uint32_t toBPFragmentSourcesValue(
         | (!two ? 0 : toBPFragmentSourcesValueOne(stages[idx + 1]) << 12);
 }
 
+inline uint32_t toBPColourOpValue(const ShaderCode::Stage::ColourOp& op)
+{
+    return ((static_cast<uint32_t>(op.argD ) & 0xF)      )
+        |  ((static_cast<uint32_t>(op.argC ) & 0xF) <<  4)
+        |  ((static_cast<uint32_t>(op.argB ) & 0xF) <<  8)
+        |  ((static_cast<uint32_t>(op.argA ) & 0xF) << 12)
+        |  ((static_cast<uint32_t>(op.bias ) & 0x3) << 16)
+        |  ((static_cast<uint32_t>(op.op   ) & 0x1) << 18)
+        |  (!!op.clamp << 19)
+        |  ((static_cast<uint32_t>(op.shift) & 0x3) << 20)
+        |  ((static_cast<uint32_t>(op.dest ) & 0x3) << 22);
+}
+
+inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage::AlphaOp& op)
+{
+    return ((static_cast<uint32_t>(op.argD ) & 0x7) <<  4)
+        |  ((static_cast<uint32_t>(op.argC ) & 0x7) <<  7)
+        |  ((static_cast<uint32_t>(op.argB ) & 0x7) << 10)
+        |  ((static_cast<uint32_t>(op.argA ) & 0x7) << 13)
+        |  ((static_cast<uint32_t>(op.bias ) & 0x3) << 16)
+        |  ((static_cast<uint32_t>(op.op   ) & 0x1) << 18)
+        |  (!!op.clamp << 19)
+        |  ((static_cast<uint32_t>(op.shift) & 0x3) << 20)
+        |  ((static_cast<uint32_t>(op.dest ) & 0x3) << 22);
+}
+
 #define CMD_NOOP(c) for (uint32_t _i = 0; _i < (c); ++_i) gcode.put(0x00)
 #define BP_CMD(addr, val) gcode.put(0x61).putInt(((addr) << 24) | (val))
 #define BP_MASK(mask) BP_CMD(0xFE, (mask))
@@ -69,7 +95,13 @@ inline uint32_t toBPFragmentSourcesValue(
     BP_MASK(0xFFFFF0); \
     BP_CMD(0xF6 + ((idx) >> 1), toBPConstSelectionsValue(stages, idx, two)); \
     BP_CMD(0x28 + ((idx) >> 1), toBPFragmentSourcesValue(stages, idx, two)); \
-    CMD_NOOP(0x21) /* temp space filling */
+    BP_CMD(0xC0 + ((idx) << 1), toBPColourOpValue(stages[idx].colourOp)); \
+    if (two) BP_CMD(0xC2 + ((idx) << 1), toBPColourOpValue(stages[idx].colourOp)); \
+    else CMD_NOOP(0x5); \
+    BP_CMD(0xC1 + ((idx) << 1), toBPAlphaOpValue(stages[idx].alphaOp)); \
+    if (two) BP_CMD(0xC3 + ((idx) << 1), toBPAlphaOpValue(stages[idx].alphaOp)); \
+    else CMD_NOOP(0x5); \
+    CMD_NOOP(0xD) /* temp space filling */
 
 Buffer ShaderCode::toStandardLayout() const
 {
@@ -246,7 +278,15 @@ ShaderCode::Stage::Stage() :
     texCoord{0},
     rasterColour{RasterColour::LightChannel0},
     colourCSrc{ColourConstant::MaterialConstColour0_RGB},
-    alphaCSrc{AlphaConstant::MaterialConstColour0_Alpha}
+    alphaCSrc{AlphaConstant::MaterialConstColour0_Alpha},
+    colourOp{
+        ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Zero,
+        Bias::Zero, Op::Add, true, Shift::Shift0, Dest::PixelOutput
+    },
+    alphaOp{
+        AlphaOp::Arg::Zero, AlphaOp::Arg::Zero, AlphaOp::Arg::Zero, AlphaOp::Arg::Zero,
+        Bias::Zero, Op::Add, true, Shift::Shift0, Dest::PixelOutput
+    }
 {
 
 }
@@ -301,6 +341,26 @@ ShaderCode::Stage::ColourConstant ShaderCode::Stage::getColourOpConstantSource()
 ShaderCode::Stage::AlphaConstant ShaderCode::Stage::getAlphaOpConstantSource() const
 {
     return alphaCSrc;
+}
+
+void ShaderCode::Stage::setColourOp(ColourOp op)
+{
+    colourOp = op;
+}
+
+void ShaderCode::Stage::setAlphaOp(AlphaOp op)
+{
+    alphaOp = op;
+}
+
+ShaderCode::Stage::ColourOp ShaderCode::Stage::getColourOp() const
+{
+    return colourOp;
+}
+
+ShaderCode::Stage::AlphaOp ShaderCode::Stage::getAlphaOp() const
+{
+    return alphaOp;
 }
 
 void ShaderCode::Stage::assertValidTexMapID(uint32_t id) const

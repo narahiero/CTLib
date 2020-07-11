@@ -76,6 +76,8 @@ public:
     class Stage final
     {
 
+        friend class ShaderCode;
+
     public:
 
         /*! @brief Enumeration of the possible stage raster colour values. */
@@ -261,6 +263,214 @@ public:
             MaterialConstColour3_Alpha = 0x1F,
         };
 
+        /*! @brief Enumeration of the possible bias values. */
+        enum class Bias
+        {
+            /*! @brief Zero. */
+            Zero = 0x0,
+
+            /*! @brief Add `0.5f`. */
+            AddHalf = 0x1,
+
+            /*! @brief Subtract `0.5f`. */
+            SubHalf = 0x2,
+
+            /*! @brief Special case. */
+            SpecialCase = 0x3
+        };
+
+        /*! @brief Enumeration of the possible operation values. */
+        enum class Op
+        {
+            /*! @brief Add. */
+            Add = 0x0,
+
+            /*! @brief Subtract. */
+            Sub = 0x1
+        };
+
+        /*! @brief Enumeration of the possible shift values. */
+        enum class Shift
+        {
+            /*! @brief None (shift by `0`). */
+            Shift0 = 0x0,
+
+            /*! @brief Shift left by `1`. */
+            LShift1 = 0x1,
+
+            /*! @brief Shift left by `2`. */
+            LShift2 = 0x2,
+
+            /*! @brief Shift right by `1`. */
+            RShift1 = 0x3
+        };
+
+        /*! @brief Enumeration of the possible destination values. */
+        enum class Dest
+        {
+            /*! @brief Output to fragment. */
+            PixelOutput = 0x0,
+
+            /*! @brief Output to material's colour block 0. */
+            Colour0 = 0x1,
+
+            /*! @brief Output to material's colour block 1. */
+            Colour1 = 0x2,
+
+            /*! @brief Output to material's colour block 2. */
+            Colour2 = 0x3
+        };
+
+        /*! @brief The colour operation of a shader stage. */
+        struct ColourOp final
+        {
+
+            /*! @brief Enumeration of the possible colour operation args. */
+            enum class Arg
+            {
+                /*! @brief The colour of last value outputted to `PixelOutput`,
+                 *  initially black.
+                 */
+                PixelOutput = 0x0,
+
+                /*! @brief The alpha of last value outputted to `PixelOutput`,
+                 *  initially zero.
+                 */
+                PixelOutputAlpha = 0x1,
+
+                /*! @brief The material's colour block 0. */
+                Colour0 = 0x2,
+
+                /*! @brief The material's colour block 0 alpha. */
+                Colour0Alpha = 0x3,
+
+                /*! @brief The material's colour block 1. */
+                Colour1 = 0x4,
+
+                /*! @brief The material's colour block 1 alpha. */
+                Colour1Alpha = 0x5,
+
+                /*! @brief The material's colour block 2. */
+                Colour2 = 0x6,
+
+                /*! @brief The material's colour block 2 alpha. */
+                Colour2Alpha = 0x7,
+
+                /*! @brief The texture colour. */
+                Texture = 0x8,
+
+                /*! @brief The texture alpha. */
+                TextureAlpha = 0x9,
+
+                /*! @brief The raster colour. */
+                Raster = 0xA,
+
+                /*! @brief The raster alpha. */
+                RasterAlpha = 0xB,
+
+                /*! @brief White (`1.f`). */
+                One = 0xC,
+
+                /*! @brief Gray (`0.5f`). */
+                Half = 0xD,
+
+                /*! @brief The constant selection colour. */
+                Constant = 0xE,
+
+                /*! @brief Black (`0.f`). */
+                Zero = 0xF
+            };
+
+            /*! @brief Argument `A` of the colour operation. */
+            Arg argA;
+
+            /*! @brief Argument `B` of the colour operation. */
+            Arg argB;
+
+            /*! @brief Argument `C` of the colour operation. */
+            Arg argC;
+
+            /*! @brief Argument `D` of the colour operation. */
+            Arg argD;
+
+            /*! @brief Bias of the colour operation. */
+            Bias bias;
+
+            /*! @brief Operator of the colour operation. */
+            Op op;
+
+            /*! @brief Whether to clamp the output between `0.f` and `1.f`. */
+            bool clamp;
+
+            /*! @brief Value shift of the colour operation. */
+            Shift shift;
+
+            /*! @brief Destination of the colour operation. */
+            Dest dest;
+        };
+
+        /*! @brief The alpha operation of a shader stage. */
+        struct AlphaOp final
+        {
+
+            /*! @brief Enumeration of the possible alpha operation args. */
+            enum class Arg
+            {
+                /*! @brief The alpha of last value outputted to `PixelOutput`,
+                 *  initially zero.
+                 */
+                PixelOutput = 0x0,
+
+                /*! @brief The material's colour block 0 alpha. */
+                Colour0 = 0x1,
+
+                /*! @brief The material's colour block 1 alpha. */
+                Colour1 = 0x2,
+
+                /*! @brief The material's colour block 2 alpha. */
+                Colour2 = 0x3,
+
+                /*! @brief The texture alpha. */
+                Texture = 0x4,
+
+                /*! @brief The raster alpha. */
+                Raster = 0x5,
+
+                /*! @brief The constant selection alpha. */
+                Constant = 0x6,
+
+                /*! @brief Transparent (`0.f`). */
+                Zero = 0x7
+            };
+
+            /*! @brief Argument `A` of the alpha operation. */
+            Arg argA;
+
+            /*! @brief Argument `B` of the alpha operation. */
+            Arg argB;
+
+            /*! @brief Argument `C` of the alpha operation. */
+            Arg argC;
+
+            /*! @brief Argument `D` of the alpha operation. */
+            Arg argD;
+
+            /*! @brief Bias of the alpha operation. */
+            Bias bias;
+
+            /*! @brief Operator of the alpha operation. */
+            Op op;
+
+            /*! @brief Whether to clamp the output between `0.f` and `1.f`. */
+            bool clamp;
+
+            /*! @brief Value shift of the alpha operation. */
+            Shift shift;
+
+            /*! @brief Destination of the alpha operation. */
+            Dest dest;
+        };
+
         /*! @brief Constructs a new Stage instance with default values. */
         Stage();
 
@@ -320,6 +530,18 @@ public:
          */
         AlphaConstant getAlphaOpConstantSource() const;
 
+        /*! @brief Sets the colour operation of this shader stage. */
+        void setColourOp(ColourOp op);
+
+        /*! @brief Sets the alpha operation of this shader stage. */
+        void setAlphaOp(AlphaOp op);
+
+        /*! @brief Returns the colour operation of this shader stage. */
+        ColourOp getColourOp() const;
+
+        /*! @brief Returns the alpha operation of this shader stage. */
+        AlphaOp getAlphaOp() const;
+
     private:
 
         // throws if 'id' >= 'MDL0::Material::MAX_LAYER_COUNT'
@@ -345,6 +567,12 @@ public:
 
         // alpha operation constant arg source
         AlphaConstant alphaCSrc;
+
+        // colour operation
+        ColourOp colourOp;
+
+        // alpha operation
+        AlphaOp alphaOp;
     };
 
     /*! @brief The number of swap tables per shader. */
