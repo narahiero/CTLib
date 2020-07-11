@@ -96,10 +96,10 @@ inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage::AlphaOp& op)
     BP_CMD(0xF6 + ((idx) >> 1), toBPConstSelectionsValue(stages, idx, two)); \
     BP_CMD(0x28 + ((idx) >> 1), toBPFragmentSourcesValue(stages, idx, two)); \
     BP_CMD(0xC0 + ((idx) << 1), toBPColourOpValue(stages[idx].colourOp)); \
-    if (two) BP_CMD(0xC2 + ((idx) << 1), toBPColourOpValue(stages[idx].colourOp)); \
+    if (two) BP_CMD(0xC2 + ((idx) << 1), toBPColourOpValue(stages[(idx) + 1].colourOp)); \
     else CMD_NOOP(0x5); \
     BP_CMD(0xC1 + ((idx) << 1), toBPAlphaOpValue(stages[idx].alphaOp)); \
-    if (two) BP_CMD(0xC3 + ((idx) << 1), toBPAlphaOpValue(stages[idx].alphaOp)); \
+    if (two) BP_CMD(0xC3 + ((idx) << 1), toBPAlphaOpValue(stages[(idx) + 1].alphaOp)); \
     else CMD_NOOP(0x5); \
     CMD_NOOP(0xD) /* temp space filling */
 
