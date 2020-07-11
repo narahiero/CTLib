@@ -40,6 +40,21 @@ inline uint32_t toBPConstSelectionsValue(
         );
 }
 
+inline uint32_t toBPFragmentSourcesValueOne(const ShaderCode::Stage& stage)
+{
+    return (stage.getTexMapID() & 0x7) | ((stage.getTexCoordIndex() & 0x7) << 3)
+        | (stage.usesTexture() ? 1 << 6 : 0)
+        | ((static_cast<uint32_t>(stage.getRasterColour()) & 0x7) << 7);
+}
+
+inline uint32_t toBPFragmentSourcesValue(
+    const std::vector<ShaderCode::Stage>& stages, uint32_t idx, bool two
+)
+{
+    return toBPFragmentSourcesValueOne(stages[idx])
+        | (!two ? 0 : toBPFragmentSourcesValueOne(stages[idx + 1]) << 12);
+}
+
 #define CMD_NOOP(c) for (uint32_t _i = 0; _i < (c); ++_i) gcode.put(0x00)
 #define BP_CMD(addr, val) gcode.put(0x61).putInt(((addr) << 24) | (val))
 #define BP_MASK(mask) BP_CMD(0xFE, (mask))
@@ -53,7 +68,8 @@ inline uint32_t toBPConstSelectionsValue(
 #define BP_SHADER_STAGE(idx, two) \
     BP_MASK(0xFFFFF0); \
     BP_CMD(0xF6 + ((idx) >> 1), toBPConstSelectionsValue(stages, idx, two)); \
-    CMD_NOOP(0x26) /* temp space filling */
+    BP_CMD(0x28 + ((idx) >> 1), toBPFragmentSourcesValue(stages, idx, two)); \
+    CMD_NOOP(0x21) /* temp space filling */
 
 Buffer ShaderCode::toStandardLayout() const
 {
@@ -225,10 +241,46 @@ void ShaderCode::assertValidStageIndex(uint32_t index) const
 ////////// Stage class /////////////////
 
 ShaderCode::Stage::Stage() :
+    useTexture{false},
+    texMap{0},
+    texCoord{0},
+    rasterColour{RasterColour::LightChannel0},
     colourCSrc{ColourConstant::MaterialConstColour0_RGB},
     alphaCSrc{AlphaConstant::MaterialConstColour0_Alpha}
 {
 
+}
+
+void ShaderCode::Stage::setUsesTexture(bool use)
+{
+    useTexture = true;
+}
+
+bool ShaderCode::Stage::usesTexture() const
+{
+    return useTexture;
+}
+
+void ShaderCode::Stage::setTexMapID(uint32_t id)
+{
+    assertValidTexMapID(id);
+    texMap = id;
+}
+
+void ShaderCode::Stage::setTexCoordIndex(uint32_t index)
+{
+    assertValidTexCoordIndex(index);
+    texCoord = index;
+}
+
+uint32_t ShaderCode::Stage::getTexMapID() const
+{
+    return texMap;
+}
+
+uint32_t ShaderCode::Stage::getTexCoordIndex() const
+{
+    return texCoord;
 }
 
 void ShaderCode::Stage::setColourOpConstantSource(ColourConstant source)
@@ -249,6 +301,28 @@ ShaderCode::Stage::ColourConstant ShaderCode::Stage::getColourOpConstantSource()
 ShaderCode::Stage::AlphaConstant ShaderCode::Stage::getAlphaOpConstantSource() const
 {
     return alphaCSrc;
+}
+
+void ShaderCode::Stage::assertValidTexMapID(uint32_t id) const
+{
+    if (id >= MDL0::Material::MAX_LAYER_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ShaderCode: Stage texture map ID out of range! (%d >= %d)",
+            id, MDL0::Material::MAX_LAYER_COUNT
+        ));
+    }
+}
+
+void ShaderCode::Stage::assertValidTexCoordIndex(uint32_t index) const
+{
+    if (index >= MDL0::Object::TEX_COORD_ARRAY_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ShaderCode: Stage texture coord index out of range! (%d >= %d)",
+            index, MDL0::Object::TEX_COORD_ARRAY_COUNT
+        ));
+    }
 }
 }
 }

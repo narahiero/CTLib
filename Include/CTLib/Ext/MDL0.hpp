@@ -78,6 +78,25 @@ public:
 
     public:
 
+        /*! @brief Enumeration of the possible stage raster colour values. */
+        enum class RasterColour
+        {
+            /*! @brief Load colour from the material's light channel 0. */
+            LightChannel0 = 0x0,
+
+            /*! @brief Load colour from the material's light channel 1. */
+            LightChannel1 = 0x1,
+
+            /*! @brief Unknown... */
+            BumpAlpha = 0x5,
+
+            /*! @brief Same as `BumpAlpha`, clamped between `0.f` and `1.f`. */
+            NormalizedBumpAlpha = 0x6,
+
+            /*! @brief Disabled (transparent black). */
+            None = 0x7
+        };
+
         /*! @brief Enumeration of the colour operation constant arg values. */
         enum class ColourConstant
         {
@@ -245,6 +264,38 @@ public:
         /*! @brief Constructs a new Stage instance with default values. */
         Stage();
 
+        /*! @brief Sets whether this stage uses a texture. */
+        void setUsesTexture(bool use);
+
+        /*! @brief Returns whether this stage uses a texture. */
+        bool usesTexture() const;
+
+        /*! @brief Sets the texture map ID of this shader stage.
+         *  
+         *  @throw CTLib::BRRESError If the specified texture map ID is more
+         *  than or equal to `MDL0::Material::MAX_LAYER_COUNT`.
+         */
+        void setTexMapID(uint32_t id);
+
+        /*! @brief Sets the texture coord index of this shader stage.
+         *  
+         *  @throw CTLib::BRRESError If the specified texture coord index is
+         *  more than or equal to `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+         */
+        void setTexCoordIndex(uint32_t index);
+
+        /*! @brief Returns the texture map ID of this shader stage. */
+        uint32_t getTexMapID() const;
+
+        /*! @brief Returns the texture coord index of this shader stage. */
+        uint32_t getTexCoordIndex() const;
+
+        /*! @brief Sets the raster colour input of this shader stage. */
+        void setRasterColour(RasterColour colour);
+
+        /*! @brief Returns the raster colour input of this shader stage. */
+        RasterColour getRasterColour() const;
+
         /*! @brief Sets the colour operation constant argument source of this
          *  shader stage.
          *  
@@ -270,6 +321,24 @@ public:
         AlphaConstant getAlphaOpConstantSource() const;
 
     private:
+
+        // throws if 'id' >= 'MDL0::Material::MAX_LAYER_COUNT'
+        void assertValidTexMapID(uint32_t id) const;
+
+        // throws if 'index' >= 'MDL0::Object::TEX_COORD_ARRAY_COUNT'
+        void assertValidTexCoordIndex(uint32_t index) const;
+
+        // whether to use a texture
+        bool useTexture;
+
+        // material layer id
+        uint32_t texMap;
+
+        // object tex coord index
+        uint32_t texCoord;
+
+        // raster colour input
+        RasterColour rasterColour;
 
         // colour operation constant arg source
         ColourConstant colourCSrc;
