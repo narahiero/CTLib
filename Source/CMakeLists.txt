@@ -58,6 +58,7 @@ if(CT_LIB_MODULE_BRRES)
     target_sources(CTLib PRIVATE
         "${CT_LIB_INCLUDE_DIR}/CTLib/BRRES.hpp"
         "${CT_LIB_INCLUDE_DIR}/CTLib/Ext/MDL0.hpp"
+        "${CT_LIB_INCLUDE_DIR}/CTLib/Ext/WGCode.hpp"
         BRRES/BRRES.cpp
         BRRES/MDL0.cpp
         BRRES/RW/BRRESRWCommon.cpp
@@ -70,6 +71,7 @@ if(CT_LIB_MODULE_BRRES)
         BRRES/RW/WriteTEX0.cpp
         BRRES/TEX0.cpp
         BRRES/Ext/MDL0Ext.cpp
+        BRRES/Ext/WGCode.cpp
     )
 endif()
 

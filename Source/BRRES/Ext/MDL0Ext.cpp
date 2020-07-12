@@ -7,12 +7,10 @@
 
 #include <CTLib/Ext/MDL0.hpp>
 
+#include <CTLib/Ext/WGCode.hpp>
 #include <CTLib/Utilities.hpp>
 
-namespace CTLib
-{
-
-namespace Ext
+namespace CTLib::Ext
 {
 
 void fromIndirectSources(ShaderCode& shader, uint32_t val)
@@ -24,24 +22,16 @@ void fromIndirectSources(ShaderCode& shader, uint32_t val)
     }
 }
 
-void fromSwapTable(ShaderCode& shader, uint32_t idx, bool rg, uint32_t val, uint32_t mask)
+void fromSwapTable(ShaderCode& shader, uint32_t idx, bool rg, uint32_t val)
 {
     ShaderCode::SwapTable table = shader.getSwapTable(idx);
-    uint32_t old = rg ? (static_cast<uint32_t>(table.red) | (static_cast<uint32_t>(table.green) << 2))
-        : (static_cast<uint32_t>(table.blue) | (static_cast<uint32_t>(table.alpha) << 2));
-
-    uint32_t value = (val & mask) | (old & ~mask);
-    (rg ? table.red : table.blue) = static_cast<ShaderCode::Channel>(value & 0x3);
-    (rg ? table.green : table.alpha) = static_cast<ShaderCode::Channel>((value >> 2) & 0x3);
+    (rg ? table.red : table.blue) = static_cast<ShaderCode::Channel>(val & 0x3);
+    (rg ? table.green : table.alpha) = static_cast<ShaderCode::Channel>((val >> 2) & 0x3);
+    shader.setSwapTable(idx, table);
 }
 
-void fromStageConstants(ShaderCode::Stage& stage, bool n2, uint32_t val, uint32_t mask)
+void fromStageConstants(ShaderCode::Stage& stage, bool n2, uint32_t val)
 {
-    uint32_t old = (static_cast<uint32_t>(stage.getColourOpConstantSource()) << (n2 ? 12 : 2))
-        | (static_cast<uint32_t>(stage.getAlphaOpConstantSource()) << (n2 ? 17 : 7));
-
-    uint32_t value = (val & mask) | (old & ~mask);
-
     stage.setColourOpConstantSource(
         static_cast<ShaderCode::Stage::ColourConstant>((val >> (n2 ? 12 : 2)) & 0x1F));
 
@@ -49,12 +39,13 @@ void fromStageConstants(ShaderCode::Stage& stage, bool n2, uint32_t val, uint32_
         static_cast<ShaderCode::Stage::AlphaConstant>((val >> (n2 ? 17 : 7)) & 0x1F));
 }
 
-void fromStageSources(ShaderCode::Stage& stage, uint32_t val)
+void fromStageSources(ShaderCode::Stage& stage, bool n2, uint32_t val)
 {
-    stage.setTexMapID(val & 0x7);
-    stage.setTexCoordIndex((val >> 3) & 0x7);
-    stage.setUsesTexture((val >> 6) & 0x1);
-    stage.setRasterColour(static_cast<ShaderCode::Stage::RasterColour>((val >> 7) & 0x7));
+    stage.setTexMapID((val >> (n2 ? 12 : 0)) & 0x7);
+    stage.setTexCoordIndex((val >> (n2 ? 15 : 3)) & 0x7);
+    stage.setUsesTexture((val >> (n2 ? 18 : 6)) & 0x1);
+    stage.setRasterColour(
+        static_cast<ShaderCode::Stage::RasterColour>((val >> (n2 ? 19 : 7)) & 0x7));
 }
 
 ShaderCode::Stage::ColourOp toColourOp(uint32_t val)
@@ -103,108 +94,26 @@ ShaderCode ShaderCode::fromGraphicsCode(Buffer& gcode, uint32_t stageCount)
         shader.addStage();
     }
 
-    uint32_t mask;
-    while (gcode.hasRemaining())
+    uint32_t bp[0x100];
+    WGCode::readBP(gcode, bp);
+
+    for (uint32_t i = 0; i < SWAP_TABLE_COUNT; ++i)
     {
-        uint8_t cmd = gcode.get();
+        fromSwapTable(shader, i, true, bp[WGCode::BP_SWAP_TABLE + (i << 1)]);
+        fromSwapTable(shader, i, false, bp[WGCode::BP_SWAP_TABLE + 1 + (i << 1)]);
+    }
 
-        if (cmd == 0x00)
-        {
-            continue;
-        }
-        else if (cmd != 0x61)
-        {
-            throw BRRESError(Strings::format(
-                "ShaderCode: Invalid Wii Graphics Code! Non-BP (0x61) found! (0x%02X)",
-                cmd
-            ));
-        }
+    fromIndirectSources(shader, bp[WGCode::BP_IND_TEX_REF]);
 
-        uint32_t pack = gcode.getInt();
-        uint8_t addr = static_cast<uint8_t>(pack >> 24);
-        uint32_t val = pack & mask;
-        mask = 0x00FFFFFF;
+    for (uint32_t s = 0; s < stageCount; ++s)
+    {
+        Stage& stage = shader.getStage(s);
 
-        // predefined variables for switch
-        uint32_t idx = 0;
-        switch (addr)
-        {
-        case 0x27: // indirect sources
+        fromStageConstants(stage, s & 1, bp[WGCode::BP_STAGE_CONST_SRC + (s >> 1)]);
+        fromStageSources(stage, s & 1, bp[WGCode::BP_STAGE_SRC + (s >> 1)]);
 
-            break;
-
-        case 0x28: // stage sources
-        case 0x29:
-        case 0x2A:
-        case 0x2B:
-            idx = (addr & 0x3) << 1;
-            if (idx < stageCount) 
-            {
-                fromStageSources(shader.getStage(idx), val);
-                if (idx + 1 < stageCount)
-                {
-                    fromStageSources(shader.getStage(idx + 1), val >> 12);
-                }
-            }
-            break;
-
-        case 0xC0: // colour operations
-        case 0xC2:
-        case 0xC4:
-        case 0xC6:
-        case 0xC8:
-        case 0xCA:
-        case 0xCC:
-        case 0xCE:
-            idx = (addr >> 1) & 0x7;
-            if (idx < stageCount) 
-            {
-                shader.getStage(idx).setColourOp(toColourOp(val));
-            }
-            break;
-
-        case 0xC1: // alpha operations
-        case 0xC3:
-        case 0xC5:
-        case 0xC7:
-        case 0xC9:
-        case 0xCB:
-        case 0xCD:
-        case 0xCF:
-            idx = (addr >> 1) & 0x7;
-            if (idx < stageCount) 
-            {
-                shader.getStage(idx).setAlphaOp(toAlphaOp(val));
-            }
-            break;
-
-        case 0xF6: // swap table & stage constant sources
-        case 0xF7:
-        case 0xF8:
-        case 0xF9:
-        case 0xFA:
-        case 0xFB:
-        case 0xFC:
-        case 0xFD:
-            if (addr <= 0xF9)
-            {
-                idx = ((addr - 0x06) & 0x03) << 1;
-                if (idx < stageCount)
-                {
-                    fromStageConstants(shader.getStage(idx), false, val, mask);
-                    if (idx + 1 < stageCount)
-                    {
-                        fromStageConstants(shader.getStage(idx + 1), true, val, mask);
-                    }
-                }
-            }
-            fromSwapTable(shader, ((addr - 0x06) & 0x0F) >> 1, addr & 1, val, mask);
-            break;
-
-        case 0xFE: // set mask
-            mask = val;
-            break;
-        }
+        stage.setColourOp(toColourOp(bp[WGCode::BP_STAGE_COMBINER + (s << 1)]));
+        stage.setAlphaOp(toAlphaOp(bp[WGCode::BP_STAGE_COMBINER + 1 + (s << 1)]));
     }
 
     return shader;
@@ -581,6 +490,5 @@ void ShaderCode::Stage::assertValidTexCoordIndex(uint32_t index) const
             index, MDL0::Object::TEX_COORD_ARRAY_COUNT
         ));
     }
-}
 }
 }

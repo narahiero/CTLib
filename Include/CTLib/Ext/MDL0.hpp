@@ -5,7 +5,7 @@
 // Refer to the `License.txt` file included.
 //////////////////////////////////////////////////
 
-#pragma
+#pragma once
 
 
 /*! @file Ext/MDL0.hpp
@@ -19,10 +19,7 @@
 #include <CTLib/BRRES.hpp>
 
 
-namespace CTLib
-{
-
-namespace Ext
+namespace CTLib::Ext
 {
 
 /*! @addtogroup brres
@@ -739,5 +736,4 @@ private:
 /*! @} addtogroup brres-ext-mdl0 */
 
 /*! @} addtogroup brres */
-}
 }
