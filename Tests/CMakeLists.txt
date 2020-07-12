@@ -85,7 +85,7 @@ endif()
 
 # Tests for BRRES module
 if(CT_LIB_MODULE_BRRES)
-    ct_lib_add_test(BRRESTest SOURCES BRRES.cpp)
+    ct_lib_add_test(BRRESTest SOURCES BRRES.cpp Ext/WGCode.cpp)
 endif()
 
 # Tests for KCL module
