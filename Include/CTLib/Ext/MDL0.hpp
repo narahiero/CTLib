@@ -586,14 +586,15 @@ public:
 
     /*! @brief Parses the graphics code from the specified buffer.
      *  
-     *  **Note**: Non-BP commands and unused BP addresses will be silently
-     *  ignored by this function.
+     *  **Note**: Unused BP addresses will be silently ignored by this function.
      *  
      *  @param[in] gcode The buffer containing the Wii Graphics Code.
+     *  @param[in] stageCount The number of shader stages
      *  
-     *  @throw CTLib::BRRESError If the graphics code is invalid.
+     *  @throw CTLib::BRRESError If the graphics code is invalid or contains
+     *  illegal (non-BP) commands.
      */
-    static ShaderCode fromGraphicsCode(Buffer& gcode);
+    static ShaderCode fromGraphicsCode(Buffer& gcode, uint32_t stageCount);
 
     /*! @brief Parses the graphics code from the specified buffer using the
      *  standard fixed-position code layout.
