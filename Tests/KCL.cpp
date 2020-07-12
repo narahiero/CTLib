@@ -9,11 +9,13 @@
 
 #include <CTLib/KCL.hpp>
 
+using namespace CTLib;
+
 TEST(KCLTests, MinPosAndMasks)
 {
-    CTLib::KCL::Settings settings;
+    KCL::Settings settings;
     settings.blowFactor = 0.f;
-    CTLib::KCL::setSettings(settings);
+    KCL::setSettings(settings);
 
     float verts[] = {
         3492.f, 432.f, 10002.f,   1231.f, 839.f, -234.f,   -881.f, -210.f, 430.f,
@@ -22,24 +24,24 @@ TEST(KCLTests, MinPosAndMasks)
     };
     uint32_t vertCount = static_cast<uint32_t>(sizeof(verts) / sizeof(float));
 
-    CTLib::Buffer vertices(vertCount * 4);
+    Buffer vertices(vertCount * 4);
     for (uint32_t i = 0; i < vertCount; ++i)
     {
         vertices.putFloat(verts[i]);
     }
     vertices.flip();
 
-    CTLib::Buffer flags(vertCount / 9 * 2);
+    Buffer flags(vertCount / 9 * 2);
     for (uint32_t i = 0; i < vertCount / 9; ++i)
     {
         flags.putShort(0);
     }
     flags.flip();
 
-    CTLib::KCL kcl = CTLib::KCL::fromModel(vertices, flags);
-    CTLib::KCL::Octree* octree = kcl.getOctree();
+    KCL kcl = KCL::fromModel(vertices, flags);
+    KCL::Octree* octree = kcl.getOctree();
 
-    EXPECT_EQ(CTLib::Vector3f(-881.f, -432.f, -4013.f), octree->getMinPos());
+    EXPECT_EQ(Vector3f(-881.f, -432.f, -4013.f), octree->getMinPos());
     EXPECT_EQ(0xFFFFE000, octree->getMaskX());
     EXPECT_EQ(0xFFFFF800, octree->getMaskY());
     EXPECT_EQ(0xFFFFC000, octree->getMaskZ());
@@ -47,14 +49,14 @@ TEST(KCLTests, MinPosAndMasks)
     //////////////////////////
 
     settings.blowFactor = 400.f;
-    CTLib::KCL::setSettings(settings);
+    KCL::setSettings(settings);
 
     vertices.clear();
     flags.clear();
-    CTLib::KCL kcl2 = CTLib::KCL::fromModel(vertices, flags);
-    CTLib::KCL::Octree* octree2 = kcl2.getOctree();
+    KCL kcl2 = KCL::fromModel(vertices, flags);
+    KCL::Octree* octree2 = kcl2.getOctree();
 
-    EXPECT_EQ(CTLib::Vector3f(-1281.f, -832.f, -4413.f), octree2->getMinPos());
+    EXPECT_EQ(Vector3f(-1281.f, -832.f, -4413.f), octree2->getMinPos());
     EXPECT_EQ(0xFFFFE000, octree2->getMaskX());
     EXPECT_EQ(0xFFFFF000, octree2->getMaskY());
     EXPECT_EQ(0xFFFFC000, octree2->getMaskZ());
@@ -62,9 +64,9 @@ TEST(KCLTests, MinPosAndMasks)
 
 TEST(KCLTests, ShiftsAndSize)
 {
-    CTLib::KCL::Settings settings;
+    KCL::Settings settings;
     settings.blowFactor = 0.f;
-    CTLib::KCL::setSettings(settings);
+    KCL::setSettings(settings);
 
     float verts[] = {
         17432.f, -2134.f, 975.f,   -3242.f, 439.f, 423.f,   8943.f, 2489.f, -347.f,
@@ -73,28 +75,28 @@ TEST(KCLTests, ShiftsAndSize)
     };
     uint32_t vertCount = static_cast<uint32_t>(sizeof(verts) / sizeof(float));
 
-    CTLib::Buffer vertices(vertCount * 4);
+    Buffer vertices(vertCount * 4);
     for (uint32_t i = 0; i < vertCount; ++i)
     {
         vertices.putFloat(verts[i]);
     }
     vertices.flip();
 
-    CTLib::Buffer flags(vertCount / 9 * 2);
+    Buffer flags(vertCount / 9 * 2);
     for (uint32_t i = 0; i < vertCount / 9; ++i)
     {
         flags.putShort(0);
     }
     flags.flip();
 
-    CTLib::KCL kcl = CTLib::KCL::fromModel(vertices, flags);
-    CTLib::KCL::Octree* octree = kcl.getOctree();
+    KCL kcl = KCL::fromModel(vertices, flags);
+    KCL::Octree* octree = kcl.getOctree();
 
     EXPECT_EQ(0xD, octree->getShift());
     EXPECT_EQ(0x2, octree->getShiftY());
     EXPECT_EQ(0x2, octree->getShiftZ());
-    EXPECT_EQ((CTLib::Vector<uint32_t, 3>{4, 1, 4}), octree->getSize());
-    EXPECT_EQ(CTLib::Vector3f(8192, 8192, 8192), octree->getBlockSize());
+    EXPECT_EQ((Vector<uint32_t, 3>{4, 1, 4}), octree->getSize());
+    EXPECT_EQ(Vector3f(8192, 8192, 8192), octree->getBlockSize());
 
     //////////////////////////
 
@@ -104,14 +106,14 @@ TEST(KCLTests, ShiftsAndSize)
     vertices.clear();
     flags.clear();
 
-    CTLib::KCL kcl2 = CTLib::KCL::fromModel(vertices, flags);
-    CTLib::KCL::Octree* octree2 = kcl2.getOctree();
+    KCL kcl2 = KCL::fromModel(vertices, flags);
+    KCL::Octree* octree2 = kcl2.getOctree();
 
     EXPECT_EQ(0xD, octree2->getShift());
     EXPECT_EQ(0x3, octree2->getShiftY());
     EXPECT_EQ(0x4, octree2->getShiftZ());
-    EXPECT_EQ((CTLib::Vector<uint32_t, 3>{8, 2, 8}), octree2->getSize());
-    EXPECT_EQ(CTLib::Vector3f(8192, 8192, 8192), octree2->getBlockSize());
+    EXPECT_EQ((Vector<uint32_t, 3>{8, 2, 8}), octree2->getSize());
+    EXPECT_EQ(Vector3f(8192, 8192, 8192), octree2->getBlockSize());
 }
 
 TEST(KCLTests, OctreeErrors)
@@ -123,31 +125,31 @@ TEST(KCLTests, OctreeErrors)
     };
     uint32_t vertCount = static_cast<uint32_t>(sizeof(verts) / sizeof(float));
 
-    CTLib::Buffer vertices(vertCount * 4);
+    Buffer vertices(vertCount * 4);
     for (uint32_t i = 0; i < vertCount; ++i)
     {
         vertices.putFloat(verts[i]);
     }
     vertices.flip();
 
-    CTLib::Buffer flags(vertCount / 9 * 2);
+    Buffer flags(vertCount / 9 * 2);
     for (uint32_t i = 0; i < vertCount / 9; ++i)
     {
         flags.putShort(0);
     }
     flags.flip();
 
-    CTLib::KCL kcl = CTLib::KCL::fromModel(vertices, flags);
-    CTLib::KCL::Octree* octree = kcl.getOctree();
+    KCL kcl = KCL::fromModel(vertices, flags);
+    KCL::Octree* octree = kcl.getOctree();
 
-    ASSERT_EQ((CTLib::Vector<uint32_t, 3>{2, 1, 4}), octree->getSize());
-    EXPECT_THROW(octree->getNode({2, 0, 3}), CTLib::KCLError);
-    EXPECT_THROW(octree->getNode({1, 1, 3}), CTLib::KCLError);
-    EXPECT_THROW(octree->getNode({1, 0, 4}), CTLib::KCLError);
+    ASSERT_EQ((Vector<uint32_t, 3>{2, 1, 4}), octree->getSize());
+    EXPECT_THROW(octree->getNode({2, 0, 3}), KCLError);
+    EXPECT_THROW(octree->getNode({1, 1, 3}), KCLError);
+    EXPECT_THROW(octree->getNode({1, 0, 4}), KCLError);
     EXPECT_NO_THROW(octree->getNode({1, 0, 3}));
 
     ASSERT_EQ(8, octree->getRootNodeCount());
-    EXPECT_THROW(octree->getNode(8), CTLib::KCLError);
+    EXPECT_THROW(octree->getNode(8), KCLError);
     EXPECT_NO_THROW(octree->getNode(0));
 }
 
@@ -160,26 +162,26 @@ TEST(KCLTests, FromModelErrors)
     };
     uint32_t vertCount = static_cast<uint32_t>(sizeof(verts) / sizeof(float));
 
-    CTLib::Buffer vertices(vertCount * 4);
+    Buffer vertices(vertCount * 4);
     for (uint32_t i = 0; i < vertCount; ++i)
     {
         vertices.putFloat(verts[i]);
     }
     vertices.flip();
 
-    CTLib::Buffer flags(vertCount / 9 * 2);
+    Buffer flags(vertCount / 9 * 2);
     for (uint32_t i = 0; i < vertCount / 9; ++i)
     {
         flags.putShort(0);
     }
     flags.flip();
 
-    EXPECT_THROW(CTLib::KCL::fromModel(vertices, flags, 4), CTLib::KCLError);
+    EXPECT_THROW(KCL::fromModel(vertices, flags, 4), KCLError);
 
     flags.position(2);
-    EXPECT_THROW(CTLib::KCL::fromModel(vertices, flags), CTLib::KCLError);
+    EXPECT_THROW(KCL::fromModel(vertices, flags), KCLError);
 
     vertices.position(0xC);
     flags.position(0);
-    EXPECT_THROW(CTLib::KCL::fromModel(vertices, flags, 3), CTLib::KCLError);
+    EXPECT_THROW(KCL::fromModel(vertices, flags, 3), KCLError);
 }

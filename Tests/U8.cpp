@@ -9,13 +9,15 @@
 
 #include <CTLib/U8.hpp>
 
+using namespace CTLib;
+
 TEST(U8ArcTests, Count)
 {
-    CTLib::U8Arc arc;
+    U8Arc arc;
     EXPECT_EQ(0, arc.totalCount());
     EXPECT_EQ(0, arc.count());
 
-    CTLib::U8Dir* root = arc.addDirectory(".");
+    U8Dir* root = arc.addDirectory(".");
     EXPECT_EQ(1, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(0, root->count());
@@ -27,7 +29,7 @@ TEST(U8ArcTests, Count)
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(3, root->count());
 
-    CTLib::U8Dir* posteffect = root->addDirectory("posteffect");
+    U8Dir* posteffect = root->addDirectory("posteffect");
     EXPECT_EQ(5, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(4, root->count());
@@ -42,43 +44,43 @@ TEST(U8ArcTests, Count)
 
 TEST(U8ArcTests, InvalidNames)
 {
-    CTLib::U8Arc arc;
-    EXPECT_THROW(arc.addFile(""), CTLib::U8Error);
-    EXPECT_THROW(arc.addDirectory("contains/slash"), CTLib::U8Error);
+    U8Arc arc;
+    EXPECT_THROW(arc.addFile(""), U8Error);
+    EXPECT_THROW(arc.addDirectory("contains/slash"), U8Error);
 }
 
 TEST(U8ArcTests, GetParent)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* root = arc.addDirectory(".");
-    CTLib::U8File* file = root->addFile("course_model.brres");
+    U8Arc arc;
+    U8Dir* root = arc.addDirectory(".");
+    U8File* file = root->addFile("course_model.brres");
     EXPECT_EQ(root, file->getParent());
 
-    CTLib::U8Dir* posteffect = root->addDirectory("posteffect");
+    U8Dir* posteffect = root->addDirectory("posteffect");
     EXPECT_EQ(root, posteffect->getParent());
 
-    CTLib::U8File* blight = posteffect->addFile("posteffect.blight");
+    U8File* blight = posteffect->addFile("posteffect.blight");
     EXPECT_EQ(posteffect, blight->getParent());
 }
 
 TEST(U8ArcTests, GetEntry)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* root = arc.addDirectory(".");
+    U8Arc arc;
+    U8Dir* root = arc.addDirectory(".");
     root->addFile("course_model.brres");
     root->addFile("course.kcl");
     root->addFile("course.kmp");
     root->addDirectory("posteffect");
 
-    CTLib::U8Entry* entry = root->getEntry("course.kcl");
-    EXPECT_EQ(CTLib::U8EntryType::File, entry->getType());
+    U8Entry* entry = root->getEntry("course.kcl");
+    EXPECT_EQ(U8EntryType::File, entry->getType());
     EXPECT_EQ("course.kcl", entry->getName());
 }
 
 TEST(U8ArcTests, RangeBasedLoop)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* root = arc.addDirectory(".");
+    U8Arc arc;
+    U8Dir* root = arc.addDirectory(".");
     root->addFile("course.kcl");
     root->addFile("course.kmp");
     root->addFile("course_model.brres");
@@ -87,9 +89,9 @@ TEST(U8ArcTests, RangeBasedLoop)
     const std::string expect[] = {
         ".", "course.kcl", "course.kmp", "course_model.brres", "posteffect"
     };
-    const CTLib::U8EntryType types[] = {
-        CTLib::U8EntryType::Directory, CTLib::U8EntryType::File, CTLib::U8EntryType::File,
-        CTLib::U8EntryType::File, CTLib::U8EntryType::Directory
+    const U8EntryType types[] = {
+        U8EntryType::Directory, U8EntryType::File, U8EntryType::File,
+        U8EntryType::File, U8EntryType::Directory
     };
 
     size_t i = 0;
@@ -113,10 +115,10 @@ TEST(U8ArcTests, RangeBasedLoop)
 
 TEST(U8ArcTests, Rename)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* root = arc.addDirectory(".");
+    U8Arc arc;
+    U8Dir* root = arc.addDirectory(".");
 
-    CTLib::U8File* file = root->addFile("course_model.brres");
+    U8File* file = root->addFile("course_model.brres");
     EXPECT_TRUE(root->hasEntry("course_model.brres"));
 
     file->rename("course_d_model.brres");
@@ -124,68 +126,68 @@ TEST(U8ArcTests, Rename)
     EXPECT_TRUE(root->hasEntry("course_d_model.brres"));
 
     root->addFile("vrcorn_model.brres");
-    EXPECT_THROW(file->rename("vrcorn_model.brres"), CTLib::U8Error);
+    EXPECT_THROW(file->rename("vrcorn_model.brres"), U8Error);
 
-    EXPECT_THROW(file->rename(""), CTLib::U8Error);
+    EXPECT_THROW(file->rename(""), U8Error);
 }
 
 TEST(U8ArcTests, AbsoluteGet)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* root = arc.addDirectory(".");
+    U8Arc arc;
+    U8Dir* root = arc.addDirectory(".");
     root->addDirectory("posteffect")->addFile("posteffect.blight");
 
-    CTLib::U8Entry* entry = arc.getEntryAbsolute("./posteffect/posteffect.blight");
+    U8Entry* entry = arc.getEntryAbsolute("./posteffect/posteffect.blight");
     ASSERT_TRUE(entry != nullptr);
     EXPECT_EQ("posteffect.blight", entry->getName());
     EXPECT_EQ("posteffect", entry->getParent()->getName());
-    EXPECT_EQ(CTLib::U8EntryType::File, entry->getType());
+    EXPECT_EQ(U8EntryType::File, entry->getType());
 
-    CTLib::U8Entry* nothing = arc.getEntryAbsolute("./some/file.txt");
+    U8Entry* nothing = arc.getEntryAbsolute("./some/file.txt");
     EXPECT_EQ(nullptr, nothing);
 
-    CTLib::U8Dir* dossun = root->addDirectory("effect")->addDirectory("dossun");
+    U8Dir* dossun = root->addDirectory("effect")->addDirectory("dossun");
     dossun->addFile("rk_dossun.breff");
     dossun->addFile("rk_dossun.breft");
     
-    CTLib::U8Entry* dir = arc.getEntryAbsolute("./effect/dossun");
+    U8Entry* dir = arc.getEntryAbsolute("./effect/dossun");
     ASSERT_TRUE(dir != nullptr);
     EXPECT_EQ(dossun, dir);
 }
 
 TEST(U8ArcTests, AbsoluteAdd)
 {
-    CTLib::U8Arc arc;
-    CTLib::U8Dir* posteffect = arc.addDirectoryAbsolute("./posteffect");
+    U8Arc arc;
+    U8Dir* posteffect = arc.addDirectoryAbsolute("./posteffect");
     EXPECT_EQ(2, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ("posteffect", posteffect->getName());
     EXPECT_EQ(".", posteffect->getParent()->getName());
-    EXPECT_EQ(CTLib::U8EntryType::Directory, posteffect->getType());
+    EXPECT_EQ(U8EntryType::Directory, posteffect->getType());
 
-    CTLib::U8Dir* root = arc.getEntry(".")->asDirectory();
-    CTLib::U8File* model = arc.addFileAbsolute("./course_model.brres");
+    U8Dir* root = arc.getEntry(".")->asDirectory();
+    U8File* model = arc.addFileAbsolute("./course_model.brres");
     EXPECT_EQ(3, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(2, root->count());
     EXPECT_EQ("course_model.brres", model->getName());
     EXPECT_EQ(root, model->getParent());
-    EXPECT_EQ(CTLib::U8EntryType::File, model->getType());
+    EXPECT_EQ(U8EntryType::File, model->getType());
 
-    CTLib::U8File* file = arc.addFileAbsolute("./effect/dossun/rk_dossun.breft");
+    U8File* file = arc.addFileAbsolute("./effect/dossun/rk_dossun.breft");
     EXPECT_EQ(6, arc.totalCount());
     EXPECT_EQ(1, arc.count());
     EXPECT_EQ(3, root->count());
     EXPECT_EQ("rk_dossun.breft", file->getName());
     EXPECT_EQ("dossun", file->getParent()->getName());
-    EXPECT_EQ(CTLib::U8EntryType::File, file->getType());
+    EXPECT_EQ(U8EntryType::File, file->getType());
 
     // entry already exists
-    EXPECT_THROW(arc.addFileAbsolute("./effect/dossun/rk_dossun.breft"), CTLib::U8Error);
+    EXPECT_THROW(arc.addFileAbsolute("./effect/dossun/rk_dossun.breft"), U8Error);
 
     // parent directory with invalid name
-    EXPECT_THROW(arc.addDirectoryAbsolute("./posteffect//posteffect.blight"), CTLib::U8Error);
+    EXPECT_THROW(arc.addDirectoryAbsolute("./posteffect//posteffect.blight"), U8Error);
 
     // parent directory is an already existing file
-    EXPECT_THROW(arc.addFileAbsolute("./course_model.brres/model.mdl0"), CTLib::U8Error);
+    EXPECT_THROW(arc.addFileAbsolute("./course_model.brres/model.mdl0"), U8Error);
 }

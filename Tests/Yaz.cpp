@@ -10,17 +10,19 @@
 #include <CTLib/Utilities.hpp>
 #include <CTLib/Yaz.hpp>
 
+using namespace CTLib;
+
 TEST(DecompressTests, Simple)
 {
     {
         uint8_t* data = (uint8_t*)"Yaz0\0\0\0\x22" "\0\0\0\0\0\0\0\0"
             "\xFBThis \x10\x02so\xFFme text,\xF7 for\x60\x0Est!\x80\0\0";
         
-        CTLib::Buffer buffer(48);
+        Buffer buffer(48);
         buffer.putArray(data, 48).flip();
 
-        CTLib::Buffer decompressed = CTLib::Yaz::decompress(buffer);
-        EXPECT_TRUE(CTLib::Bytes::matchesString(
+        Buffer decompressed = Yaz::decompress(buffer);
+        EXPECT_TRUE(Bytes::matchesString(
             "This is some text, for some test!", *decompressed, 34
         ));
     }
@@ -30,11 +32,11 @@ TEST(DecompressTests, Simple)
             "\xFF""Data com\xFFpressed \xFFusing Ya\xFFz1 and d\xBF""e\xF0\x1B"
             "CT Lib\xC0.\0\0\0\0";
 
-        CTLib::Buffer buffer(68);
+        Buffer buffer(68);
         buffer.putArray(data, 68).flip();
 
-        CTLib::Buffer decompressed = CTLib::Yaz::decompress(buffer);
-        EXPECT_TRUE(CTLib::Bytes::matchesString(
+        Buffer decompressed = Yaz::decompress(buffer);
+        EXPECT_TRUE(Bytes::matchesString(
             "Data compressed using Yaz1 and decompressed using CT Lib.",
             *decompressed,
             58
@@ -54,10 +56,10 @@ TEST(DecompressTests, Simple)
             0x03, 0x04
         };
 
-        CTLib::Buffer buffer(32);
+        Buffer buffer(32);
         buffer.putArray(data, 32).flip();
 
-        CTLib::Buffer decompressed = CTLib::Yaz::decompress(buffer);
-        EXPECT_TRUE(CTLib::Bytes::matches(expect, *decompressed, 30));
+        Buffer decompressed = Yaz::decompress(buffer);
+        EXPECT_TRUE(Bytes::matches(expect, *decompressed, 30));
     }
 }

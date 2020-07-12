@@ -9,21 +9,23 @@
 
 #include <CTLib/Memory.hpp>
 
+using namespace CTLib;
+
 TEST(BufferTests, Size)
 {
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     EXPECT_EQ(16, buffer.capacity());
 
-    CTLib::Buffer buffer2(64);
+    Buffer buffer2(64);
     EXPECT_EQ(64, buffer2.capacity());
 }
 
 TEST(BufferTests, CopyCtor)
 {
-    CTLib::Buffer buffer(4);
+    Buffer buffer(4);
     buffer.position(2).limit(3);
 
-    CTLib::Buffer copy{buffer};
+    Buffer copy{buffer};
     EXPECT_EQ(buffer.capacity(), copy.capacity());
     EXPECT_EQ(buffer.position(), copy.position());
     EXPECT_EQ(buffer.limit(), copy.limit());
@@ -31,11 +33,11 @@ TEST(BufferTests, CopyCtor)
 
 TEST(BufferTests, MoveCtor)
 {
-    CTLib::Buffer buffer(4);
+    Buffer buffer(4);
     buffer.position(2).limit(3);
     uint8_t* pointer = *buffer;
 
-    CTLib::Buffer move{std::move(buffer)};
+    Buffer move{std::move(buffer)};
     EXPECT_EQ(4, move.capacity());
     EXPECT_EQ(2, move.position());
     EXPECT_EQ(3, move.limit());
@@ -45,7 +47,7 @@ TEST(BufferTests, MoveCtor)
 
 TEST(BufferTests, PositionLimitAndRemaining)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     EXPECT_EQ(0, buffer.position());
     EXPECT_EQ(8, buffer.limit());
     EXPECT_EQ(8, buffer.remaining());
@@ -71,7 +73,7 @@ TEST(BufferTests, PositionLimitAndRemaining)
 
 TEST(BufferTests, FlipClearAndRewind)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.position(6).flip();
     EXPECT_EQ(0, buffer.position());
     EXPECT_EQ(6, buffer.limit());
@@ -87,7 +89,7 @@ TEST(BufferTests, FlipClearAndRewind)
 
 TEST(BufferTests, PutGet)
 {
-    CTLib::Buffer buffer(4);
+    Buffer buffer(4);
     buffer.put(1, 0xAA).put(2, 0x10).put(0, 0x42);
     EXPECT_EQ(0, buffer.position());
 
@@ -99,7 +101,7 @@ TEST(BufferTests, PutGet)
 
 TEST(BufferTests, PutGetShort)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.putShort(4, 0x1234).putShort(0, 0xABCD).putShort(2, 0x1000);
     EXPECT_EQ(0, buffer.position());
 
@@ -111,7 +113,7 @@ TEST(BufferTests, PutGetShort)
 
 TEST(BufferTests, PutGetIntAndLong)
 {
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     buffer.putInt(0, 0x12345678);
     buffer.putInt(12, 0xABCDEF00);
     buffer.putInt(4, 0x10000000);
@@ -135,7 +137,7 @@ TEST(BufferTests, PutGetIntAndLong)
 
 TEST(BufferTests, PutGetFloatAndDouble)
 {
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     buffer.putFloat(8, 5.f);
     buffer.putFloat(12, 123.45f);
     buffer.putFloat(0, -10.f);
@@ -159,7 +161,7 @@ TEST(BufferTests, PutGetFloatAndDouble)
 
 TEST(BufferTests, RelativePutGet)
 {
-    CTLib::Buffer buffer(4);
+    Buffer buffer(4);
     buffer.put(0x64).put(0xAB);
     EXPECT_EQ(2, buffer.position());
 
@@ -174,7 +176,7 @@ TEST(BufferTests, RelativePutGet)
 
 TEST(BufferTests, RelativePutGetShort)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.putShort(0x1234);
     buffer.putShort(0xABCD);
     buffer.putShort(0x1000);
@@ -188,7 +190,7 @@ TEST(BufferTests, RelativePutGetShort)
 
 TEST(BufferTests, RelativePutGetIntAndLong)
 {
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     buffer.putInt(0x12345678);
     buffer.putInt(0xABCDEF00);
     buffer.putInt(0x10000000);
@@ -213,7 +215,7 @@ TEST(BufferTests, RelativePutGetIntAndLong)
 
 TEST(BufferTests, RelativePutGetFloatAndDouble)
 {
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     buffer.putFloat(5.f);
     buffer.putFloat(123.45f);
     buffer.putFloat(-10.f);
@@ -240,11 +242,11 @@ TEST(BufferTests, RelativePutGetFloatAndDouble)
 
 TEST(BufferTests, PutBuffer)
 {
-    CTLib::Buffer data(8);
+    Buffer data(8);
     data.put(0x10).put(0x11).put(0x12).put(0x13);
     data.flip();
 
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.put(0xFF).put(data).put(0xAA);
     EXPECT_EQ(4, data.position());
     EXPECT_EQ(6, buffer.position());
@@ -279,7 +281,7 @@ TEST(BufferTests, PutBuffer)
 TEST(BufferTests, PutArray)
 {
     uint8_t arr[]{0x57, 0x43, 0x49, 0x19, 0xF4, 0x3B};
-    CTLib::Buffer buffer(16);
+    Buffer buffer(16);
     buffer.put(0x10).putArray(arr, 6).put(0x2D);
     EXPECT_EQ(8, buffer.position());
 
@@ -309,7 +311,7 @@ TEST(BufferTests, PutArray)
 
 TEST(BufferTests, GetArray)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.put(0x84).put(0x21).put(0x43).put(0xFF).put(0x02);
     
     uint8_t out[4];
@@ -335,7 +337,7 @@ TEST(BufferTests, GetArray)
 
 TEST(BufferTests, Compact)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.put(0x10).put(0x22).put(0x34).put(0x46).put(0x58);
     buffer.flip().position(2).compact();
     EXPECT_EQ(3, buffer.position());
@@ -347,7 +349,7 @@ TEST(BufferTests, Compact)
 
 TEST(BufferTests, IndirectionAndSubscriptOperators)
 {
-    CTLib::Buffer buffer(8);
+    Buffer buffer(8);
     buffer.putLong(0xFEDCBA9876543210);
 
     uint8_t* ptr = *buffer;
@@ -360,10 +362,10 @@ TEST(BufferTests, IndirectionAndSubscriptOperators)
 
 TEST(BufferTests, Order)
 {
-    CTLib::Buffer buffer(8);
-    EXPECT_EQ(CTLib::Buffer::BIG_ENDIAN, buffer.order());
+    Buffer buffer(8);
+    EXPECT_EQ(Buffer::BIG_ENDIAN, buffer.order());
 
-    buffer.order(CTLib::Buffer::LITTLE_ENDIAN);
+    buffer.order(Buffer::LITTLE_ENDIAN);
     buffer.putShort(0xFF00);
     EXPECT_EQ(0x00, buffer[0]);
     EXPECT_EQ(0xFF, buffer[1]);
@@ -371,15 +373,15 @@ TEST(BufferTests, Order)
     buffer.flip();
     EXPECT_EQ(0xFF00, buffer.getShort());
 
-    buffer.order(CTLib::Buffer::BIG_ENDIAN);
+    buffer.order(Buffer::BIG_ENDIAN);
     buffer.flip();
     EXPECT_EQ(0x00FF, buffer.getShort());
 }
 
 TEST(BufferTests, DuplicateAndSlice)
 {
-    CTLib::Buffer buffer(16);
-    CTLib::Buffer dup{buffer.duplicate()};
+    Buffer buffer(16);
+    Buffer dup{buffer.duplicate()};
     EXPECT_EQ(16, dup.capacity());
     EXPECT_EQ(0, dup.position());
     EXPECT_EQ(16, dup.limit());
@@ -395,7 +397,7 @@ TEST(BufferTests, DuplicateAndSlice)
     EXPECT_EQ(0x10, buffer[2]);
 
     buffer.position(4);
-    CTLib::Buffer slice{buffer.slice()};
+    Buffer slice{buffer.slice()};
     EXPECT_EQ(12, slice.capacity());
     EXPECT_EQ(0, slice.position());
     EXPECT_EQ(12, slice.limit());
@@ -413,13 +415,13 @@ TEST(BufferTests, DuplicateAndSlice)
 
 TEST(BufferTests, PutBufferWithSlice)
 {
-    CTLib::Buffer bigData(16);
-    CTLib::Buffer data{bigData.position(3).slice()};
+    Buffer bigData(16);
+    Buffer data{bigData.position(3).slice()};
     data.put(0x44).put(0x24).put(0x92).put(0x46);
     data.flip();
 
-    CTLib::Buffer bigBuffer(32);
-    CTLib::Buffer buffer{bigBuffer.position(23).slice()};
+    Buffer bigBuffer(32);
+    Buffer buffer{bigBuffer.position(23).slice()};
     buffer.put(0x50).put(0x72).put(data).put(0x80);
     EXPECT_EQ(4, data.position());
     EXPECT_EQ(7, buffer.position());
@@ -436,7 +438,7 @@ TEST(BufferTests, PutBufferWithSlice)
 
 TEST(BufferTests, EqualityOperators)
 {
-    CTLib::Buffer a(5), b(6);
+    Buffer a(5), b(6);
     a.putInt(0x00112233).put(0xFF);
     b.putInt(0x00112233).putShort(0xFF00).flip();
     EXPECT_FALSE(a == b);
@@ -447,7 +449,7 @@ TEST(BufferTests, EqualityOperators)
     b.limit(5);
     EXPECT_FALSE(a == b);
 
-    b = CTLib::Buffer(5);
+    b = Buffer(5);
     b.put(a);
     EXPECT_TRUE(a == b);
     EXPECT_TRUE(b == a);
@@ -455,7 +457,7 @@ TEST(BufferTests, EqualityOperators)
 
 TEST(BufferTests, RelationalOperators)
 {
-    CTLib::Buffer a(6), b(6);
+    Buffer a(6), b(6);
     a.putArray((uint8_t*) "apple", 6);
     b.putArray((uint8_t*) "grape", 6);
     EXPECT_TRUE(a < b);
@@ -477,7 +479,7 @@ TEST(BufferTests, RelationalOperators)
     EXPECT_FALSE(b > a);
     EXPECT_TRUE(b >= a);
 
-    a = CTLib::Buffer(7);
+    a = Buffer(7);
     a.putArray((uint8_t*) "apples", 7);
     EXPECT_FALSE(a < b);
     EXPECT_FALSE(a <= b);
@@ -491,7 +493,7 @@ TEST(BufferTests, RelationalOperators)
 
 TEST(BufferTests, EqualsAndCompareTo)
 {
-    CTLib::Buffer a(4), b(6);
+    Buffer a(4), b(6);
     a.putInt(0x331F9C30).flip();
     b.put(0xFC).putInt(0x331F9C30).put(0x2F).position(1).limit(5);
     EXPECT_TRUE(a.equals(b));
@@ -500,8 +502,8 @@ TEST(BufferTests, EqualsAndCompareTo)
     b.position(1);
     EXPECT_FALSE(b.equals(a));
 
-    a = CTLib::Buffer(10);
-    b = CTLib::Buffer(10);
+    a = Buffer(10);
+    b = Buffer(10);
     a.putArray((uint8_t*) "apple", 6).flip();
     b.putArray((uint8_t*) "bapple", 7).flip();
     EXPECT_EQ(-1, a.compareTo(b)); // apple < bapple
@@ -519,131 +521,131 @@ TEST(BufferTests, EqualsAndCompareTo)
 
 TEST(BufferTests, PosAndLimitOutOfBounds)
 {
-    CTLib::Buffer buffer(1);
+    Buffer buffer(1);
     EXPECT_THROW({
         try
         {
             buffer.position(2);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
         
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(4);
+    buffer = Buffer(4);
     EXPECT_THROW({
         try
         {
             buffer.limit(2).position(3);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
         
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(1);
+    buffer = Buffer(1);
     EXPECT_THROW({
         try
         {
             buffer.limit(2);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::INVALID_LIMIT, e.getType());
+            EXPECT_EQ(BufferError::INVALID_LIMIT, e.getType());
             throw;
         }
         
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(4);
-    CTLib::Buffer slice{buffer.position(2).slice()};
+    buffer = Buffer(4);
+    Buffer slice{buffer.position(2).slice()};
     EXPECT_THROW({
         try
         {
             slice.limit(3);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::INVALID_LIMIT, e.getType());
+            EXPECT_EQ(BufferError::INVALID_LIMIT, e.getType());
             throw;
         }
         
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(4);
-    slice = CTLib::Buffer{buffer.position(2).slice()};
+    buffer = Buffer(4);
+    slice = Buffer{buffer.position(2).slice()};
     EXPECT_THROW({
         try
         {
             slice.limit(1).position(2);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
         
-    }, CTLib::BufferError);
+    }, BufferError);
 }
 
 TEST(BufferTests, RelativePutGetOutOfBounds)
 {
-    CTLib::Buffer buffer(1);
+    Buffer buffer(1);
     EXPECT_THROW({
         try
         {
             buffer.put(0x64).put(0x20);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
-    }, CTLib::BufferError);
+    }, BufferError);
 
-    buffer = CTLib::Buffer(1);
+    buffer = Buffer(1);
     EXPECT_THROW({
         try
         {
             buffer.putShort(0xABCD);
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(1);
+    buffer = Buffer(1);
     EXPECT_THROW({
         try
         {
             buffer.getInt();
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
-    }, CTLib::BufferError);
+    }, BufferError);
     
-    buffer = CTLib::Buffer(2);
-    CTLib::Buffer slice{buffer.position(1).slice()};
+    buffer = Buffer(2);
+    Buffer slice{buffer.position(1).slice()};
     EXPECT_THROW({
         try
         {
             slice.getShort();
         }
-        catch (const CTLib::BufferError& e)
+        catch (const BufferError& e)
         {
-            EXPECT_EQ(CTLib::BufferError::BUFFER_OVERFLOW, e.getType());
+            EXPECT_EQ(BufferError::BUFFER_OVERFLOW, e.getType());
             throw;
         }
-    }, CTLib::BufferError);
+    }, BufferError);
 }

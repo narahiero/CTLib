@@ -9,91 +9,93 @@
 
 #include <CTLib/KMP.hpp>
 
+using namespace CTLib;
+
 TEST(KMPTests, AddRemoveAndCount)
 {
-    CTLib::KMP kmp;
-    EXPECT_EQ(0, kmp.count<CTLib::KMP::KTPT>());
+    KMP kmp;
+    EXPECT_EQ(0, kmp.count<KMP::KTPT>());
 
-    kmp.add<CTLib::KMP::KTPT>();
-    EXPECT_EQ(1, kmp.count<CTLib::KMP::KTPT>());
+    kmp.add<KMP::KTPT>();
+    EXPECT_EQ(1, kmp.count<KMP::KTPT>());
 
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    EXPECT_EQ(3, kmp.count<CTLib::KMP::KTPT>());
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    EXPECT_EQ(3, kmp.count<KMP::KTPT>());
 
-    kmp.remove<CTLib::KMP::KTPT>(1);
-    EXPECT_EQ(2, kmp.count<CTLib::KMP::KTPT>());
+    kmp.remove<KMP::KTPT>(1);
+    EXPECT_EQ(2, kmp.count<KMP::KTPT>());
 
-    kmp.remove<CTLib::KMP::KTPT>(1);
-    EXPECT_EQ(1, kmp.count<CTLib::KMP::KTPT>());
+    kmp.remove<KMP::KTPT>(1);
+    EXPECT_EQ(1, kmp.count<KMP::KTPT>());
 }
 
 TEST(KMPTests, GetIndexOfAndGetAll)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    CTLib::KMP::KTPT* k0 = kmp.add<CTLib::KMP::KTPT>();
-    EXPECT_EQ(k0, kmp.get<CTLib::KMP::KTPT>(0));
-    EXPECT_EQ(0, kmp.indexOf<CTLib::KMP::KTPT>(k0));
+    KMP::KTPT* k0 = kmp.add<KMP::KTPT>();
+    EXPECT_EQ(k0, kmp.get<KMP::KTPT>(0));
+    EXPECT_EQ(0, kmp.indexOf<KMP::KTPT>(k0));
 
-    CTLib::KMP::KTPT* k1 = kmp.add<CTLib::KMP::KTPT>();
-    EXPECT_EQ(k0, kmp.get<CTLib::KMP::KTPT>(0));
-    EXPECT_EQ(k1, kmp.get<CTLib::KMP::KTPT>(1));
-    EXPECT_EQ(0, kmp.indexOf<CTLib::KMP::KTPT>(k0));
-    EXPECT_EQ(1, kmp.indexOf<CTLib::KMP::KTPT>(k1));
+    KMP::KTPT* k1 = kmp.add<KMP::KTPT>();
+    EXPECT_EQ(k0, kmp.get<KMP::KTPT>(0));
+    EXPECT_EQ(k1, kmp.get<KMP::KTPT>(1));
+    EXPECT_EQ(0, kmp.indexOf<KMP::KTPT>(k0));
+    EXPECT_EQ(1, kmp.indexOf<KMP::KTPT>(k1));
 
-    kmp.remove<CTLib::KMP::KTPT>(0);
-    EXPECT_EQ(k1, kmp.get<CTLib::KMP::KTPT>(0));
-    EXPECT_EQ(0, kmp.indexOf<CTLib::KMP::KTPT>(k1));
+    kmp.remove<KMP::KTPT>(0);
+    EXPECT_EQ(k1, kmp.get<KMP::KTPT>(0));
+    EXPECT_EQ(0, kmp.indexOf<KMP::KTPT>(k1));
 
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    std::vector<CTLib::KMP::KTPT*> ktpts = kmp.getAll<CTLib::KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    std::vector<KMP::KTPT*> ktpts = kmp.getAll<KMP::KTPT>();
     EXPECT_EQ(5, ktpts.size());
 
-    kmp.remove<CTLib::KMP::KTPT>(0);
-    EXPECT_EQ(4, kmp.count<CTLib::KMP::KTPT>());
+    kmp.remove<KMP::KTPT>(0);
+    EXPECT_EQ(4, kmp.count<KMP::KTPT>());
     EXPECT_EQ(5, ktpts.size());
 }
 
 TEST(KMPTests, Errors)
 {
-    CTLib::KMP kmp;
-    EXPECT_THROW(kmp.get<CTLib::KMP::KTPT>(0), CTLib::KMPError);
-    EXPECT_THROW(kmp.remove<CTLib::KMP::KTPT>(0), CTLib::KMPError);
+    KMP kmp;
+    EXPECT_THROW(kmp.get<KMP::KTPT>(0), KMPError);
+    EXPECT_THROW(kmp.remove<KMP::KTPT>(0), KMPError);
 
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    kmp.add<CTLib::KMP::KTPT>();
-    EXPECT_THROW(kmp.get<CTLib::KMP::KTPT>(5), CTLib::KMPError);
-    EXPECT_NO_THROW(kmp.get<CTLib::KMP::KTPT>(4));
-    EXPECT_THROW(kmp.remove<CTLib::KMP::KTPT>(5), CTLib::KMPError);
-    EXPECT_NO_THROW(kmp.remove<CTLib::KMP::KTPT>(4));
-    EXPECT_THROW(kmp.get<CTLib::KMP::KTPT>(4), CTLib::KMPError);
-    EXPECT_THROW(kmp.remove<CTLib::KMP::KTPT>(4), CTLib::KMPError);
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    kmp.add<KMP::KTPT>();
+    EXPECT_THROW(kmp.get<KMP::KTPT>(5), KMPError);
+    EXPECT_NO_THROW(kmp.get<KMP::KTPT>(4));
+    EXPECT_THROW(kmp.remove<KMP::KTPT>(5), KMPError);
+    EXPECT_NO_THROW(kmp.remove<KMP::KTPT>(4));
+    EXPECT_THROW(kmp.get<KMP::KTPT>(4), KMPError);
+    EXPECT_THROW(kmp.remove<KMP::KTPT>(4), KMPError);
 }
 
 TEST(KMPSectionTests, NameForType)
 {
-    EXPECT_STREQ("KTPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::KTPT));
-    EXPECT_STREQ("ENPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::ENPT));
-    EXPECT_STREQ("ENPH", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::ENPH));
-    EXPECT_STREQ("ITPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::ITPT));
-    EXPECT_STREQ("ITPH", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::ITPH));
-    EXPECT_STREQ("CKPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::CKPT));
-    EXPECT_STREQ("CKPH", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::CKPH));
-    EXPECT_STREQ("GOBJ", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::GOBJ));
-    EXPECT_STREQ("POTI", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::POTI));
-    EXPECT_STREQ("AREA", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::AREA));
-    EXPECT_STREQ("CAME", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::CAME));
-    EXPECT_STREQ("JGPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::JGPT));
-    EXPECT_STREQ("CNPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::CNPT));
-    EXPECT_STREQ("MSPT", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::MSPT));
-    EXPECT_STREQ("STGI", CTLib::KMP::Section::nameForType(CTLib::KMP::SectionType::STGI));
+    EXPECT_STREQ("KTPT", KMP::Section::nameForType(KMP::SectionType::KTPT));
+    EXPECT_STREQ("ENPT", KMP::Section::nameForType(KMP::SectionType::ENPT));
+    EXPECT_STREQ("ENPH", KMP::Section::nameForType(KMP::SectionType::ENPH));
+    EXPECT_STREQ("ITPT", KMP::Section::nameForType(KMP::SectionType::ITPT));
+    EXPECT_STREQ("ITPH", KMP::Section::nameForType(KMP::SectionType::ITPH));
+    EXPECT_STREQ("CKPT", KMP::Section::nameForType(KMP::SectionType::CKPT));
+    EXPECT_STREQ("CKPH", KMP::Section::nameForType(KMP::SectionType::CKPH));
+    EXPECT_STREQ("GOBJ", KMP::Section::nameForType(KMP::SectionType::GOBJ));
+    EXPECT_STREQ("POTI", KMP::Section::nameForType(KMP::SectionType::POTI));
+    EXPECT_STREQ("AREA", KMP::Section::nameForType(KMP::SectionType::AREA));
+    EXPECT_STREQ("CAME", KMP::Section::nameForType(KMP::SectionType::CAME));
+    EXPECT_STREQ("JGPT", KMP::Section::nameForType(KMP::SectionType::JGPT));
+    EXPECT_STREQ("CNPT", KMP::Section::nameForType(KMP::SectionType::CNPT));
+    EXPECT_STREQ("MSPT", KMP::Section::nameForType(KMP::SectionType::MSPT));
+    EXPECT_STREQ("STGI", KMP::Section::nameForType(KMP::SectionType::STGI));
 }
 
 // For the following 'KMPGroupAndPointSectionsTests', only the EN* classes are
@@ -101,15 +103,15 @@ TEST(KMPSectionTests, NameForType)
 
 TEST(KMPGroupAndPointSectionsTests, FirstLastAndParent)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    KMP kmp;
+    KMP::ENPH* group = kmp.add<KMP::ENPH>();
     EXPECT_EQ(nullptr, group->getFirst());
     EXPECT_EQ(nullptr, group->getLast());
 
-    CTLib::KMP::ENPT* points[100];
+    KMP::ENPT* points[100];
     for (uint16_t i = 0; i < 100; ++i)
     {
-        points[i] = kmp.add<CTLib::KMP::ENPT>();
+        points[i] = kmp.add<KMP::ENPT>();
         EXPECT_EQ(nullptr, points[i]->getParent());
     }
 
@@ -170,13 +172,13 @@ TEST(KMPGroupAndPointSectionsTests, FirstLastAndParent)
 
 TEST(KMPGroupAndPointSectionsTests, RemoveGroupAndParent)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    KMP kmp;
+    KMP::ENPH* group = kmp.add<KMP::ENPH>();
     
-    CTLib::KMP::ENPT* points[100];
+    KMP::ENPT* points[100];
     for (uint16_t i = 0; i < 100; ++i)
     {
-        points[i] = kmp.add<CTLib::KMP::ENPT>();
+        points[i] = kmp.add<KMP::ENPT>();
     }
 
     group->setFirst(points[37]);
@@ -187,7 +189,7 @@ TEST(KMPGroupAndPointSectionsTests, RemoveGroupAndParent)
         EXPECT_EQ(i >= 37 && i <= 79 ? group : nullptr, points[i]->getParent());
     }
 
-    kmp.remove<CTLib::KMP::ENPH>(kmp.indexOf(group));
+    kmp.remove<KMP::ENPH>(kmp.indexOf(group));
 
     for (uint16_t i = 0; i < 100; ++i)
     {
@@ -197,13 +199,13 @@ TEST(KMPGroupAndPointSectionsTests, RemoveGroupAndParent)
 
 TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    KMP kmp;
+    KMP::ENPH* group = kmp.add<KMP::ENPH>();
 
-    std::vector<CTLib::KMP::ENPT*> points;
+    std::vector<KMP::ENPT*> points;
     for (uint16_t i = 0; i < 100; ++i)
     {
-        points.push_back(kmp.add<CTLib::KMP::ENPT>());
+        points.push_back(kmp.add<KMP::ENPT>());
     }
 
     group->setFirst(points[26]);
@@ -214,7 +216,7 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
         EXPECT_EQ(i >= 26 && i <= 81 ? group : nullptr, points[i]->getParent());
     }
 
-    kmp.remove<CTLib::KMP::ENPT>(63);
+    kmp.remove<KMP::ENPT>(63);
     points.erase(points.begin() + 63);
 
     EXPECT_EQ(points[26], group->getFirst());
@@ -224,7 +226,7 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
         EXPECT_EQ(i >= 26 && i <= 80 ? group : nullptr, points[i]->getParent());
     }
 
-    kmp.remove<CTLib::KMP::ENPT>(80);
+    kmp.remove<KMP::ENPT>(80);
     points.erase(points.begin() + 80);
 
     EXPECT_EQ(points[26], group->getFirst());
@@ -234,7 +236,7 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
         EXPECT_EQ(i >= 26 && i <= 79 ? group : nullptr, points[i]->getParent());
     }
 
-    kmp.remove<CTLib::KMP::ENPT>(26);
+    kmp.remove<KMP::ENPT>(26);
     points.erase(points.begin() + 26);
 
     EXPECT_EQ(points[26], group->getFirst());
@@ -247,7 +249,7 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
     group->setFirst(points[4]);
     group->setLast(points[4]);
 
-    kmp.remove<CTLib::KMP::ENPT>(4);
+    kmp.remove<KMP::ENPT>(4);
     points.erase(points.begin() + 4);
     
     EXPECT_EQ(nullptr, group->getFirst());
@@ -267,7 +269,7 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
         EXPECT_EQ(i == 72 ? group : nullptr, points[i]->getParent());
     }
 
-    kmp.remove<CTLib::KMP::ENPT>(72);
+    kmp.remove<KMP::ENPT>(72);
     points.erase(points.begin() + 72);
 
     EXPECT_EQ(nullptr, group->getFirst());
@@ -280,12 +282,12 @@ TEST(KMPGroupAndPointSectionsTests, RemovePointAndFirstLast)
 
 TEST(KMPGroupAndPointSectionsTests, PreviousAndNext)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    std::vector<CTLib::KMP::ENPH*> groups;
+    std::vector<KMP::ENPH*> groups;
     for (uint16_t i = 0; i < 5; ++i)
     {
-        groups.push_back(kmp.add<CTLib::KMP::ENPH>());
+        groups.push_back(kmp.add<KMP::ENPH>());
         EXPECT_EQ(0, groups[i]->getPreviousCount());
         EXPECT_EQ(0, groups[i]->getPrevious().size());
         EXPECT_EQ(0, groups[i]->getNextCount());
@@ -338,50 +340,50 @@ TEST(KMPGroupAndPointSectionsTests, PreviousAndNext)
 
 TEST(KMPGroupAndPointSectionsTests, FirstAndLastErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
+    KMP kmp;
+    KMP::ENPH* group = kmp.add<KMP::ENPH>();
 
-    CTLib::KMP::ENPT* points[100];
+    KMP::ENPT* points[100];
     for (uint16_t i = 0; i < 100; ++i)
     {
-        points[i] = kmp.add<CTLib::KMP::ENPT>();
+        points[i] = kmp.add<KMP::ENPT>();
     }
 
-    EXPECT_THROW(group->setLast(points[0]), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(points[32]), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(points[57]), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(points[83]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[0]), KMPError);
+    EXPECT_THROW(group->setLast(points[32]), KMPError);
+    EXPECT_THROW(group->setLast(points[57]), KMPError);
+    EXPECT_THROW(group->setLast(points[83]), KMPError);
 
     group->setFirst(points[37]);
-    EXPECT_THROW(group->setLast(points[12]), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(points[26]), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(points[36]), CTLib::KMPError);
+    EXPECT_THROW(group->setLast(points[12]), KMPError);
+    EXPECT_THROW(group->setLast(points[26]), KMPError);
+    EXPECT_THROW(group->setLast(points[36]), KMPError);
     EXPECT_NO_THROW(group->setLast(points[37]));
     EXPECT_NO_THROW(group->setLast(points[59]));
     EXPECT_NO_THROW(group->setLast(points[72]));
     EXPECT_NO_THROW(group->setLast(points[83]));
 
     group->setLast(points[74]);
-    EXPECT_THROW(group->setFirst(points[98]), CTLib::KMPError);
-    EXPECT_THROW(group->setFirst(points[81]), CTLib::KMPError);
-    EXPECT_THROW(group->setFirst(points[75]), CTLib::KMPError);
+    EXPECT_THROW(group->setFirst(points[98]), KMPError);
+    EXPECT_THROW(group->setFirst(points[81]), KMPError);
+    EXPECT_THROW(group->setFirst(points[75]), KMPError);
     EXPECT_NO_THROW(group->setFirst(points[74]));
     EXPECT_NO_THROW(group->setFirst(points[52]));
     EXPECT_NO_THROW(group->setFirst(points[38]));
     EXPECT_NO_THROW(group->setFirst(points[15]));
 
-    CTLib::KMP::ENPH* group2 = kmp.add<CTLib::KMP::ENPH>();
+    KMP::ENPH* group2 = kmp.add<KMP::ENPH>();
     
     group->setFirst(points[26]);
     group->setLast(points[72]);
     EXPECT_NO_THROW(group2->setFirst(points[3]));
     EXPECT_NO_THROW(group2->setFirst(points[17]));
     EXPECT_NO_THROW(group2->setFirst(points[25]));
-    EXPECT_THROW(group2->setFirst(points[26]), CTLib::KMPError);
-    EXPECT_THROW(group2->setFirst(points[38]), CTLib::KMPError);
-    EXPECT_THROW(group2->setFirst(points[53]), CTLib::KMPError);
-    EXPECT_THROW(group2->setFirst(points[69]), CTLib::KMPError);
-    EXPECT_THROW(group2->setFirst(points[72]), CTLib::KMPError);
+    EXPECT_THROW(group2->setFirst(points[26]), KMPError);
+    EXPECT_THROW(group2->setFirst(points[38]), KMPError);
+    EXPECT_THROW(group2->setFirst(points[53]), KMPError);
+    EXPECT_THROW(group2->setFirst(points[69]), KMPError);
+    EXPECT_THROW(group2->setFirst(points[72]), KMPError);
     EXPECT_NO_THROW(group2->setFirst(points[73]));
     EXPECT_NO_THROW(group2->setFirst(points[86]));
     EXPECT_NO_THROW(group2->setFirst(points[95]));
@@ -390,11 +392,11 @@ TEST(KMPGroupAndPointSectionsTests, FirstAndLastErrors)
     EXPECT_NO_THROW(group2->setLast(points[3]));
     EXPECT_NO_THROW(group2->setLast(points[17]));
     EXPECT_NO_THROW(group2->setLast(points[25]));
-    EXPECT_THROW(group2->setLast(points[26]), CTLib::KMPError);
-    EXPECT_THROW(group2->setLast(points[38]), CTLib::KMPError);
-    EXPECT_THROW(group2->setLast(points[53]), CTLib::KMPError);
-    EXPECT_THROW(group2->setLast(points[69]), CTLib::KMPError);
-    EXPECT_THROW(group2->setLast(points[72]), CTLib::KMPError);
+    EXPECT_THROW(group2->setLast(points[26]), KMPError);
+    EXPECT_THROW(group2->setLast(points[38]), KMPError);
+    EXPECT_THROW(group2->setLast(points[53]), KMPError);
+    EXPECT_THROW(group2->setLast(points[69]), KMPError);
+    EXPECT_THROW(group2->setLast(points[72]), KMPError);
     EXPECT_NO_THROW(group2->setLast(points[73]));
     EXPECT_NO_THROW(group2->setLast(points[86]));
     EXPECT_NO_THROW(group2->setLast(points[95]));
@@ -402,216 +404,216 @@ TEST(KMPGroupAndPointSectionsTests, FirstAndLastErrors)
 
 TEST(KMPGroupAndPointSectionTests, NextAndPreviousErrors)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    CTLib::KMP::ENPH* group0 = kmp.add<CTLib::KMP::ENPH>();
-    CTLib::KMP::ENPH* group1 = kmp.add<CTLib::KMP::ENPH>();
+    KMP::ENPH* group0 = kmp.add<KMP::ENPH>();
+    KMP::ENPH* group1 = kmp.add<KMP::ENPH>();
 
-    EXPECT_THROW(group0->addPrevious(nullptr), CTLib::KMPError);
-    EXPECT_THROW(group0->removePrevious(group1), CTLib::KMPError);
+    EXPECT_THROW(group0->addPrevious(nullptr), KMPError);
+    EXPECT_THROW(group0->removePrevious(group1), KMPError);
 
-    EXPECT_THROW(group0->addNext(nullptr), CTLib::KMPError);
-    EXPECT_THROW(group0->removeNext(group1), CTLib::KMPError);
+    EXPECT_THROW(group0->addNext(nullptr), KMPError);
+    EXPECT_THROW(group0->removeNext(group1), KMPError);
 
-    for (uint8_t i = 0; i < CTLib::KMP::ENPH::MAX_LINKS; ++i)
+    for (uint8_t i = 0; i < KMP::ENPH::MAX_LINKS; ++i)
     {
         group0->addPrevious(group1);
         group0->addNext(group1);
     }
-    EXPECT_THROW(group0->addPrevious(group1), CTLib::KMPError);
-    EXPECT_THROW(group0->addNext(group1), CTLib::KMPError);
+    EXPECT_THROW(group0->addPrevious(group1), KMPError);
+    EXPECT_THROW(group0->addNext(group1), KMPError);
 }
 
 TEST(KMPGroupAndPointSectionsTests, OtherKMPErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP kmp2;
+    KMP kmp;
+    KMP kmp2;
 
-    CTLib::KMP::ENPH* group = kmp.add<CTLib::KMP::ENPH>();
-    CTLib::KMP::ENPT* pointFromKMP2 = kmp2.add<CTLib::KMP::ENPT>();
-    EXPECT_THROW(group->setFirst(pointFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(group->setLast(pointFromKMP2), CTLib::KMPError);
+    KMP::ENPH* group = kmp.add<KMP::ENPH>();
+    KMP::ENPT* pointFromKMP2 = kmp2.add<KMP::ENPT>();
+    EXPECT_THROW(group->setFirst(pointFromKMP2), KMPError);
+    EXPECT_THROW(group->setLast(pointFromKMP2), KMPError);
 
-    CTLib::KMP::ENPH* groupFromKMP2 = kmp2.add<CTLib::KMP::ENPH>();
-    EXPECT_THROW(group->addNext(groupFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(group->addPrevious(groupFromKMP2), CTLib::KMPError);
-    EXPECT_THROW(groupFromKMP2->addNext(group), CTLib::KMPError);
-    EXPECT_THROW(groupFromKMP2->addPrevious(group), CTLib::KMPError);
+    KMP::ENPH* groupFromKMP2 = kmp2.add<KMP::ENPH>();
+    EXPECT_THROW(group->addNext(groupFromKMP2), KMPError);
+    EXPECT_THROW(group->addPrevious(groupFromKMP2), KMPError);
+    EXPECT_THROW(groupFromKMP2->addNext(group), KMPError);
+    EXPECT_THROW(groupFromKMP2->addPrevious(group), KMPError);
 }
 
 TEST(KMPKTPTTests, Errors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::KTPT* ktpt = kmp.add<CTLib::KMP::KTPT>();
+    KMP kmp;
+    KMP::KTPT* ktpt = kmp.add<KMP::KTPT>();
 
-    EXPECT_THROW(ktpt->setPlayerIndex(-32), CTLib::KMPError);
-    EXPECT_THROW(ktpt->setPlayerIndex(-2), CTLib::KMPError);
+    EXPECT_THROW(ktpt->setPlayerIndex(-32), KMPError);
+    EXPECT_THROW(ktpt->setPlayerIndex(-2), KMPError);
     EXPECT_NO_THROW(ktpt->setPlayerIndex(-1));
     EXPECT_NO_THROW(ktpt->setPlayerIndex(0));
     EXPECT_NO_THROW(ktpt->setPlayerIndex(3));
     EXPECT_NO_THROW(ktpt->setPlayerIndex(8));
     EXPECT_NO_THROW(ktpt->setPlayerIndex(10));
     EXPECT_NO_THROW(ktpt->setPlayerIndex(11));
-    EXPECT_THROW(ktpt->setPlayerIndex(12), CTLib::KMPError);
-    EXPECT_THROW(ktpt->setPlayerIndex(234), CTLib::KMPError);
+    EXPECT_THROW(ktpt->setPlayerIndex(12), KMPError);
+    EXPECT_THROW(ktpt->setPlayerIndex(234), KMPError);
 }
 
 TEST(KMPENPTTests, Errors)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    for (uint16_t i = 0; i < CTLib::KMP::ENPT::MAX_ENTRY_COUNT; ++i)
+    for (uint16_t i = 0; i < KMP::ENPT::MAX_ENTRY_COUNT; ++i)
     {
-        kmp.add<CTLib::KMP::ENPT>();
+        kmp.add<KMP::ENPT>();
     }
-    EXPECT_THROW(kmp.add<CTLib::KMP::ENPT>(), CTLib::KMPError);
+    EXPECT_THROW(kmp.add<KMP::ENPT>(), KMPError);
 }
 
 TEST(KMPITPTTests, Errors)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    for (uint16_t i = 0; i < CTLib::KMP::ITPT::MAX_ENTRY_COUNT; ++i)
+    for (uint16_t i = 0; i < KMP::ITPT::MAX_ENTRY_COUNT; ++i)
     {
-        kmp.add<CTLib::KMP::ITPT>();
+        kmp.add<KMP::ITPT>();
     }
-    EXPECT_THROW(kmp.add<CTLib::KMP::ITPT>(), CTLib::KMPError);
+    EXPECT_THROW(kmp.add<KMP::ITPT>(), KMPError);
 }
 
 TEST(KMPCKPTTests, RemoveJGPT)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::CKPT* ckpt = kmp.add<CTLib::KMP::CKPT>();
+    KMP kmp;
+    KMP::CKPT* ckpt = kmp.add<KMP::CKPT>();
     EXPECT_EQ(nullptr, ckpt->getRespawn());
 
-    CTLib::KMP::JGPT* jgpt = kmp.add<CTLib::KMP::JGPT>();
+    KMP::JGPT* jgpt = kmp.add<KMP::JGPT>();
     ckpt->setRespawn(jgpt);
     EXPECT_EQ(jgpt, ckpt->getRespawn());
 
-    kmp.remove<CTLib::KMP::JGPT>(kmp.indexOf(jgpt));
+    kmp.remove<KMP::JGPT>(kmp.indexOf(jgpt));
     EXPECT_EQ(nullptr, ckpt->getRespawn());
 }
 
 TEST(KMPCKPTTests, Errors)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    for (uint16_t i = 0; i < CTLib::KMP::CKPT::MAX_ENTRY_COUNT; ++i)
+    for (uint16_t i = 0; i < KMP::CKPT::MAX_ENTRY_COUNT; ++i)
     {
-        kmp.add<CTLib::KMP::CKPT>();
+        kmp.add<KMP::CKPT>();
     }
-    EXPECT_THROW(kmp.add<CTLib::KMP::CKPT>(), CTLib::KMPError);
+    EXPECT_THROW(kmp.add<KMP::CKPT>(), KMPError);
 }
 
 TEST(KMPCKPTTests, OtherKMPErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::CKPT* ckpt = kmp.add<CTLib::KMP::CKPT>();
+    KMP kmp;
+    KMP::CKPT* ckpt = kmp.add<KMP::CKPT>();
 
-    CTLib::KMP kmp2;
-    CTLib::KMP::JGPT* jgpt = kmp2.add<CTLib::KMP::JGPT>();
+    KMP kmp2;
+    KMP::JGPT* jgpt = kmp2.add<KMP::JGPT>();
 
-    EXPECT_THROW(ckpt->setRespawn(jgpt), CTLib::KMPError);
+    EXPECT_THROW(ckpt->setRespawn(jgpt), KMPError);
 }
 
 TEST(KMPGOBJTests, RemovePOTI)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
+    KMP kmp;
+    KMP::GOBJ* gobj = kmp.add<KMP::GOBJ>();
     EXPECT_EQ(nullptr, gobj->getRoute());
 
-    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    KMP::POTI* poti = kmp.add<KMP::POTI>();
     gobj->setRoute(poti);
     EXPECT_EQ(poti, gobj->getRoute());
 
-    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    kmp.remove<KMP::POTI>(kmp.indexOf(poti));
     EXPECT_EQ(nullptr, gobj->getRoute());
 }
 
 TEST(KMPGOBJTests, Errors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
+    KMP kmp;
+    KMP::GOBJ* gobj = kmp.add<KMP::GOBJ>();
 
-    for (uint8_t i = 0; i < CTLib::KMP::GOBJ::SETTINGS_COUNT; ++i)
+    for (uint8_t i = 0; i < KMP::GOBJ::SETTINGS_COUNT; ++i)
     {
         EXPECT_NO_THROW(gobj->setSetting(i, 0));
     }
-    for (uint8_t i = CTLib::KMP::GOBJ::SETTINGS_COUNT; i != 0; ++i)
+    for (uint8_t i = KMP::GOBJ::SETTINGS_COUNT; i != 0; ++i)
     {
-        EXPECT_THROW(gobj->setSetting(i, 0), CTLib::KMPError);
+        EXPECT_THROW(gobj->setSetting(i, 0), KMPError);
     }
 }
 
 TEST(KMPGOBJTests, OtherKMPErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP kmp2;
+    KMP kmp;
+    KMP kmp2;
 
-    CTLib::KMP::GOBJ* gobj = kmp.add<CTLib::KMP::GOBJ>();
-    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
-    EXPECT_THROW(gobj->setRoute(potiFromKMP2), CTLib::KMPError);
+    KMP::GOBJ* gobj = kmp.add<KMP::GOBJ>();
+    KMP::POTI* potiFromKMP2 = kmp2.add<KMP::POTI>();
+    EXPECT_THROW(gobj->setRoute(potiFromKMP2), KMPError);
 }
 
 TEST(KMPPOTITests, Errors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    KMP kmp;
+    KMP::POTI* poti = kmp.add<KMP::POTI>();
 
-    EXPECT_THROW(poti->getPoint(0), CTLib::KMPError);
-    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+    EXPECT_THROW(poti->getPoint(0), KMPError);
+    EXPECT_THROW(poti->removePoint(0), KMPError);
 
-    poti->addPoint(CTLib::KMP::POTI::Point());
-    EXPECT_THROW(poti->getPoint(1), CTLib::KMPError);
-    EXPECT_THROW(poti->removePoint(1), CTLib::KMPError);
+    poti->addPoint(KMP::POTI::Point());
+    EXPECT_THROW(poti->getPoint(1), KMPError);
+    EXPECT_THROW(poti->removePoint(1), KMPError);
     EXPECT_NO_THROW(poti->getPoint(0));
     EXPECT_NO_THROW(poti->removePoint(0)); // point removed here
-    EXPECT_THROW(poti->getPoint(0), CTLib::KMPError);
-    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+    EXPECT_THROW(poti->getPoint(0), KMPError);
+    EXPECT_THROW(poti->removePoint(0), KMPError);
 
     for (uint16_t i = 0; i < 100; ++i)
     {
-        poti->addPoint(CTLib::KMP::POTI::Point());
+        poti->addPoint(KMP::POTI::Point());
         EXPECT_NO_THROW(poti->getPoint(i));
-        EXPECT_THROW(poti->getPoint(i + 1), CTLib::KMPError);
+        EXPECT_THROW(poti->getPoint(i + 1), KMPError);
     }
 
     for (uint16_t i = 0; i < 100; ++i)
     {
         EXPECT_NO_THROW(poti->removePoint(0));
     }
-    EXPECT_THROW(poti->removePoint(0), CTLib::KMPError);
+    EXPECT_THROW(poti->removePoint(0), KMPError);
 }
 
 TEST(KMPAREATests, RemoveCAMEAndPOTIAndENPT)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::AREA* area = kmp.add<CTLib::KMP::AREA>();
+    KMP kmp;
+    KMP::AREA* area = kmp.add<KMP::AREA>();
     EXPECT_EQ(nullptr, area->getCamera());
     EXPECT_EQ(nullptr, area->getRoute());
     EXPECT_EQ(nullptr, area->getDestinationPoint());
 
-    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+    KMP::CAME* came = kmp.add<KMP::CAME>();
     area->setCamera(came);
     EXPECT_EQ(came, area->getCamera());
     EXPECT_EQ(nullptr, area->getRoute());
     EXPECT_EQ(nullptr, area->getDestinationPoint());
 
-    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
-    CTLib::KMP::ENPT* enpt = kmp.add<CTLib::KMP::ENPT>();
+    KMP::POTI* poti = kmp.add<KMP::POTI>();
+    KMP::ENPT* enpt = kmp.add<KMP::ENPT>();
     area->setRoute(poti);
     area->setDestinationPoint(enpt);
     EXPECT_EQ(came, area->getCamera());
     EXPECT_EQ(poti, area->getRoute());
     EXPECT_EQ(enpt, area->getDestinationPoint());
 
-    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    kmp.remove<KMP::POTI>(kmp.indexOf(poti));
     EXPECT_EQ(came, area->getCamera());
     EXPECT_EQ(nullptr, area->getRoute());
     EXPECT_EQ(enpt, area->getDestinationPoint());
 
-    kmp.remove<CTLib::KMP::CAME>(kmp.indexOf(came));
-    kmp.remove<CTLib::KMP::ENPT>(kmp.indexOf(enpt));
+    kmp.remove<KMP::CAME>(kmp.indexOf(came));
+    kmp.remove<KMP::ENPT>(kmp.indexOf(enpt));
     EXPECT_EQ(nullptr, area->getCamera());
     EXPECT_EQ(nullptr, area->getRoute());
     EXPECT_EQ(nullptr, area->getDestinationPoint());
@@ -619,110 +621,110 @@ TEST(KMPAREATests, RemoveCAMEAndPOTIAndENPT)
 
 TEST(KMPAREATests, OtherKMPErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP kmp2;
+    KMP kmp;
+    KMP kmp2;
 
-    CTLib::KMP::AREA* area = kmp.add<CTLib::KMP::AREA>();
+    KMP::AREA* area = kmp.add<KMP::AREA>();
 
-    CTLib::KMP::CAME* cameFromKMP2 = kmp2.add<CTLib::KMP::CAME>();
-    EXPECT_THROW(area->setCamera(cameFromKMP2), CTLib::KMPError);
+    KMP::CAME* cameFromKMP2 = kmp2.add<KMP::CAME>();
+    EXPECT_THROW(area->setCamera(cameFromKMP2), KMPError);
 
-    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
-    EXPECT_THROW(area->setRoute(potiFromKMP2), CTLib::KMPError);
+    KMP::POTI* potiFromKMP2 = kmp2.add<KMP::POTI>();
+    EXPECT_THROW(area->setRoute(potiFromKMP2), KMPError);
 
-    CTLib::KMP::ENPT* enptFromKMP2 = kmp2.add<CTLib::KMP::ENPT>();
-    EXPECT_THROW(area->setDestinationPoint(enptFromKMP2), CTLib::KMPError);
+    KMP::ENPT* enptFromKMP2 = kmp2.add<KMP::ENPT>();
+    EXPECT_THROW(area->setDestinationPoint(enptFromKMP2), KMPError);
 }
 
 TEST(KMPCAMETests, RemoveCAMEAndPOTI)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+    KMP kmp;
+    KMP::CAME* came = kmp.add<KMP::CAME>();
     EXPECT_EQ(nullptr, came->getNext());
     EXPECT_EQ(nullptr, came->getRoute());
 
-    CTLib::KMP::CAME* came2 = kmp.add<CTLib::KMP::CAME>();
+    KMP::CAME* came2 = kmp.add<KMP::CAME>();
     came->setNext(came2);
     EXPECT_EQ(came2, came->getNext());
     EXPECT_EQ(nullptr, came->getRoute());
 
-    CTLib::KMP::POTI* poti = kmp.add<CTLib::KMP::POTI>();
+    KMP::POTI* poti = kmp.add<KMP::POTI>();
     came->setRoute(poti);
     EXPECT_EQ(came2, came->getNext());
     EXPECT_EQ(poti, came->getRoute());
 
-    kmp.remove<CTLib::KMP::CAME>(kmp.indexOf(came2));
+    kmp.remove<KMP::CAME>(kmp.indexOf(came2));
     EXPECT_EQ(nullptr, came->getNext());
     EXPECT_EQ(poti, came->getRoute());
 
-    kmp.remove<CTLib::KMP::POTI>(kmp.indexOf(poti));
+    kmp.remove<KMP::POTI>(kmp.indexOf(poti));
     EXPECT_EQ(nullptr, came->getNext());
     EXPECT_EQ(nullptr, came->getRoute());
 }
 
 TEST(KMPCAMETests, OtherKMPErrors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP kmp2;
+    KMP kmp;
+    KMP kmp2;
 
-    CTLib::KMP::CAME* came = kmp.add<CTLib::KMP::CAME>();
+    KMP::CAME* came = kmp.add<KMP::CAME>();
 
-    CTLib::KMP::CAME* cameFromKMP2 = kmp2.add<CTLib::KMP::CAME>();
-    EXPECT_THROW(came->setNext(cameFromKMP2), CTLib::KMPError);
+    KMP::CAME* cameFromKMP2 = kmp2.add<KMP::CAME>();
+    EXPECT_THROW(came->setNext(cameFromKMP2), KMPError);
 
-    CTLib::KMP::POTI* potiFromKMP2 = kmp2.add<CTLib::KMP::POTI>();
-    EXPECT_THROW(came->setRoute(potiFromKMP2), CTLib::KMPError);
+    KMP::POTI* potiFromKMP2 = kmp2.add<KMP::POTI>();
+    EXPECT_THROW(came->setRoute(potiFromKMP2), KMPError);
 }
 
 TEST(KMPJGPTTests, Errors)
 {
-    CTLib::KMP kmp;
+    KMP kmp;
 
-    for (uint16_t i = 0; i < CTLib::KMP::JGPT::MAX_ENTRY_COUNT; ++i)
+    for (uint16_t i = 0; i < KMP::JGPT::MAX_ENTRY_COUNT; ++i)
     {
-        kmp.add<CTLib::KMP::JGPT>();
+        kmp.add<KMP::JGPT>();
     }
-    EXPECT_THROW(kmp.add<CTLib::KMP::JGPT>(), CTLib::KMPError);
+    EXPECT_THROW(kmp.add<KMP::JGPT>(), KMPError);
 }
 
 TEST(KMPCNPTTests, CannonType)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::CNPT* cnpt = kmp.add<CTLib::KMP::CNPT>();
-    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Default, cnpt->getCannonType());
+    KMP kmp;
+    KMP::CNPT* cnpt = kmp.add<KMP::CNPT>();
+    EXPECT_EQ(KMP::CNPT::CannonType::Default, cnpt->getCannonType());
     EXPECT_EQ(0, cnpt->getTypeID());
 
-    cnpt->setCannonType(CTLib::KMP::CNPT::CannonType::Slow);
-    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Slow, cnpt->getCannonType());
+    cnpt->setCannonType(KMP::CNPT::CannonType::Slow);
+    EXPECT_EQ(KMP::CNPT::CannonType::Slow, cnpt->getCannonType());
     EXPECT_EQ(2, cnpt->getTypeID());
 
     cnpt->setTypeID(1);
-    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Curved, cnpt->getCannonType());
+    EXPECT_EQ(KMP::CNPT::CannonType::Curved, cnpt->getCannonType());
     EXPECT_EQ(1, cnpt->getTypeID());
 
     cnpt->setTypeID(4);
-    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
+    EXPECT_EQ(KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
     EXPECT_EQ(4, cnpt->getTypeID());
 
-    cnpt->setCannonType(CTLib::KMP::CNPT::CannonType::Custom);
-    EXPECT_EQ(CTLib::KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
+    cnpt->setCannonType(KMP::CNPT::CannonType::Custom);
+    EXPECT_EQ(KMP::CNPT::CannonType::Custom, cnpt->getCannonType());
     EXPECT_EQ(-1, cnpt->getTypeID());
 }
 
 TEST(KMPSTGITests, Errors)
 {
-    CTLib::KMP kmp;
-    CTLib::KMP::STGI* stgi = kmp.add<CTLib::KMP::STGI>();
-    EXPECT_THROW(kmp.add<CTLib::KMP::STGI>(), CTLib::KMPError);
+    KMP kmp;
+    KMP::STGI* stgi = kmp.add<KMP::STGI>();
+    EXPECT_THROW(kmp.add<KMP::STGI>(), KMPError);
 
-    EXPECT_THROW(stgi->setLapCount(0), CTLib::KMPError);
-    EXPECT_THROW(stgi->setLapCount(10), CTLib::KMPError);
-    EXPECT_THROW(stgi->setLapCount(23), CTLib::KMPError);
-    EXPECT_THROW(stgi->setLapCount(94), CTLib::KMPError);
-    EXPECT_THROW(stgi->setLapCount(210), CTLib::KMPError);
+    EXPECT_THROW(stgi->setLapCount(0), KMPError);
+    EXPECT_THROW(stgi->setLapCount(10), KMPError);
+    EXPECT_THROW(stgi->setLapCount(23), KMPError);
+    EXPECT_THROW(stgi->setLapCount(94), KMPError);
+    EXPECT_THROW(stgi->setLapCount(210), KMPError);
 
-    EXPECT_THROW(stgi->setSpeedFactor(0.f), CTLib::KMPError);
-    EXPECT_THROW(stgi->setSpeedFactor(-0.f), CTLib::KMPError);
-    EXPECT_THROW(stgi->setSpeedFactor(-1.f), CTLib::KMPError);
-    EXPECT_THROW(stgi->setSpeedFactor(-35.f), CTLib::KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(0.f), KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-0.f), KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-1.f), KMPError);
+    EXPECT_THROW(stgi->setSpeedFactor(-35.f), KMPError);
 }
