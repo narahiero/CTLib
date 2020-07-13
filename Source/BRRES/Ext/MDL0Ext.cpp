@@ -430,6 +430,16 @@ uint32_t ShaderCode::Stage::getTexCoordIndex() const
     return texCoord;
 }
 
+void ShaderCode::Stage::setRasterColour(RasterColour colour)
+{
+    rasterColour = colour;
+}
+
+ShaderCode::Stage::RasterColour ShaderCode::Stage::getRasterColour() const
+{
+    return rasterColour;
+}
+
 void ShaderCode::Stage::setColourOpConstantSource(ColourConstant source)
 {
     colourCSrc = source;
