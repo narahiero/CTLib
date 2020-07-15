@@ -80,10 +80,10 @@ ShaderCode::Stage::AlphaOp toAlphaOp(uint32_t val)
 
 ShaderCode ShaderCode::fromGraphicsCode(Buffer& gcode, uint32_t stageCount)
 {
-    if (stageCount >= MAX_STAGE_COUNT)
+    if (stageCount > MAX_STAGE_COUNT)
     {
         throw BRRESError(Strings::format(
-            "ShaderCode: Stage count out of range! (%d >= %d)",
+            "ShaderCode: Stage count out of range! (%d > %d)",
             stageCount, MAX_STAGE_COUNT
         ));
     }
@@ -231,6 +231,11 @@ Buffer ShaderCode::toStandardLayout() const
     if (stageCount & 1)
     {
         BP_SHADER_STAGE(stageCount - 1, false);
+    }
+
+    while (gcode.hasRemaining())
+    {
+        gcode.put(0x00);
     }
 
     return gcode.clear();
