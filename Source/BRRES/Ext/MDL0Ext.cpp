@@ -48,7 +48,7 @@ void fromStageSources(ShaderCode::Stage& stage, bool n2, uint32_t val)
         static_cast<ShaderCode::Stage::RasterColour>((val >> (n2 ? 19 : 7)) & 0x7));
 }
 
-ShaderCode::Stage::ColourOp toColourOp(uint32_t val)
+void fromColourOp(ShaderCode::Stage& stage, uint32_t val)
 {
     ShaderCode::Stage::ColourOp cop;
     cop.argD  = static_cast<ShaderCode::Stage::ColourOp::Arg>((val      ) & 0xF);
@@ -60,11 +60,14 @@ ShaderCode::Stage::ColourOp toColourOp(uint32_t val)
     cop.clamp = static_cast<bool                            >((val >> 19) & 0x1);
     cop.shift = static_cast<ShaderCode::Stage::Shift        >((val >> 20) & 0x3);
     cop.dest  = static_cast<ShaderCode::Stage::Dest         >((val >> 22) & 0x3);
-    return cop;
+    stage.setColourOp(cop);
 }
 
-ShaderCode::Stage::AlphaOp toAlphaOp(uint32_t val)
+void fromAlphaOp(ShaderCode::Stage& stage, uint32_t val)
 {
+    stage.setRasterSwapTable(val & 0x3);
+    stage.setTextureSwapTable((val >> 2) & 0x3);
+
     ShaderCode::Stage::AlphaOp aop;
     aop.argD  = static_cast<ShaderCode::Stage::AlphaOp::Arg>((val >>  4) & 0x7);
     aop.argC  = static_cast<ShaderCode::Stage::AlphaOp::Arg>((val >>  7) & 0x7);
@@ -75,7 +78,7 @@ ShaderCode::Stage::AlphaOp toAlphaOp(uint32_t val)
     aop.clamp = static_cast<bool                           >((val >> 19) & 0x1);
     aop.shift = static_cast<ShaderCode::Stage::Shift       >((val >> 20) & 0x3);
     aop.dest  = static_cast<ShaderCode::Stage::Dest        >((val >> 22) & 0x3);
-    return aop;
+    stage.setAlphaOp(aop);
 }
 
 ShaderCode ShaderCode::fromGraphicsCode(Buffer& gcode, uint32_t stageCount)
@@ -112,8 +115,8 @@ ShaderCode ShaderCode::fromGraphicsCode(Buffer& gcode, uint32_t stageCount)
         fromStageConstants(stage, s & 1, bp[WGCode::BP_STAGE_CONST_SRC + (s >> 1)]);
         fromStageSources(stage, s & 1, bp[WGCode::BP_STAGE_SRC + (s >> 1)]);
 
-        stage.setColourOp(toColourOp(bp[WGCode::BP_STAGE_COMBINER + (s << 1)]));
-        stage.setAlphaOp(toAlphaOp(bp[WGCode::BP_STAGE_COMBINER + 1 + (s << 1)]));
+        fromColourOp(stage, bp[WGCode::BP_STAGE_COMBINER + (s << 1)]);
+        fromAlphaOp(stage, bp[WGCode::BP_STAGE_COMBINER + 1 + (s << 1)]);
     }
 
     return shader;
@@ -172,9 +175,11 @@ inline uint32_t toBPColourOpValue(const ShaderCode::Stage::ColourOp& op)
         |  ((static_cast<uint32_t>(op.dest ) & 0x3) << 22);
 }
 
-inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage::AlphaOp& op)
+inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage& stage, const ShaderCode::Stage::AlphaOp& op)
 {
-    return ((static_cast<uint32_t>(op.argD ) & 0x7) <<  4)
+    return ((stage.getRasterSwapTable()  & 0x3))
+        |  ((stage.getTextureSwapTable() & 0x3) << 2)
+        |  ((static_cast<uint32_t>(op.argD ) & 0x7) <<  4)
         |  ((static_cast<uint32_t>(op.argC ) & 0x7) <<  7)
         |  ((static_cast<uint32_t>(op.argB ) & 0x7) << 10)
         |  ((static_cast<uint32_t>(op.argA ) & 0x7) << 13)
@@ -202,8 +207,8 @@ inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage::AlphaOp& op)
     BP_CMD(0xC0 + ((idx) << 1), toBPColourOpValue(stages[idx].colourOp)); \
     if (two) BP_CMD(0xC2 + ((idx) << 1), toBPColourOpValue(stages[(idx) + 1].colourOp)); \
     else CMD_NOOP(0x5); \
-    BP_CMD(0xC1 + ((idx) << 1), toBPAlphaOpValue(stages[idx].alphaOp)); \
-    if (two) BP_CMD(0xC3 + ((idx) << 1), toBPAlphaOpValue(stages[(idx) + 1].alphaOp)); \
+    BP_CMD(0xC1 + ((idx) << 1), toBPAlphaOpValue(stages[idx], stages[idx].alphaOp)); \
+    if (two) BP_CMD(0xC3 + ((idx) << 1), toBPAlphaOpValue(stages[(idx) + 1], stages[(idx) + 1].alphaOp)); \
     else CMD_NOOP(0x5); \
     BP_CMD(0x10 + (idx), 0x000000); \
     if (two) BP_CMD(0x11 + (idx), 0x000000); \
@@ -389,6 +394,8 @@ ShaderCode::Stage::Stage() :
     texMap{0},
     texCoord{0},
     rasterColour{RasterColour::LightChannel0},
+    texSwapTable{0},
+    rasterSwapTable{0},
     colourCSrc{ColourConstant::MaterialConstColour0_RGB},
     alphaCSrc{AlphaConstant::MaterialConstColour0_Alpha},
     colourOp{
@@ -443,6 +450,28 @@ void ShaderCode::Stage::setRasterColour(RasterColour colour)
 ShaderCode::Stage::RasterColour ShaderCode::Stage::getRasterColour() const
 {
     return rasterColour;
+}
+
+void ShaderCode::Stage::setTextureSwapTable(uint32_t table)
+{
+    assertValidSwapTable(table);
+    texSwapTable = table;
+}
+
+void ShaderCode::Stage::setRasterSwapTable(uint32_t table)
+{
+    assertValidSwapTable(table);
+    rasterSwapTable = table;
+}
+
+uint32_t ShaderCode::Stage::getTextureSwapTable() const
+{
+    return texSwapTable;
+}
+
+uint32_t ShaderCode::Stage::getRasterSwapTable() const
+{
+    return rasterSwapTable;
 }
 
 void ShaderCode::Stage::setColourConstantSource(ColourConstant source)
@@ -503,6 +532,17 @@ void ShaderCode::Stage::assertValidTexCoordIndex(uint32_t index) const
         throw BRRESError(Strings::format(
             "ShaderCode: Stage texture coord index out of range! (%d >= %d)",
             index, MDL0::Object::TEX_COORD_ARRAY_COUNT
+        ));
+    }
+}
+
+void ShaderCode::Stage::assertValidSwapTable(uint32_t table) const
+{
+    if (table >= ShaderCode::SWAP_TABLE_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ShaderCode: Stage swap table out of range! (%d >= %d)",
+            table, ShaderCode::SWAP_TABLE_COUNT
         ));
     }
 }

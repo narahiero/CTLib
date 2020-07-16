@@ -503,6 +503,26 @@ public:
         /*! @brief Returns the raster colour input of this shader stage. */
         RasterColour getRasterColour() const;
 
+        /*! @brief Sets the swap table index for the texture colour.
+         *  
+         *  @throw CTLib::BRRESError If the specified swap table index is more
+         *  than or equal to `ShaderCode::SWAP_TABLE_COUNT`.
+         */
+        void setTextureSwapTable(uint32_t table);
+
+        /*! @brief Sets the swap table index for the raster colour.
+         *  
+         *  @throw CTLib::BRRESError If the specified swap table index is more
+         *  than or equal to `ShaderCode::SWAP_TABLE_COUNT`.
+         */
+        void setRasterSwapTable(uint32_t table);
+
+        /*! @brief Returns the swap table index for the texture colour. */
+        uint32_t getTextureSwapTable() const;
+
+        /*! @brief Returns the swap table index for the raster colour. */
+        uint32_t getRasterSwapTable() const;
+
         /*! @brief Sets the colour constant argument source of this shader
          *  stage.
          *  
@@ -546,6 +566,9 @@ public:
         // throws if 'index' >= 'MDL0::Object::TEX_COORD_ARRAY_COUNT'
         void assertValidTexCoordIndex(uint32_t index) const;
 
+        // throws if 'table' >= 'ShaderCode::SWAP_TABLE_COUNT'
+        void assertValidSwapTable(uint32_t table) const;
+
         // whether to use a texture
         bool useTexture;
 
@@ -557,6 +580,12 @@ public:
 
         // raster colour input
         RasterColour rasterColour;
+
+        // texture swap table
+        uint32_t texSwapTable;
+
+        // raster swap table
+        uint32_t rasterSwapTable;
 
         // colour operation constant arg source
         ColourConstant colourCSrc;

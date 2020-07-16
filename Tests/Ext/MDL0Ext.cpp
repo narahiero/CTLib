@@ -109,5 +109,16 @@ TEST(ShaderCodeStageTests, Errors)
             EXPECT_THROW(stage.setTexMapID(i), BRRESError);
             EXPECT_THROW(stage.setTexCoordIndex(i), BRRESError);
         }
+
+        if (i < 4)
+        {
+            EXPECT_NO_THROW(stage.setTextureSwapTable(i));
+            EXPECT_NO_THROW(stage.setRasterSwapTable(i));
+        }
+        else
+        {
+            EXPECT_THROW(stage.setTextureSwapTable(i), BRRESError);
+            EXPECT_THROW(stage.setRasterSwapTable(i), BRRESError);
+        }
     }
 }
