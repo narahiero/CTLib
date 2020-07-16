@@ -32,11 +32,11 @@ void fromSwapTable(ShaderCode& shader, uint32_t idx, bool rg, uint32_t val)
 
 void fromStageConstants(ShaderCode::Stage& stage, bool n2, uint32_t val)
 {
-    stage.setColourOpConstantSource(
-        static_cast<ShaderCode::Stage::ColourConstant>((val >> (n2 ? 12 : 2)) & 0x1F));
+    stage.setColourConstantSource(
+        static_cast<ShaderCode::Stage::ColourConstant>((val >> (n2 ? 14 : 4)) & 0x1F));
 
-    stage.setAlphaOpConstantSource(
-        static_cast<ShaderCode::Stage::AlphaConstant>((val >> (n2 ? 17 : 7)) & 0x1F));
+    stage.setAlphaConstantSource(
+        static_cast<ShaderCode::Stage::AlphaConstant>((val >> (n2 ? 19 : 9)) & 0x1F));
 }
 
 void fromStageSources(ShaderCode::Stage& stage, bool n2, uint32_t val)
@@ -136,11 +136,11 @@ inline uint32_t toBPConstSelectionsValue(
     const std::vector<ShaderCode::Stage>& stages, uint32_t idx, bool two
 )
 {
-    return (static_cast<uint32_t>(stages[idx].getColourOpConstantSource()) <<  4)
-        |  (static_cast<uint32_t>(stages[idx].getAlphaOpConstantSource() ) <<  9)
+    return (static_cast<uint32_t>(stages[idx].getColourConstantSource()) <<  4)
+        |  (static_cast<uint32_t>(stages[idx].getAlphaConstantSource() ) <<  9)
         | (!two ? 0 :
-              (static_cast<uint32_t>(stages[idx + 1].getColourOpConstantSource()) << 14)
-            | (static_cast<uint32_t>(stages[idx + 1].getAlphaOpConstantSource() ) << 19)
+              (static_cast<uint32_t>(stages[idx + 1].getColourConstantSource()) << 14)
+            | (static_cast<uint32_t>(stages[idx + 1].getAlphaConstantSource() ) << 19)
         );
 }
 
@@ -405,7 +405,7 @@ ShaderCode::Stage::Stage() :
 
 void ShaderCode::Stage::setUsesTexture(bool use)
 {
-    useTexture = true;
+    useTexture = use;
 }
 
 bool ShaderCode::Stage::usesTexture() const
@@ -445,22 +445,22 @@ ShaderCode::Stage::RasterColour ShaderCode::Stage::getRasterColour() const
     return rasterColour;
 }
 
-void ShaderCode::Stage::setColourOpConstantSource(ColourConstant source)
+void ShaderCode::Stage::setColourConstantSource(ColourConstant source)
 {
     colourCSrc = source;
 }
 
-void ShaderCode::Stage::setAlphaOpConstantSource(AlphaConstant source)
+void ShaderCode::Stage::setAlphaConstantSource(AlphaConstant source)
 {
     alphaCSrc = source;
 }
 
-ShaderCode::Stage::ColourConstant ShaderCode::Stage::getColourOpConstantSource() const
+ShaderCode::Stage::ColourConstant ShaderCode::Stage::getColourConstantSource() const
 {
     return colourCSrc;
 }
 
-ShaderCode::Stage::AlphaConstant ShaderCode::Stage::getAlphaOpConstantSource() const
+ShaderCode::Stage::AlphaConstant ShaderCode::Stage::getAlphaConstantSource() const
 {
     return alphaCSrc;
 }

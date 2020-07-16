@@ -503,29 +503,28 @@ public:
         /*! @brief Returns the raster colour input of this shader stage. */
         RasterColour getRasterColour() const;
 
-        /*! @brief Sets the colour operation constant argument source of this
-         *  shader stage.
+        /*! @brief Sets the colour constant argument source of this shader
+         *  stage.
          *  
          *  @param[in] source The constant argument source
          */
-        void setColourOpConstantSource(ColourConstant source);
+        void setColourConstantSource(ColourConstant source);
 
-        /*! @brief Sets the alpha operation constant argument source of this
-         *  shader stage.
+        /*! @brief Sets the alpha constant argument source of this shader stage.
          *  
          *  @param[in] source The constant argument source
          */
-        void setAlphaOpConstantSource(AlphaConstant source);
+        void setAlphaConstantSource(AlphaConstant source);
 
-        /*! @brief Returns the colour operation constant argument source of this
-         *  shader stage.
+        /*! @brief Returns the colour constant argument source of this shader
+         *  stage.
          */
-        ColourConstant getColourOpConstantSource() const;
+        ColourConstant getColourConstantSource() const;
 
-        /*! @brief Returns the alpha operation constant argument source of this
-         *  shader stage.
+        /*! @brief Returns the alpha constant argument source of this shader
+         *  stage.
          */
-        AlphaConstant getAlphaOpConstantSource() const;
+        AlphaConstant getAlphaConstantSource() const;
 
         /*! @brief Sets the colour operation of this shader stage. */
         void setColourOp(ColourOp op);
