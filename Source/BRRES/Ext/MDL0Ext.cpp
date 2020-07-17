@@ -217,7 +217,7 @@ inline uint32_t toBPAlphaOpValue(const ShaderCode::Stage& stage, const ShaderCod
 
 Buffer ShaderCode::toStandardLayout() const
 {
-    Buffer gcode(0x1D0);
+    Buffer gcode(0x1E0);
 
     BP_SWAP_TABLE(0);
     BP_SWAP_TABLE(1);

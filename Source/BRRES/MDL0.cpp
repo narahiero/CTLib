@@ -1538,7 +1538,7 @@ bool MDL0::Material::Layer::usesTexelInterpolate() const
 
 MDL0::Shader::Shader(MDL0* mdl0, const std::string& name) :
     Section(mdl0, name),
-    stages{}
+    gcode{}
 {
     for (uint8_t i = 0; i < MAX_TEX_REF; ++i)
     {
@@ -1546,26 +1546,17 @@ MDL0::Shader::Shader(MDL0* mdl0, const std::string& name) :
     }
 }
 
-MDL0::Shader::~Shader()
-{
-    for (Stage* stage : stages)
-    {
-        delete stage;
-    }
-}
+MDL0::Shader::~Shader() = default;
 
 MDL0::SectionType MDL0::Shader::getType() const
 {
     return SectionType::Shader;
 }
 
-MDL0::Shader::Stage* MDL0::Shader::addStage()
+void MDL0::Shader::setStageCount(uint8_t count)
 {
-    assertCanAddStage();
-
-    Stage* stage = new Stage(this);
-    stages.push_back(stage);
-    return stage;
+    assertValidStageCount(count);
+    stageCount = count;
 }
 
 void MDL0::Shader::setTexRef(uint8_t index, uint8_t layer)
@@ -1576,20 +1567,9 @@ void MDL0::Shader::setTexRef(uint8_t index, uint8_t layer)
     texRefs[index] = layer;
 }
 
-MDL0::Shader::Stage* MDL0::Shader::getStage(uint8_t index) const
-{
-    assertValidStageIndex(index);
-    return stages.at(index);
-}
-
-std::vector<MDL0::Shader::Stage*> MDL0::Shader::getStages() const
-{
-    return stages;
-}
-
 uint8_t MDL0::Shader::getStageCount() const
 {
-    return static_cast<uint8_t>(stages.size());
+    return stageCount;
 }
 
 uint8_t MDL0::Shader::getTexRef(uint8_t index) const
@@ -1598,24 +1578,24 @@ uint8_t MDL0::Shader::getTexRef(uint8_t index) const
     return texRefs[index];
 }
 
-void MDL0::Shader::assertCanAddStage() const
+void MDL0::Shader::setGraphicsCode(Buffer& data)
 {
-    if (getStageCount() == MAX_STAGE_COUNT - 1)
-    {
-        throw BRRESError(Strings::format(
-            "MDL0: This shader already has the maximum number of stages! (%d)",
-            MAX_STAGE_COUNT
-        ));
-    }
+    gcode = Buffer(data.remaining());
+    gcode.put(data).flip();
 }
 
-void MDL0::Shader::assertValidStageIndex(uint8_t index) const
+Buffer MDL0::Shader::getGraphicsCode() const
 {
-    if (index >= getStageCount())
+    return gcode.duplicate();
+}
+
+void MDL0::Shader::assertValidStageCount(uint8_t count) const
+{
+    if (count > MAX_STAGE_COUNT)
     {
         throw BRRESError(Strings::format(
-            "MDL0: The specified stage index is out of bounds! (%d >= %d)",
-            index, getStageCount()
+            "MDL0: The specified stage count is invalid! (%d > %d)",
+            count, MAX_STAGE_COUNT
         ));
     }
 }
@@ -1638,89 +1618,6 @@ void MDL0::Shader::assertValidLayerRef(uint8_t layer) const
         throw BRRESError(Strings::format(
             "MDL0: The specified material layer index is invalid! (%d)",
             layer
-        ));
-    }
-}
-
-////// Stage class /////////////////////
-
-MDL0::Shader::Stage::Stage(Shader* shader) :
-    shader{shader},
-    useTex{true},
-    texCoordIdx{0},
-    rasIn{RasterInput::Colour0},
-    colourOp{
-        ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Zero, ColourOp::Arg::Texture,
-        Bias::Zero, Op::Add, true, Scale::MultiplyBy1, Dest::PixelOutput
-    },
-    alphaOp{
-        AlphaOp::Arg::Zero, AlphaOp::Arg::Texture, AlphaOp::Arg::Raster, AlphaOp::Arg::Zero,
-        Bias::Zero, Op::Add, true, Scale::MultiplyBy1, Dest::PixelOutput
-    }
-{
-
-}
-
-MDL0::Shader::Stage::~Stage() = default;
-
-void MDL0::Shader::Stage::setUsesTexture(bool enable)
-{
-    useTex = enable;
-}
-
-void MDL0::Shader::Stage::setTexCoordIndex(uint8_t index)
-{
-    assertValidTexCoordIndex(index);
-    texCoordIdx = index;
-}
-
-void MDL0::Shader::Stage::setRasterInput(RasterInput in)
-{
-    rasIn = in;
-}
-
-void MDL0::Shader::Stage::setColourOp(ColourOp op)
-{
-    colourOp = op;
-}
-
-void MDL0::Shader::Stage::setAlphaOp(AlphaOp op)
-{
-    alphaOp = op;
-}
-
-bool MDL0::Shader::Stage::usesTexture() const
-{
-    return useTex;
-}
-
-uint8_t MDL0::Shader::Stage::getTexCoordIndex() const
-{
-    return texCoordIdx;
-}
-
-MDL0::Shader::Stage::RasterInput MDL0::Shader::Stage::getRasterInput() const
-{
-    return rasIn;
-}
-
-MDL0::Shader::Stage::ColourOp MDL0::Shader::Stage::getColourOp() const
-{
-    return colourOp;
-}
-
-MDL0::Shader::Stage::AlphaOp MDL0::Shader::Stage::getAlphaOp() const
-{
-    return alphaOp;
-}
-
-void MDL0::Shader::Stage::assertValidTexCoordIndex(uint8_t index) const
-{
-    if (index >= Object::TEX_COORD_ARRAY_COUNT)
-    {
-        throw BRRESError(Strings::format(
-            "MDL0: Invalid texture coord index! (%d >= %d)",
-            index, Object::TEX_COORD_ARRAY_COUNT
         ));
     }
 }
