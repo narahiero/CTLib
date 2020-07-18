@@ -60,6 +60,9 @@ public:
         /*! @brief Shader stage combiner. [`+ 16`] */
         BP_STAGE_COMBINER = 0xC0,
 
+        /*! @brief Material colour block. [`+ 8`] */
+        BP_MATERIAL_COLOUR = 0xE0,
+
         /*! @brief Shader swap tables. [`+ 8`] */
         BP_SWAP_TABLE = 0xF6,
 
@@ -81,7 +84,7 @@ public:
      *  @throw CTLib::BRRESError If the graphics code is invalid or contains any
      *  non-BP (`0x61`) command.
      */
-    static void readBP(Buffer& gcode, uint32_t* bp);
+    static void readBP(Buffer& gcode, uint64_t* bp);
 };
 
 /*! @} addtogroup brres */

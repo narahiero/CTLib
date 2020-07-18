@@ -27,7 +27,7 @@ TEST(WGCodeTests, BPRead)
     Buffer gcode(sizeof(gcodeRaw) / sizeof(gcodeRaw[0]));
     gcode.putArray(gcodeRaw, gcode.capacity()).flip();
 
-    uint32_t bp[0x100];
+    uint64_t bp[0x100];
     Ext::WGCode::readBP(gcode, bp);
 
     for (uint32_t addr = 0; addr < 0x100; ++addr)
@@ -86,7 +86,7 @@ TEST(WGCodeTests, BPMask)
     Buffer gcode(sizeof(gcodeRaw) / sizeof(gcodeRaw[0]));
     gcode.putArray(gcodeRaw, gcode.capacity()).flip();
 
-    uint32_t bp[0x100];
+    uint64_t bp[0x100];
     Ext::WGCode::readBP(gcode, bp);
 
     for (uint32_t addr = 0; addr < 0x100; ++addr)
@@ -131,10 +131,45 @@ TEST(WGCodeTests, BPMaskLast)
     Buffer gcode(sizeof(gcodeRaw) / sizeof(gcodeRaw[0]));
     gcode.putArray(gcodeRaw, gcode.capacity()).flip();
 
-    uint32_t bp[0x100];
+    uint64_t bp[0x100];
     Ext::WGCode::readBP(gcode, bp);
 
     EXPECT_EQ(bp[0xFE], 0x053212); // mask not reset since no write followed
+}
+
+TEST(WGCodeTests, ColourRegisters)
+{
+    uint8_t gcodeRaw[] = {
+        0x00,
+        0x61, 0xE2, 0x80, 0x34, 0x12, // <- const colour set
+        0x00, 0x00, 0x00,
+        0x61, 0xE4, 0x52, 0x12, 0xF4, // <- colour set
+        0x61, 0xE1, 0x9D, 0xE4, 0x00, // <- const colour set
+        0x00, 0x00,
+        0x61, 0xE2, 0x73, 0x0D, 0xAA, // <- colour set
+        0x00
+    };
+    Buffer gcode(sizeof(gcodeRaw) / sizeof(gcodeRaw[0]));
+    gcode.putArray(gcodeRaw, gcode.capacity()).flip();
+
+    uint64_t bp[0x100];
+    Ext::WGCode::readBP(gcode, bp);
+
+    for (uint32_t addr = 0xE0; addr < 0xE8; ++addr)
+    {
+        if (addr == 0xE1)
+        {
+            EXPECT_EQ(bp[addr], 0x1DE40000000000);
+        }
+        else if (addr == 0xE2)
+        {
+            EXPECT_EQ(bp[addr], 0x00341200730DAA);
+        }
+        else if (addr == 0xE4)
+        {
+            EXPECT_EQ(bp[addr], 0x5212F4);
+        }
+    }
 }
 
 TEST(WGCodeTests, BPReadErrors)
@@ -151,7 +186,7 @@ TEST(WGCodeTests, BPReadErrors)
     Buffer gcode(sizeof(invalidCmd) / sizeof(invalidCmd[0]));
     gcode.putArray(invalidCmd, gcode.capacity()).flip();
 
-    uint32_t bp[0x100];
+    uint64_t bp[0x100];
     EXPECT_THROW(Ext::WGCode::readBP(gcode, bp), BRRESError);
 
     ////////////////////////////////////

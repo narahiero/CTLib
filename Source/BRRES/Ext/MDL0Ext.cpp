@@ -97,29 +97,34 @@ ShaderCode ShaderCode::fromGraphicsCode(Buffer& gcode, uint32_t stageCount)
         shader.addStage();
     }
 
-    uint32_t bp[0x100];
+    uint64_t bp[0x100];
     WGCode::readBP(gcode, bp);
 
     for (uint32_t i = 0; i < SWAP_TABLE_COUNT; ++i)
     {
-        fromSwapTable(shader, i, true, bp[WGCode::BP_SWAP_TABLE + (i << 1)]);
-        fromSwapTable(shader, i, false, bp[WGCode::BP_SWAP_TABLE + 1 + (i << 1)]);
+        fromSwapTable(shader, i, true, (uint32_t)bp[WGCode::BP_SWAP_TABLE + (i << 1)]);
+        fromSwapTable(shader, i, false, (uint32_t)bp[WGCode::BP_SWAP_TABLE + 1 + (i << 1)]);
     }
 
-    fromIndirectSources(shader, bp[WGCode::BP_IND_TEX_REF]);
+    fromIndirectSources(shader, (uint32_t)bp[WGCode::BP_IND_TEX_REF]);
 
     for (uint32_t s = 0; s < stageCount; ++s)
     {
         Stage& stage = shader.getStage(s);
 
-        fromStageConstants(stage, s & 1, bp[WGCode::BP_STAGE_CONST_SRC + (s >> 1)]);
-        fromStageSources(stage, s & 1, bp[WGCode::BP_STAGE_SRC + (s >> 1)]);
+        fromStageConstants(stage, s & 1, (uint32_t)bp[WGCode::BP_STAGE_CONST_SRC + (s >> 1)]);
+        fromStageSources(stage, s & 1, (uint32_t)bp[WGCode::BP_STAGE_SRC + (s >> 1)]);
 
-        fromColourOp(stage, bp[WGCode::BP_STAGE_COMBINER + (s << 1)]);
-        fromAlphaOp(stage, bp[WGCode::BP_STAGE_COMBINER + 1 + (s << 1)]);
+        fromColourOp(stage, (uint32_t)bp[WGCode::BP_STAGE_COMBINER + (s << 1)]);
+        fromAlphaOp(stage, (uint32_t)bp[WGCode::BP_STAGE_COMBINER + 1 + (s << 1)]);
     }
 
     return shader;
+}
+
+ShaderCode ShaderCode::fromStandardLayout(Buffer& gcode)
+{
+    return ShaderCode();
 }
 
 inline uint32_t toBPSwapTableValue(ShaderCode::Channel a, ShaderCode::Channel b)

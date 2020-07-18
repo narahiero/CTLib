@@ -622,7 +622,7 @@ public:
     static ShaderCode fromGraphicsCode(Buffer& gcode, uint32_t stageCount);
 
     /*! @brief Parses the graphics code from the specified buffer using the
-     *  standard fixed-position code layout.
+     *  standard fixed-position code layout. **NOT IMPLEMENTED YET**
      *  
      *  **Note**: This function is very strict and not very user-friendly. The
      *  `fromGraphicsCode()` function should be used _whenever possible_.

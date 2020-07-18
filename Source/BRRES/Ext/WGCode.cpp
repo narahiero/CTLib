@@ -12,9 +12,9 @@
 namespace CTLib::Ext
 {
 
-constexpr uint32_t BP_MASK_ALL = 0xFFFFFF;
+constexpr uint64_t BP_MASK_ALL = 0xFFFFFF;
 
-void initBP(uint32_t* bp)
+void initBP(uint64_t* bp)
 {
     for (uint32_t i = 0; i < 0x100; ++i)
     {
@@ -24,7 +24,7 @@ void initBP(uint32_t* bp)
     bp[WGCode::BP_MASK] = BP_MASK_ALL;
 }
 
-void WGCode::readBP(Buffer& gcode, uint32_t* bp)
+void WGCode::readBP(Buffer& gcode, uint64_t* bp)
 {
     initBP(bp);
 
@@ -52,13 +52,22 @@ void WGCode::readBP(Buffer& gcode, uint32_t* bp)
         }
 
         uint32_t pack = gcode.getInt();
-        uint32_t addr = pack >> 24;
-        uint32_t value = pack & 0x00FFFFFF;
+        uint8_t addr = static_cast<uint8_t>(pack >> 24);
+        uint64_t value = pack & 0x00FFFFFF;
 
-        uint32_t mask = bp[BP_MASK];
+        uint64_t mask = bp[BP_MASK];
         bp[BP_MASK] = BP_MASK_ALL;
 
-        bp[addr] = (value & mask) | (bp[addr] & ~mask);
+        if (addr >= BP_MATERIAL_COLOUR && addr < BP_MATERIAL_COLOUR + 8)
+        {
+            bool isconst = (value >> 23) & 1;
+            value &= ~(1Ui64 << 23);
+            bp[addr] = ((0xFFFFFFUi64 << (isconst ? 0 : 32)) & bp[addr]) | (value << (isconst ? 32 : 0));
+        }
+        else
+        {
+            bp[addr] = (value & mask) | (bp[addr] & ~mask);
+        }
     }
 }
 }
