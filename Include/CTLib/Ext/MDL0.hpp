@@ -35,6 +35,103 @@ namespace CTLib::Ext
  *  @{
  */
 
+/*! @brief The MaterialCode class is used to parse and create Wii Graphics Code
+ *  for a MDL0 Material.
+ */
+class MaterialCode final
+{
+
+public:
+
+    /*! @brief A material colour block. */
+    struct Colour
+    {
+
+        /*! @brief Red channel (11 out of 16 bits used). */
+        uint16_t red;
+
+        /*! @brief Green channel (11 out of 16 bits used). */
+        uint16_t green;
+
+        /*! @brief Blue channel (11 out of 16 bits used). */
+        uint16_t blue;
+
+        /*! @brief Alpha channel (11 out of 16 bits used). */
+        uint16_t alpha;
+    };
+
+    /*! @brief The number of constant colour blocks per material. */
+    constexpr static uint32_t CONST_COLOUR_COUNT = 4;
+
+    /*! @brief Parses the graphics code from the specified buffer.
+     *  
+     *  **Note**: Unused BP and XF addresses will be silently ignored by this
+     *  function.
+     *  
+     *  @param[in] gcode The buffer containing the Wii Graphics Code.
+     *  @param[in] stageCount The number of shader stages
+     *  
+     *  @throw CTLib::BRRESError If the graphics code is invalid or contains
+     *  illegal (non-BP and non-XF) commands.
+     */
+    static MaterialCode fromGraphicsCode(Buffer& gcode);
+
+    /*! @brief Constructs a MaterialCode instance with default values. */
+    MaterialCode();
+
+    /*! @brief Generates graphics code from this MaterialCode object using the
+     *  standard fixed-position code layout.
+     *  
+     *  @return A buffer containing the generated Wii Graphics Code
+     */
+    Buffer toStandardLayout() const;
+
+    /*! @brief Sets whether this material outputs a constant alpha value. */
+    void setUseConstAlpha(bool enable);
+
+    /*! @brief Sets the constant output alpha value of this material. */
+    void setConstAlpha(uint8_t value);
+
+    /*! @brief Returns whether this material outputs a constant alpha value. */
+    bool usesConstAlpha() const;
+
+    /*! @brief Returns the constant output alpha value of this material. */
+    uint8_t getConstAlpha() const;
+
+    /*! @brief Sets the constant colour block at the specified index.
+     *  
+     *  @param[in] index The constant colour block index
+     *  @param[in] colour The colour value
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `CONST_COLOUR_COUNT`.
+     */
+    void setConstColour(uint32_t index, Colour colour);
+
+    /*! @brief Returns the constant colour block at the specified index.
+     *  
+     *  @param[in] index The constant colour block index
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `CONST_COLOUR_COUNT`.
+     */
+    Colour getConstColour(uint32_t index) const;
+
+private:
+
+    // throws if 'index' >= 'CONST_COLOUR_COUNT'
+    void assertValidConstColourIndex(uint32_t index) const;
+
+    // whether to use constant alpha
+    bool useConstAlpha;
+
+    // constant alpha if enabled
+    uint8_t constAlpha;
+
+    // constant colour blocks
+    Colour constColours[CONST_COLOUR_COUNT];
+};
+
 /*! @brief The ShaderCode class is used to parse and create Wii Graphics Code
  *  for a MDL0 Shader.
  */

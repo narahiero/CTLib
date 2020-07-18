@@ -13,6 +13,134 @@
 namespace CTLib::Ext
 {
 
+/// Graphics code utilities
+
+inline void fillNOOPs(Buffer& gcode, uint32_t count)
+{
+    for (uint32_t i = 0; i < count; ++i)
+    {
+        gcode.put(0x00);
+    }
+}
+
+inline void putBPCommand(Buffer& gcode, uint8_t address, uint32_t value)
+{
+    gcode.put(0x61).putInt((address << 24) | (value & 0x00FFFFFF));
+}
+
+inline uint32_t toBPAlphaConstValue(bool enable, uint8_t value)
+{
+    return ((enable ? 1 : 0) << 8) | value;
+}
+
+inline uint32_t toBPConstColourARValue(MaterialCode::Colour colour)
+{
+    return 0x800000 | ((colour.alpha & 0x7FF) << 12) | (colour.red & 0x7FF);
+}
+
+inline uint32_t toBPConstColourGBValue(MaterialCode::Colour colour)
+{
+    return 0x800000 | ((colour.green & 0x7FF) << 12) | (colour.blue & 0x7FF);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   MaterialCode class
+////
+
+Buffer MaterialCode::toStandardLayout() const
+{
+    Buffer gcode(0x180);
+
+    fillNOOPs(gcode, 0x14); // temporary space fill
+    putBPCommand(gcode, 0x42, toBPAlphaConstValue(useConstAlpha, constAlpha));
+    fillNOOPs(gcode, 0x7); // padding
+
+    // non-const material colour registers
+    for (uint32_t i = 0; i < 3; ++i)
+    {
+        putBPCommand(gcode, 0xE2 + (i << 1), 0x000000);
+        putBPCommand(gcode, 0xE3 + (i << 1), 0x000000);
+        putBPCommand(gcode, 0xE3 + (i << 1), 0x000000);
+        putBPCommand(gcode, 0xE3 + (i << 1), 0x000000);
+    }
+    fillNOOPs(gcode, 0x4); // padding
+
+    // const material colour registers
+    for (uint32_t i = 0; i < CONST_COLOUR_COUNT; ++i)
+    {
+        putBPCommand(gcode, 0xE0 + (i << 1), toBPConstColourARValue(constColours[i]));
+        putBPCommand(gcode, 0xE1 + (i << 1), toBPConstColourGBValue(constColours[i]));
+    }
+    fillNOOPs(gcode, 0x18); // padding
+
+    fillNOOPs(gcode, 0xE0); // temporary space fill
+
+    return gcode.clear();
+}
+
+MaterialCode::MaterialCode() :
+    useConstAlpha{false},
+    constAlpha{0xFF}
+{
+    for (uint32_t i = 0; i < CONST_COLOUR_COUNT; ++i)
+    {
+        constColours[i] = {0x000, 0x000, 0x000, 0x000};
+    }
+}
+
+void MaterialCode::setUseConstAlpha(bool enable)
+{
+    useConstAlpha = enable;
+}
+
+void MaterialCode::setConstAlpha(uint8_t alpha)
+{
+    constAlpha = alpha;
+}
+
+bool MaterialCode::usesConstAlpha() const
+{
+    return useConstAlpha;
+}
+
+uint8_t MaterialCode::getConstAlpha() const
+{
+    return constAlpha;
+}
+
+void MaterialCode::setConstColour(uint32_t index, Colour colour)
+{
+    assertValidConstColourIndex(index);
+    constColours[index] = colour;
+}
+
+MaterialCode::Colour MaterialCode::getConstColour(uint32_t index) const
+{
+    assertValidConstColourIndex(index);
+    return constColours[index];
+}
+
+void MaterialCode::assertValidConstColourIndex(uint32_t index) const
+{
+    if (index >= CONST_COLOUR_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "MaterialCode: Constant colour block index out of range! (%d >= %d)",
+            index, CONST_COLOUR_COUNT
+        ));
+    }
+}
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   ShaderCode class
+////
+
 void fromIndirectSources(ShaderCode& shader, uint32_t val)
 {
     for (uint32_t i = 0; i < ShaderCode::INDIRECT_TEX_STAGE_COUNT; ++i)
