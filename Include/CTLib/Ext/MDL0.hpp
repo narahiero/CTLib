@@ -69,7 +69,6 @@ public:
      *  function.
      *  
      *  @param[in] gcode The buffer containing the Wii Graphics Code.
-     *  @param[in] stageCount The number of shader stages
      *  
      *  @throw CTLib::BRRESError If the graphics code is invalid or contains
      *  illegal (non-BP and non-XF) commands.

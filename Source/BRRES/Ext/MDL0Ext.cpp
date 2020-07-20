@@ -50,6 +50,15 @@ inline uint32_t toBPConstColourGBValue(MaterialCode::Colour colour)
 ////   MaterialCode class
 ////
 
+MaterialCode MaterialCode::fromGraphicsCode(Buffer& gcode)
+{
+    MaterialCode mat;
+
+
+
+    return mat;
+}
+
 Buffer MaterialCode::toStandardLayout() const
 {
     Buffer gcode(0x180);
