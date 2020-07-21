@@ -1189,6 +1189,16 @@ public:
         /*! @brief Returns the Shader used by this Material. */
         Shader* getShader() const;
 
+        /*! @brief Sets the graphics code of this material. */
+        void setGraphicsCode(Buffer& data);
+
+        /*! @brief Returns the graphics code of this material.
+         *  
+         *  Any change made to the returned buffer will be reflected in the
+         *  graphics code of this material.
+         */
+        Buffer getGraphicsCode() const;
+
     protected:
 
         //! entry callback
@@ -1218,6 +1228,9 @@ public:
 
         // the Shader used by this material
         Shader* shader;
+
+        // graphics code
+        Buffer gcode;
     };
 
     /*! @brief A shader within a MDL0. (Section #9) */

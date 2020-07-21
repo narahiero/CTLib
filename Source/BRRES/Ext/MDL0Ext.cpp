@@ -13,7 +13,31 @@
 namespace CTLib::Ext
 {
 
-/// Graphics code utilities
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   Graphics code utilities
+////
+
+/// READ
+
+inline void fromBPConstAlpha(MaterialCode& mat, uint64_t value)
+{
+    mat.setUseConstAlpha((value >> 8) & 1);
+    mat.setConstAlpha(value & 0xFF);
+}
+
+inline MaterialCode::Colour fromBPColour(uint32_t ar, uint32_t gb)
+{
+    return { (ar & 0x7FF), ((gb >> 12) & 0x7FF), (gb & 0x7FF), ((ar >> 12) & 0x7FF) };
+}
+
+inline void fromBPColourRegisters(MaterialCode& mat, uint32_t index, uint64_t ar, uint64_t gb)
+{
+    mat.setConstColour(index, fromBPColour((uint32_t)(ar >> 32), (uint32_t)(gb >> 32)));
+}
+
+/// WRITE
 
 inline void fillNOOPs(Buffer& gcode, uint32_t count)
 {
@@ -54,7 +78,16 @@ MaterialCode MaterialCode::fromGraphicsCode(Buffer& gcode)
 {
     MaterialCode mat;
 
+    WGCode::Context c;
+    WGCode::readGraphicsCode(gcode, &c, true, WGCode::FLAG_USE_BP | WGCode::FLAG_USE_XF);
 
+    fromBPConstAlpha(mat, c.bp[Ext::WGCode::BP_CONST_ALPHA]);
+
+    for (uint32_t i = 0; i < CONST_COLOUR_COUNT; ++i)
+    {
+        fromBPColourRegisters(mat, i, c.bp[Ext::WGCode::BP_MATERIAL_COLOUR + (i << 1)],
+            c.bp[Ext::WGCode::BP_MATERIAL_COLOUR + 1 + (i << 1)]);
+    }
 
     return mat;
 }
@@ -85,7 +118,13 @@ Buffer MaterialCode::toStandardLayout() const
     }
     fillNOOPs(gcode, 0x18); // padding
 
-    fillNOOPs(gcode, 0xE0); // temporary space fill
+    // indirect textures scale
+    putBPCommand(gcode, 0x25, 0x000000);
+    putBPCommand(gcode, 0x26, 0x000000);
+
+    fillNOOPs(gcode, 0x36); // padding
+
+    fillNOOPs(gcode, 0xA0); // temporary space fill
 
     return gcode.clear();
 }

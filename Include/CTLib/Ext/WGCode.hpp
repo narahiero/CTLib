@@ -69,6 +69,9 @@ public:
         /*! @brief Shader stage sources. [`+ 4`] */
         BP_STAGE_SRC = 0x28,
 
+        /*! @brief Material constant alpha. */
+        BP_CONST_ALPHA = 0x42,
+
         /*! @brief Shader stage combiner. [`+ 16`] */
         BP_STAGE_COMBINER = 0xC0,
 

@@ -834,6 +834,12 @@ void readMDL0Section<MDL0::Material>(
         data.getInt(); // colour control
         data.getInt(); // alpha control
     }
+
+    ////// GRAPHICS CODE ///////////////
+
+    Buffer gcode = data.position(wgcOff).slice();
+    gcode.limit(len - wgcOff);
+    mat->setGraphicsCode(gcode);
 }
 
 template <>

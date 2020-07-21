@@ -1399,6 +1399,17 @@ MDL0::Shader* MDL0::Material::getShader() const
     return shader;
 }
 
+void MDL0::Material::setGraphicsCode(Buffer& data)
+{
+    gcode = Buffer(data.remaining());
+    gcode.put(data).flip();
+}
+
+Buffer MDL0::Material::getGraphicsCode() const
+{
+    return gcode.duplicate();
+}
+
 void MDL0::Material::entryCallback(Section* instance, bool add)
 {
     if (add) // ignore if not removing

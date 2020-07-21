@@ -81,7 +81,8 @@ uint32_t calculateMDL0SectionSize<MDL0::TexCoordArray>(MDL0::TexCoordArray* inst
 template <>
 uint32_t calculateMDL0SectionSize<MDL0::Material>(MDL0::Material* instance)
 {
-    return padNumber(0x418 + (instance->getLayerCount() * 0x34), 0x20) + 0x180;
+    return padNumber(0x418 + (instance->getLayerCount() * 0x34), 0x20) + 
+        padNumber(static_cast<uint32_t>(instance->getGraphicsCode().remaining()), 0x10);
 }
 
 template <>
@@ -881,64 +882,8 @@ void writeMDL0MaterialSections(
 
         ////// Graphics Code ///////////
 
-        // Mode information (0x20)
         out.position(pos + displayListOff);
-
-        out.put(0x61).put(0xF3).put(0x3F).put(0x00).put(0x00); // unknown BP instruction
-        out.put(0x61).put(0x40).put(0x00).put(0x00).put(0x17); // unknown BP instruction
-
-        out.put(0x61).put(0xFE).put(0x00).put(0xFF).put(0xE3); // set BP mask
-        out.put(0x61).putInt(calcMDL0MaterialAlphaMode(instance)); // BP alpha blending mode
-
-        out.put(0x61).put(0x42).put(0x00).put(0x00).put(0x00); // unknown BP instruction
-
-        // Shader colours (0x40)
-        out.position(pos + displayListOff + 0x20);
-
-        out.put(0x61).put(0xE2).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE3).put(0x00).put(0x00).put(0x00);
-
-        out.put(0x61).put(0xE4).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE5).put(0x00).put(0x00).put(0x00);
-
-        out.put(0x61).put(0xE6).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
-        out.put(0x61).put(0xE7).put(0x00).put(0x00).put(0x00);
-
-        // Shader constant colours (0x40)
-        out.position(pos + displayListOff + 0x60);
-
-        out.put(0x61).put(0xE0).put(0x80).put(0x00).put(0x00);
-        out.put(0x61).put(0xE1).put(0x80).put(0x00).put(0x00);
-
-        out.put(0x61).put(0xE2).put(0x80).put(0x00).put(0x00);
-        out.put(0x61).put(0xE3).put(0x80).put(0x00).put(0x00);
-
-        out.put(0x61).put(0xE4).put(0x80).put(0x00).put(0x00);
-        out.put(0x61).put(0xE5).put(0x80).put(0x00).put(0x00);
-
-        out.put(0x61).put(0xE6).put(0x80).put(0x00).put(0x00);
-        out.put(0x61).put(0xE7).put(0x80).put(0x00).put(0x00);
-
-        // Texture tranformations (0x40)
-        out.position(pos + displayListOff + 0xA0);
-
-        out.put(0x61).put(0x25).put(0x00).put(0x00).put(0x00); // unknown BP instruction
-        out.put(0x61).put(0x26).put(0x00).put(0x00).put(0x00); // unknown BP instruction
-
-        // Texture matrices (0xA0)
-        out.position(pos + displayListOff + 0xE0);
-
-        for (uint8_t i = 0; i < instance->getLayerCount(); ++i)
-        {
-            out.put(0x10).putShort(0).putShort(0x1040 + i).putInt(0x00005280); // XF tex matrix0
-            out.put(0x10).putShort(0).putShort(0x1050 + i).putInt(i * 0x3); // XF posteffect matrix0
-        }
+        out.put(instance->getGraphicsCode());
     }
 }
 
