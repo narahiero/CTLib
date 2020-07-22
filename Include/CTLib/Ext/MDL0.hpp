@@ -857,6 +857,272 @@ private:
     std::vector<Stage> stages;
 };
 
+/*! @brief The ObjectCode class is used to parse and create Wii Graphics Code
+ *  for a MDL0 Object.
+ */
+class ObjectCode final
+{
+
+public:
+
+    /*! @brief Data type presence and mode. */
+    enum class Mode : uint8_t
+    {
+        /*! @brief Object does not have this type of data. */
+        None = 0x0,
+
+        /*! @brief Data of this type is direct (not indexed). */
+        Direct = 0x1,
+
+        /*! @brief Data of this type is indexed (8-bit mode). */
+        Indexed8 = 0x2,
+
+        /*! @brief Data of this type is indexed (16-bit mode). */
+        Indexed16 = 0x3
+    };
+
+    /*! @brief Primitive type of data components. */
+    enum class Type : uint8_t
+    {
+        /*! @brief Unsigned byte (8-bit). */
+        UInt8 = 0x0,
+
+        /*! @brief Signed byte (8-bit). */
+        Int8 = 0x1,
+
+        /*! @brief Unsigned short (16-bit). */
+        UInt16 = 0x2,
+
+        /*! @brief Signed short (16-bit). */
+        Int16 = 0x3,
+
+        /*! @brief Floating point (32-bit). */
+        Float = 0x4
+    };
+
+    /*! @brief Size of colour channels. */
+    enum class ColourType : uint8_t
+    {
+        /*! @brief Red (5-bit), green (6-bit), blue (5-bit). */
+        RGB565 = 0x0,
+
+        /*! @brief Red (8-bit), green (8-bit), blue (8-bit). */
+        RGB8 = 0x1,
+
+        /*! @brief Red (8-bit), green (8-bit), blue (8-bit), discard (8-bit). */
+        RGBX8 = 0x2,
+
+        /*! @brief Red (4-bit), green (4-bit), blue (4-bit), alpha (4-bit). */
+        RGBA4 = 0x3,
+
+        /*! @brief Red (6-bit), green (6-bit), blue (6-bit), alpha (6-bit). */
+        RGBA6 = 0x4,
+
+        /*! @brief Red (8-bit), green (8-bit), blue (8-bit), alpha (8-bit). */
+        RGBA8 = 0x5
+    };
+
+    /*! @brief Elements per vertex. */
+    enum class VertexElements : uint8_t
+    {
+        /*! @brief X and Y coordinates (2 components per vertex). */
+        XY = 0x0,
+
+        /*! @brief X, Y, and Z coordinates (3 components per vertex). */
+        XYZ = 0x1
+    };
+
+    /*! @brief Elements per normal. */
+    enum class NormalElements : uint8_t
+    {
+        /*! @brief Normal (3 components per normal). */
+        Normal = 0x0,
+
+        /*! @brief Normal, binormal, and tangent (9 components per normal). */
+        NBT = 0x1
+    };
+
+    /*! @brief Elements per texture coordinate. */
+    enum class TexCoordElements : uint8_t
+    {
+        /*! @brief S coordinate (1 component per coordinate). */
+        S = 0x0,
+
+        /*! @brief S and T coordinates (2 components per coordinate). */
+        ST = 0x1
+    };
+
+    /*! @brief Parses the graphics code from the specified buffer.
+     *  
+     *  @param[in] gcode The buffer containing the Wii Graphics Code.
+     *  
+     *  @throw CTLib::BRRESError If the graphics code is invalid or contains
+     *  illegal (non-CP and non-XF) commands.
+     */
+    static ShaderCode fromGraphicsCode(Buffer& gcode);
+
+    /*! @brief Constructs a new ObjectCode instance with the default values. */
+    ObjectCode();
+
+    /*! @brief Sets all the fields of this object to match the specified MDL0
+     *  Object.
+     *  
+     *  If the specified object is `nullptr`, this method does nothing.
+     */
+    void configureFromMDL0Object(MDL0::Object* obj);
+
+    /*! @brief Sets the vertex mode of this object. */
+    void setVertexMode(Mode mode);
+
+    /*! @brief Sets the vertex elements' type of this object. */
+    void setVertexType(Type type);
+
+    /*! @brief Sets the vertex elements of this object. */
+    void setVertexElements(VertexElements elems);
+
+    /*! @brief Sets the vertex divisor of this object. */
+    void setVertexDivisor(uint8_t divisor);
+
+    /*! @brief Returns the vertex mode of this object. */
+    Mode getVertexMode() const;
+
+    /*! @brief Returns the vertex elements' type of this object. */
+    Type getVertexType() const;
+
+    /*! @brief Returns the vertex element of this object. */
+    VertexElements getVertexElements() const;
+
+    /*! @brief Returns the vertex divisor of this object. */
+    uint8_t getVertexDivisor() const;
+
+    /*! @brief Sets the normal mode of this object. */
+    void setNormalMode(Mode mode);
+
+    /*! @brief Sets the normal elements' type of this object. */
+    void setNormalType(Type type);
+
+    /*! @brief Sets the normal elements of this object. */
+    void setNormalElements(NormalElements elems);
+
+    /*! @brief Returns the normal mode of this object. */
+    Mode getNormalMode() const;
+
+    /*! @brief Returns the normal elements' type of this object. */
+    Type getNormalType() const;
+
+    /*! @brief Returns the normal elements of this object. */
+    NormalElements getNormalElements() const;
+
+    /*! @brief Sets the colour mode at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::COLOUR_ARRAY_COUNT`.
+     */
+    void setColourMode(uint32_t index, Mode mode);
+
+    /*! @brief Sets the colour type at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::COLOUR_ARRAY_COUNT`.
+     */
+    void setColourType(uint32_t index, ColourType type);
+
+    /*! @brief Returns the colour mode at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::COLOUR_ARRAY_COUNT`.
+     */
+    Mode getColourMode(uint32_t index) const;
+
+    /*! @brief Returns the colour type at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::COLOUR_ARRAY_COUNT`.
+     */
+    ColourType getColourType(uint32_t index) const;
+
+    /*! @brief Sets the texture coord mode at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    void setTexCoordMode(uint32_t index, Mode mode);
+
+    /*! @brief Sets the texture coord elements' type at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    void setTexCoordType(uint32_t index, Type type);
+
+    /*! @brief Sets the texture coord elements at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    void setTexCoordElements(uint32_t index, TexCoordElements elems);
+
+    /*! @brief Sets the texture coord divisor at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    void setTexCoordDivisor(uint32_t index, uint8_t divisor);
+
+    /*! @brief Returns the texture coord mode at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    Mode getTexCoordMode(uint32_t index) const;
+
+    /*! @brief Returns the texture coord elements' type at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    Type getTexCoordType(uint32_t index) const;
+
+    /*! @brief Returns the texture coord elements at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    TexCoordElements getTexCoordElements(uint32_t index) const;
+
+    /*! @brief Returns the texture coord divisor at the specified index.
+     *  
+     *  @throw CTLib::BRRESError If the specified index is more than or equal to
+     *  `MDL0::Object::TEX_COORD_ARRAY_COUNT`.
+     */
+    uint8_t getTexCoordDivisor(uint32_t index) const;
+
+private:
+
+    // throws if 'index' >= 'MDL0::Object::COLOUR_ARRAY_COUNT'
+    void assertValidColourIndex(uint32_t index) const;
+
+    // throws if 'index' >= 'MDL0::Object::TEX_COORD_ARRAY_COUNT'
+    void assertValidTexCoordIndex(uint32_t index) const;
+
+    Mode vertexMode;
+    Type vertexType;
+    VertexElements vertexElements;
+    uint8_t vertexDivisor;
+
+    Mode normalMode;
+    Type normalType;
+    NormalElements normalElements;
+
+    Mode colourModes[MDL0::Object::COLOUR_ARRAY_COUNT];
+    ColourType colourTypes[MDL0::Object::COLOUR_ARRAY_COUNT];
+
+    Mode texCoordModes[MDL0::Object::TEX_COORD_ARRAY_COUNT];
+    Type texCoordTypes[MDL0::Object::TEX_COORD_ARRAY_COUNT];
+    TexCoordElements texCoordElements[MDL0::Object::TEX_COORD_ARRAY_COUNT];
+    uint8_t texCoordDivisors[MDL0::Object::TEX_COORD_ARRAY_COUNT];
+};
+
 /*! @} addtogroup brres-ext-mdl0 */
 
 /*! @} addtogroup brres */

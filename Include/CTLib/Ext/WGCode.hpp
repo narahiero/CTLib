@@ -41,6 +41,9 @@ class WGCode final
 
 public:
 
+    /*! @brief The number of CP registers. */
+    constexpr static uint32_t CP_REG_COUNT = 0x100;
+
     /*! @brief The number of XF registers. */
     constexpr static uint32_t XF_REG_COUNT = 0x1058;
 
@@ -52,6 +55,9 @@ public:
     {
         /*! @brief No operation. */
         CMD_NOOP = 0x00,
+
+        /*! @brief Load CP (Command Processor). */
+        CMD_LOAD_CP = 0x08,
 
         /*! @brief Load XF (Transform Unit). */
         CMD_LOAD_XF = 0x10,
@@ -89,8 +95,11 @@ public:
     };
 
     /*! @brief Graphics code context. */
-    struct Context
+    struct Context final
     {
+
+        /*! @brief Command processor registers. */
+        uint32_t cp[CP_REG_COUNT];
 
         /*! @brief Transform unit registers. */
         uint32_t xf[XF_REG_COUNT];
@@ -104,6 +113,9 @@ public:
     {
         // flags
 
+        /*! @brief Allow CP commands in graphics code. */
+        FLAG_USE_CP = 0x00000080,
+
         /*! @brief Allow XF commands in graphics code. */
         FLAG_USE_XF = 0x00000100,
 
@@ -114,7 +126,7 @@ public:
         // presets
 
         /*! @brief Allow all known commands in graphics code. */
-        FLAG_USE_ALL = FLAG_USE_XF | FLAG_USE_BP,
+        FLAG_USE_ALL = FLAG_USE_CP | FLAG_USE_XF | FLAG_USE_BP,
 
         /*! @brief Default flags value. */
         FLAG_DEFAULT = FLAG_USE_ALL
@@ -155,6 +167,9 @@ public:
     static void readBP(Buffer& gcode, uint64_t* bp);
 
 private:
+
+    // handle a CP command
+    static void handleCPCommand(Context* c, uint8_t address, uint32_t value);
 
     // handle a XF command
     static void handleXFCommand(Context* c, uint16_t address, uint16_t transferSize, Buffer& gcode);

@@ -727,4 +727,273 @@ void ShaderCode::Stage::assertValidSwapTable(uint32_t table) const
         ));
     }
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+////
+////   ObjectCode class
+////
+
+ObjectCode::ObjectCode() :
+    vertexMode{Mode::Indexed8},
+    vertexType{Type::Float},
+    vertexElements{VertexElements::XYZ},
+    vertexDivisor{0},
+    normalMode{Mode::Indexed8},
+    normalType{Type::Float},
+    normalElements{NormalElements::Normal}
+{
+    for (uint32_t i = 0; i < MDL0::Object::COLOUR_ARRAY_COUNT; ++i)
+    {
+        colourModes[i] = i == 0 ? Mode::Indexed8 : Mode::None;
+        colourTypes[i] = ColourType::RGBA8;
+    }
+
+    for (uint32_t i = 0; i < MDL0::Object::TEX_COORD_ARRAY_COUNT; ++i)
+    {
+        texCoordModes[i] = i == 0 ? Mode::Indexed8 : Mode::None;
+        texCoordTypes[i] = Type::Float;
+        texCoordElements[i] = TexCoordElements::ST;
+        texCoordDivisors[i] = 0;
+    }
+}
+
+inline ObjectCode::Mode modeForIndexSize(uint8_t size)
+{
+    return size == 2 ? ObjectCode::Mode::Indexed16 : ObjectCode::Mode::Indexed8;
+}
+
+inline ObjectCode::NormalElements elemsForComponents(MDL0::NormalArray::Components comps)
+{
+    return comps == MDL0::NormalArray::Components::Normal_BiNormal_Tangent
+        ? ObjectCode::NormalElements::NBT : ObjectCode::NormalElements::Normal;
+}
+
+void ObjectCode::configureFromMDL0Object(MDL0::Object* obj)
+{
+    if (obj == nullptr)
+    {
+        return;
+    }
+
+    MDL0::VertexArray* va = obj->getVertexArray();
+    if (va != nullptr)
+    {
+        vertexMode = modeForIndexSize(obj->getVertexArrayIndexSize());
+        vertexType = static_cast<Type>(va->getFormat());
+        vertexElements = static_cast<VertexElements>(va->getComponentsType());
+        vertexDivisor = va->getDivisor();
+    }
+    else
+    {
+        vertexMode = Mode::None;
+    }
+
+    MDL0::NormalArray* na = obj->getNormalArray();
+    if (na != nullptr)
+    {
+        normalMode = modeForIndexSize(obj->getNormalArrayIndexSize());
+        normalType = static_cast<Type>(na->getFormat());
+        normalElements = elemsForComponents(na->getComponentsType());
+    }
+    else
+    {
+        normalMode = Mode::None;
+    }
+
+    for (uint32_t i = 0; i < MDL0::Object::COLOUR_ARRAY_COUNT; ++i)
+    {
+        MDL0::ColourArray* ca = obj->getColourArray(i);
+        if (ca != nullptr)
+        {
+            colourModes[i] = modeForIndexSize(obj->getColourArrayIndexSize(i));
+            colourTypes[i] = static_cast<ColourType>(ca->getFormat());
+        }
+        else
+        {
+            colourModes[i] = Mode::None;
+        }
+    }
+
+    for (uint32_t i = 0; i < MDL0::Object::TEX_COORD_ARRAY_COUNT; ++i)
+    {
+        MDL0::TexCoordArray* tca = obj->getTexCoordArray(i);
+        if (tca != nullptr)
+        {
+            texCoordModes[i] = modeForIndexSize(obj->getTexCoordArrayIndexSize(i));
+            texCoordTypes[i] = static_cast<Type>(tca->getFormat());
+            texCoordElements[i] = static_cast<TexCoordElements>(tca->getComponentsType());
+            texCoordDivisors[i] = tca->getDivisor();
+        }
+        else
+        {
+            texCoordModes[i] = Mode::None;
+        }
+    }
+}
+
+void ObjectCode::setVertexMode(Mode mode)
+{
+    vertexMode = mode;
+}
+
+void ObjectCode::setVertexType(Type type)
+{
+    vertexType = type;
+}
+
+void ObjectCode::setVertexElements(VertexElements elems)
+{
+    vertexElements = elems;
+}
+
+void ObjectCode::setVertexDivisor(uint8_t divisor)
+{
+    vertexDivisor = divisor;
+}
+
+ObjectCode::Mode ObjectCode::getVertexMode() const
+{
+    return vertexMode;
+}
+
+ObjectCode::Type ObjectCode::getVertexType() const
+{
+    return vertexType;
+}
+
+ObjectCode::VertexElements ObjectCode::getVertexElements() const
+{
+    return vertexElements;
+}
+
+uint8_t ObjectCode::getVertexDivisor() const
+{
+    return vertexDivisor;
+}
+
+void ObjectCode::setNormalMode(Mode mode)
+{
+    normalMode = mode;
+}
+
+void ObjectCode::setNormalType(Type type)
+{
+    normalType = type;
+}
+
+void ObjectCode::setNormalElements(NormalElements elems)
+{
+    normalElements = elems;
+}
+
+ObjectCode::Mode ObjectCode::getNormalMode() const
+{
+    return normalMode;
+}
+
+ObjectCode::Type ObjectCode::getNormalType() const
+{
+    return normalType;
+}
+
+ObjectCode::NormalElements ObjectCode::getNormalElements() const
+{
+    return normalElements;
+}
+
+void ObjectCode::setColourMode(uint32_t index, Mode mode)
+{
+    assertValidColourIndex(index);
+    colourModes[index] = mode;
+}
+
+void ObjectCode::setColourType(uint32_t index, ColourType type)
+{
+    assertValidColourIndex(index);
+    colourTypes[index] = type;
+}
+
+ObjectCode::Mode ObjectCode::getColourMode(uint32_t index) const
+{
+    assertValidColourIndex(index);
+    return colourModes[index];
+}
+
+ObjectCode::ColourType ObjectCode::getColourType(uint32_t index) const
+{
+    assertValidColourIndex(index);
+    return colourTypes[index];
+}
+
+void ObjectCode::setTexCoordMode(uint32_t index, Mode mode)
+{
+    assertValidTexCoordIndex(index);
+    texCoordModes[index] = mode;
+}
+
+void ObjectCode::setTexCoordType(uint32_t index, Type type)
+{
+    assertValidTexCoordIndex(index);
+    texCoordTypes[index] = type;
+}
+
+void ObjectCode::setTexCoordElements(uint32_t index, TexCoordElements elems)
+{
+    assertValidTexCoordIndex(index);
+    texCoordElements[index] = elems;
+}
+
+void ObjectCode::setTexCoordDivisor(uint32_t index, uint8_t divisor)
+{
+    assertValidTexCoordIndex(index);
+    texCoordDivisors[index] = divisor;
+}
+
+ObjectCode::Mode ObjectCode::getTexCoordMode(uint32_t index) const
+{
+    assertValidTexCoordIndex(index);
+    return texCoordModes[index];
+}
+
+ObjectCode::Type ObjectCode::getTexCoordType(uint32_t index) const
+{
+    assertValidTexCoordIndex(index);
+    return texCoordTypes[index];
+}
+
+ObjectCode::TexCoordElements ObjectCode::getTexCoordElements(uint32_t index) const
+{
+    assertValidTexCoordIndex(index);
+    return texCoordElements[index];
+}
+
+uint8_t ObjectCode::getTexCoordDivisor(uint32_t index) const
+{
+    assertValidTexCoordIndex(index);
+    return texCoordDivisors[index];
+}
+
+void ObjectCode::assertValidColourIndex(uint32_t index) const
+{
+    if (index >= MDL0::Object::COLOUR_ARRAY_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ObjectCode: Colour index out of range! (%d >= %d)",
+            index, MDL0::Object::COLOUR_ARRAY_COUNT
+        ));
+    }
+}
+
+void ObjectCode::assertValidTexCoordIndex(uint32_t index) const
+{
+    if (index >= MDL0::Object::TEX_COORD_ARRAY_COUNT)
+    {
+        throw BRRESError(Strings::format(
+            "ObjectCode: Texture coordinate index out of range! (%d >= %d)",
+            index, MDL0::Object::TEX_COORD_ARRAY_COUNT
+        ));
+    }
+}
 }

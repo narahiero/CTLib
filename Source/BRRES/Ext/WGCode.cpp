@@ -14,6 +14,14 @@ namespace CTLib::Ext
 
 constexpr uint64_t BP_MASK_ALL = 0xFFFFFF;
 
+void initCP(uint32_t* cp)
+{
+    for (uint32_t i = 0; i < WGCode::CP_REG_COUNT; ++i)
+    {
+        cp[i] = 0;
+    }
+}
+
 void initXF(uint32_t* xf)
 {
     for (uint32_t i = 0; i < WGCode::XF_REG_COUNT; ++i)
@@ -34,6 +42,7 @@ void initBP(uint64_t* bp)
 
 void WGCode::initContext(Context* c)
 {
+    initCP(c->cp);
     initXF(c->xf);
     initBP(c->bp);
 }
@@ -52,6 +61,27 @@ void WGCode::readGraphicsCode(Buffer& gcode, Context* c, bool reset, uint32_t fl
         {
         case CMD_NOOP:
             break;
+
+        case CMD_LOAD_CP:
+            if (!(flags & FLAG_USE_CP))
+            {
+                throw BRRESError("WGCode: Load CP command found, but CP is disabled!");
+            }
+
+            if (gcode.remaining() < 5)
+            {
+                throw BRRESError(Strings::format(
+                    "WGCode: Not enough bytes remaining in buffer for CP command! (%d < 5)",
+                    gcode.remaining()
+                ));
+            }
+
+            {
+                uint8_t address = gcode.get();
+                uint32_t value = gcode.getInt();
+
+                handleCPCommand(c, address, value);
+            }
 
         case CMD_LOAD_XF:
             if (!(flags & FLAG_USE_XF))
@@ -74,7 +104,7 @@ void WGCode::readGraphicsCode(Buffer& gcode, Context* c, bool reset, uint32_t fl
                 if (gcode.remaining() < (transferSize + 1) * 4)
                 {
                     throw BRRESError(Strings::format(
-                        "WGCode: Not enough bytes remaining in buffer for XF command! (%d < %d)",
+                        "WGCode: Not enough bytes remaining in buffer for XF command body! (%d < %d)",
                         gcode.remaining(), (transferSize + 1) * 4
                     ));
                 }
@@ -176,6 +206,11 @@ void WGCode::readBP(Buffer& gcode, uint64_t* bp)
             bp[addr] = (value & mask) | (bp[addr] & ~mask);
         }
     }
+}
+
+void WGCode::handleCPCommand(Context* c, uint8_t addr, uint32_t value)
+{
+    c->cp[addr] = value;
 }
 
 void WGCode::handleXFCommand(Context* c, uint16_t addr, uint16_t transferSize, Buffer& gcode)
