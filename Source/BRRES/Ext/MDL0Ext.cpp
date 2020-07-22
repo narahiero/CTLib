@@ -19,7 +19,75 @@ namespace CTLib::Ext
 ////   Graphics code utilities
 ////
 
-/// READ
+////////////////////////////////////////
+///  Read
+
+// Command Processor
+
+inline void fromCPVertexMode(ObjectCode& obj, uint32_t value)
+{
+    obj.setVertexMode(static_cast<ObjectCode::Mode>((value >>  9) & 0x3));
+    obj.setNormalMode(static_cast<ObjectCode::Mode>((value >> 11) & 0x3));
+
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        obj.setColourMode(i, static_cast<ObjectCode::Mode>((value >> (13 + (i << 1))) & 0x3));
+    }
+}
+
+inline void fromCPTexCoordMode(ObjectCode& obj, uint32_t value)
+{
+    for (uint32_t i = 0; i < 8; ++i)
+    {
+        obj.setTexCoordMode(i, static_cast<ObjectCode::Mode>((value >> (i << 1)) & 0x3));
+    }
+}
+
+inline void fromCPDataFormat0(ObjectCode& obj, uint32_t value)
+{
+    obj.setVertexElements(static_cast<ObjectCode::VertexElements>(value & 0x1));
+    obj.setVertexType(static_cast<ObjectCode::Type>((value >> 1) & 0x7));
+    obj.setVertexDivisor(static_cast<uint8_t>((value >> 4) & 0x1F));
+
+    obj.setNormalElements(static_cast<ObjectCode::NormalElements>((value >> 9) & 0x1));
+    obj.setNormalType(static_cast<ObjectCode::Type>((value >> 10) & 0x7));
+
+    for (uint32_t i = 0; i < 2; ++i)
+    {
+        obj.setColourType(i, static_cast<ObjectCode::ColourType>((value >> (14 + (i << 2))) & 0x7));
+    }
+
+    obj.setTexCoordElements(0, static_cast<ObjectCode::TexCoordElements>((value >> 21) & 0x1));
+    obj.setTexCoordType(0, static_cast<ObjectCode::Type>((value >> 22) & 0x7));
+    obj.setTexCoordDivisor(0, static_cast<uint8_t>((value >> 25) & 0x1F));
+}
+
+inline void fromCPDataFormat1(ObjectCode& obj, uint32_t value)
+{
+    for (uint32_t i = 1; i < 4; ++i)
+    {
+        obj.setTexCoordElements(i, static_cast<ObjectCode::TexCoordElements>((value >> (i * 9)) & 0x1));
+        obj.setTexCoordType(i, static_cast<ObjectCode::Type>((value >> (1 + (i * 9))) & 0x7));
+        obj.setTexCoordDivisor(i, static_cast<uint8_t>((value >> (4 + (i * 9))) & 0x1F));
+    }
+
+    obj.setTexCoordElements(4, static_cast<ObjectCode::TexCoordElements>((value >> 27) & 0x1));
+    obj.setTexCoordType(4, static_cast<ObjectCode::Type>((value >> 28) & 0x7));
+}
+
+inline void fromCPDataFormat2(ObjectCode& obj, uint32_t value)
+{
+    obj.setTexCoordDivisor(4, static_cast<uint8_t>(value & 0x1F));
+
+    for (uint32_t i = 5; i < 8; ++i)
+    {
+        obj.setTexCoordElements(i, static_cast<ObjectCode::TexCoordElements>((value >> (5 + (i * 9))) & 0x1));
+        obj.setTexCoordType(i, static_cast<ObjectCode::Type>((value >> (6 + (i * 9))) & 0x7));
+        obj.setTexCoordDivisor(i, static_cast<uint8_t>((value >> (9 + (i * 9))) & 0x1F));
+    }
+}
+
+// Blitting Processor
 
 inline void fromBPConstAlpha(MaterialCode& mat, uint64_t value)
 {
@@ -37,7 +105,10 @@ inline void fromBPColourRegisters(MaterialCode& mat, uint32_t index, uint64_t ar
     mat.setConstColour(index, fromBPColour((uint32_t)(ar >> 32), (uint32_t)(gb >> 32)));
 }
 
-/// WRITE
+////////////////////////////////////////
+///  Write
+
+// Blitting Processor
 
 inline void fillNOOPs(Buffer& gcode, uint32_t count)
 {
@@ -734,6 +805,23 @@ void ShaderCode::Stage::assertValidSwapTable(uint32_t table) const
 ////
 ////   ObjectCode class
 ////
+
+ObjectCode ObjectCode::fromGraphicsCode(Buffer& gcode)
+{
+    ObjectCode obj;
+
+    WGCode::Context c;
+    WGCode::readGraphicsCode(gcode, &c, true, WGCode::FLAG_USE_CP | WGCode::FLAG_USE_XF);
+
+    fromCPVertexMode(obj, c.cp[WGCode::CP_VERTEX_MODE]);
+    fromCPTexCoordMode(obj, c.cp[WGCode::CP_TEX_COORD_MODE]);
+
+    fromCPDataFormat0(obj, c.cp[WGCode::CP_DATA_FORMAT0]);
+    fromCPDataFormat1(obj, c.cp[WGCode::CP_DATA_FORMAT1]);
+    fromCPDataFormat2(obj, c.cp[WGCode::CP_DATA_FORMAT2]);
+
+    return obj;
+}
 
 ObjectCode::ObjectCode() :
     vertexMode{Mode::Indexed8},

@@ -66,6 +66,25 @@ public:
         CMD_LOAD_BP = 0x61
     };
 
+    /*! @brief Enumeration of all known CP addresses. */
+    enum CPAddress : uint8_t
+    {
+        /*! @brief Vertex data array mode. */
+        CP_VERTEX_MODE = 0x50,
+
+        /*! @brief Texture coordinate data arrays mode. */
+        CP_TEX_COORD_MODE = 0x60,
+
+        /*! @brief Data array format 0. */
+        CP_DATA_FORMAT0 = 0x70,
+
+        /*! @brief Data array format 1. */
+        CP_DATA_FORMAT1 = 0x80,
+
+        /*! @brief Data array format 2. */
+        CP_DATA_FORMAT2 = 0x90
+    };
+
     /*! @brief Enumeration of all known BP addresses. */
     enum BPAddress : uint8_t
     {
