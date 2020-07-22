@@ -151,21 +151,6 @@ public:
      */
     static void readGraphicsCode(Buffer& gcode, Context* context, bool reset, uint32_t flags = FLAG_DEFAULT);
 
-    /*! @brief Reads the Wii Graphics Code from the specified buffer and outputs
-     *  it to the output array.
-     *  
-     *  **Important**: The output array's size must be at least `0x100`.
-     *  
-     *  @param[in] gcode The buffer containing Wii Graphics Code
-     *  @param[out] bp The array containing the BP memory state
-     *  
-     *  @throw CTLib::BRRESError If the graphics code is invalid or contains any
-     *  non-BP (`0x61`) command.
-     *  
-     *  @deprecated Use readGraphicsCode() with flag `FLAG_USE_BP` instead.
-     */
-    static void readBP(Buffer& gcode, uint64_t* bp);
-
 private:
 
     // handle a CP command
