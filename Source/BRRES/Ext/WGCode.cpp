@@ -82,6 +82,7 @@ void WGCode::readGraphicsCode(Buffer& gcode, Context* c, bool reset, uint32_t fl
 
                 handleCPCommand(c, address, value);
             }
+            break;
 
         case CMD_LOAD_XF:
             if (!(flags & FLAG_USE_XF))

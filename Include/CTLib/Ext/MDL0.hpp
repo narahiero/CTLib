@@ -959,7 +959,7 @@ public:
      *  @throw CTLib::BRRESError If the graphics code is invalid or contains
      *  illegal (non-CP and non-XF) commands.
      */
-    static ShaderCode fromGraphicsCode(Buffer& gcode);
+    static ObjectCode fromGraphicsCode(Buffer& gcode);
 
     /*! @brief Constructs a new ObjectCode instance with the default values. */
     ObjectCode();

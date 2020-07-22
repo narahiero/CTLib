@@ -11,6 +11,42 @@
 
 using namespace CTLib;
 
+TEST(WGCodeTests, ReadCP)
+{
+    uint8_t raw[] = {
+        0x08, 0x50, 0x00, 0x00, 0x44, 0x00,
+        0x61, 0x23, 0x12, 0xF3, 0x4D, // <- ignore BP
+        0x00, 0x00, 0x00, // <- ignore noops
+        0x08, 0x60, 0x00, 0x00, 0x00, 0x02,
+        0x08, 0x70, 0x41, 0x37, 0x70, 0x09
+    };
+    Buffer gcode(sizeof(raw) / sizeof(raw[0]));
+    gcode.putArray(raw, gcode.capacity()).flip();
+
+    Ext::WGCode::Context c;
+    Ext::WGCode::readGraphicsCode(gcode, &c, true);
+
+    for (uint32_t i = 0; i < Ext::WGCode::BP_REG_COUNT; ++i)
+    {
+        if (i == 0x50)
+        {
+            EXPECT_EQ(0x00004400, c.cp[i]);
+        }
+        else if (i == 0x60)
+        {
+            EXPECT_EQ(0x00000002, c.cp[i]);
+        }
+        else if (i == 0x70)
+        {
+            EXPECT_EQ(0x41377009, c.cp[i]);
+        }
+        else
+        {
+            EXPECT_EQ(0x00000000, c.cp[i]);
+        }
+    }
+}
+
 TEST(WGCodeTests, ReadXF)
 {
     uint8_t raw[] = {
@@ -158,7 +194,22 @@ TEST(WGCodeTests, InvalidCommand)
         0x61, 0x12, 0xAC, 0x3E, 0x99, // fine; 0x61 is Load BP
         0x00, 0x00, // fine; 0x00 is NOOP
         0x10, 0x00, 0x00, 0x10, 0x30, 0x00, 0x00, 0x00, 0x00, // fine; 0x10 is Load XF
+        0x08, 0x60, 0x23, 0xD2, 0x9C, 0x12, // fine; 0x08 is Load CP
         0x07 // unknown command
+    };
+    Buffer gcode(sizeof(raw) / sizeof(raw[0]));
+    gcode.putArray(raw, gcode.capacity()).flip();
+
+    Ext::WGCode::Context c;
+    EXPECT_THROW(Ext::WGCode::readGraphicsCode(gcode, &c, true), BRRESError);
+}
+
+TEST(WGCodeTests, InvalidCPCommand)
+{
+    uint8_t raw[] = {
+        0x08, 0x50, 0x00, 0x00, 0x00, 0x00, // fine
+        0x00, 0x00,
+        0x08, 0x60, 0x00, 0x01 // missing 2 data bytes
     };
     Buffer gcode(sizeof(raw) / sizeof(raw[0]));
     gcode.putArray(raw, gcode.capacity()).flip();

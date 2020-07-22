@@ -122,3 +122,49 @@ TEST(ShaderCodeStageTests, Errors)
         }
     }
 }
+
+TEST(ObjectCodeTests, IndexErrors)
+{
+    Ext::ObjectCode obj;
+
+    for (uint32_t i = 0; i < 0x100; ++i)
+    {
+        if (i < 2)
+        {
+            EXPECT_NO_THROW(obj.setColourMode(i, Ext::ObjectCode::Mode::None));
+            EXPECT_NO_THROW(obj.setColourType(i, Ext::ObjectCode::ColourType::RGB565));
+            EXPECT_NO_THROW(obj.getColourMode(i));
+            EXPECT_NO_THROW(obj.getColourType(i));
+        }
+        else
+        {
+            EXPECT_THROW(obj.setColourMode(i, Ext::ObjectCode::Mode::None), BRRESError);
+            EXPECT_THROW(obj.setColourType(i, Ext::ObjectCode::ColourType::RGB565), BRRESError);
+            EXPECT_THROW(obj.getColourMode(i), BRRESError);
+            EXPECT_THROW(obj.getColourType(i), BRRESError);
+        }
+
+        if (i < 8)
+        {
+            EXPECT_NO_THROW(obj.setTexCoordMode(i, Ext::ObjectCode::Mode::None));
+            EXPECT_NO_THROW(obj.setTexCoordType(i, Ext::ObjectCode::Type::UInt8));
+            EXPECT_NO_THROW(obj.setTexCoordElements(i, Ext::ObjectCode::TexCoordElements::S));
+            EXPECT_NO_THROW(obj.setTexCoordDivisor(i, 0));
+            EXPECT_NO_THROW(obj.getTexCoordMode(i));
+            EXPECT_NO_THROW(obj.getTexCoordType(i));
+            EXPECT_NO_THROW(obj.getTexCoordElements(i));
+            EXPECT_NO_THROW(obj.getTexCoordDivisor(i));
+        }
+        else
+        {
+            EXPECT_THROW(obj.setTexCoordMode(i, Ext::ObjectCode::Mode::None), BRRESError);
+            EXPECT_THROW(obj.setTexCoordType(i, Ext::ObjectCode::Type::UInt8), BRRESError);
+            EXPECT_THROW(obj.setTexCoordElements(i, Ext::ObjectCode::TexCoordElements::S), BRRESError);
+            EXPECT_THROW(obj.setTexCoordDivisor(i, 0), BRRESError);
+            EXPECT_THROW(obj.getTexCoordMode(i), BRRESError);
+            EXPECT_THROW(obj.getTexCoordType(i), BRRESError);
+            EXPECT_THROW(obj.getTexCoordElements(i), BRRESError);
+            EXPECT_THROW(obj.getTexCoordDivisor(i), BRRESError);
+        }
+    }
+}
