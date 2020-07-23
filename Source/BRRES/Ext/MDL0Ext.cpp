@@ -108,7 +108,7 @@ inline void fromBPColourRegisters(MaterialCode& mat, uint32_t index, uint64_t ar
 ////////////////////////////////////////
 ///  Write
 
-// Blitting Processor
+// General
 
 inline void fillNOOPs(Buffer& gcode, uint32_t count)
 {
@@ -117,6 +117,108 @@ inline void fillNOOPs(Buffer& gcode, uint32_t count)
         gcode.put(0x00);
     }
 }
+
+// Command Processor
+
+inline void putCPCommand(Buffer& gcode, uint8_t address, uint32_t value)
+{
+    gcode.put(0x08).put(address).putInt(value);
+}
+
+inline uint32_t toCPVertexMode(const ObjectCode& obj)
+{
+    return ((static_cast<uint32_t>(obj.getVertexMode()) & 0x3) << 9)
+        | ((static_cast<uint32_t>(obj.getNormalMode()) & 0x3) << 11)
+        | ((static_cast<uint32_t>(obj.getColourMode(0)) & 0x3) << 13)
+        | ((static_cast<uint32_t>(obj.getColourMode(1)) & 0x3) << 15);
+}
+
+inline uint32_t toCPTexCoordMode(const ObjectCode& obj)
+{
+    return (static_cast<uint32_t>(obj.getTexCoordMode(0)) & 0x3)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(1)) & 0x3) <<  2)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(2)) & 0x3) <<  4)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(3)) & 0x3) <<  6)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(4)) & 0x3) <<  8)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(5)) & 0x3) << 10)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(6)) & 0x3) << 12)
+        | ((static_cast<uint32_t>(obj.getTexCoordMode(7)) & 0x3) << 14);
+}
+
+inline uint32_t toCPDataFormat0(const ObjectCode& obj)
+{
+    return (static_cast<uint32_t>(obj.getVertexElements()) & 0x1)
+        | ((static_cast<uint32_t>(obj.getVertexType()) & 0x7) << 1)
+        | ((obj.getVertexDivisor() & 0x1F) << 4)
+        | ((static_cast<uint32_t>(obj.getNormalElements()) & 0x1) << 9)
+        | ((static_cast<uint32_t>(obj.getNormalType()) & 0x7) << 10)
+        | ((static_cast<uint32_t>(obj.getColourType(0)) >= 3) << 13)
+        | ((static_cast<uint32_t>(obj.getColourType(0)) & 0x7) << 14)
+        | ((static_cast<uint32_t>(obj.getColourType(1)) >= 3) << 17)
+        | ((static_cast<uint32_t>(obj.getColourType(1)) & 0x7) << 18)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(0)) & 0x1) << 21)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(0)) & 0x7) << 22)
+        | ((obj.getTexCoordDivisor(0) & 0x1F) << 25)
+        | 0x40000000; // Dequant = true, NormI3 = false
+}
+
+inline uint32_t toCPDataFormat1(const ObjectCode& obj)
+{
+    return (static_cast<uint32_t>(obj.getTexCoordElements(1)) & 0x1)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(1)) & 0x7) << 1)
+        | ((obj.getTexCoordDivisor(1) & 0x1F) << 4)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(2)) & 0x1) << 9)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(2)) & 0x7) << 10)
+        | ((obj.getTexCoordDivisor(2) & 0x1F) << 13)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(3)) & 0x1) << 18)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(3)) & 0x7) << 19)
+        | ((obj.getTexCoordDivisor(3) & 0x1F) << 22)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(4)) & 0x1) << 27)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(4)) & 0x7) << 28);
+}
+
+inline uint32_t toCPDataFormat2(const ObjectCode& obj)
+{
+    return (obj.getTexCoordDivisor(4) & 0x1F)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(5)) & 0x1) << 5)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(5)) & 0x7) << 6)
+        | ((obj.getTexCoordDivisor(5) & 0x1F) << 9)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(6)) & 0x1) << 14)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(6)) & 0x7) << 15)
+        | ((obj.getTexCoordDivisor(6) & 0x1F) << 18)
+        | ((static_cast<uint32_t>(obj.getTexCoordElements(7)) & 0x1) << 23)
+        | ((static_cast<uint32_t>(obj.getTexCoordType(7)) & 0x7) << 24)
+        | ((obj.getTexCoordDivisor(7) & 0x1F) << 27);
+}
+
+// Transform Unit
+
+inline void putXFCommand(Buffer& gcode, uint16_t address, uint32_t value)
+{
+    gcode.put(0x10).putShort(0x0000).putShort(address).putInt(value);
+}
+
+inline uint32_t toXFUnitSize(const ObjectCode& obj)
+{
+    uint32_t colourCount = !!static_cast<uint32_t>(obj.getColourMode(0))
+        + !!static_cast<uint32_t>(obj.getColourMode(1));
+
+    uint32_t normalCount = obj.getNormalMode() == ObjectCode::Mode::None ? 0
+        : obj.getNormalElements() == ObjectCode::NormalElements::Normal ? 1 : 2;
+
+    uint32_t texCoordCount = !!static_cast<uint32_t>(obj.getTexCoordMode(0))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(1))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(2))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(3))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(4))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(5))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(6))
+        + !!static_cast<uint32_t>(obj.getTexCoordMode(7));
+
+    return (colourCount & 0x3) | ((normalCount & 0x3) << 2) | ((texCoordCount & 0xF) << 4);
+}
+
+// Blitting Processor
 
 inline void putBPCommand(Buffer& gcode, uint8_t address, uint32_t value)
 {
@@ -821,6 +923,26 @@ ObjectCode ObjectCode::fromGraphicsCode(Buffer& gcode)
     fromCPDataFormat2(obj, c.cp[WGCode::CP_DATA_FORMAT2]);
 
     return obj;
+}
+
+Buffer ObjectCode::toStandardLayout() const
+{
+    Buffer gcode(0xE0);
+
+    fillNOOPs(gcode, 0x2); // padding
+
+    putCPCommand(gcode, 0x50, toCPVertexMode(*this));
+    putCPCommand(gcode, 0x60, toCPTexCoordMode(*this));
+
+    putXFCommand(gcode, 0x1008, toXFUnitSize(*this));
+
+    fillNOOPs(gcode, 0x1); // padding
+
+    putCPCommand(gcode, 0x70, toCPDataFormat0(*this));
+    putCPCommand(gcode, 0x80, toCPDataFormat1(*this));
+    putCPCommand(gcode, 0x90, toCPDataFormat2(*this));
+
+    return gcode;
 }
 
 ObjectCode::ObjectCode() :

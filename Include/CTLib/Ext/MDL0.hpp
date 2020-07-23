@@ -964,6 +964,13 @@ public:
     /*! @brief Constructs a new ObjectCode instance with the default values. */
     ObjectCode();
 
+    /*! @brief Generates graphics code from this ObjectCode object using the
+     *  standard fixed-position code layout.
+     *  
+     *  @return A buffer containing the generated Wii Graphics Code
+     */
+    Buffer toStandardLayout() const;
+
     /*! @brief Sets all the fields of this object to match the specified MDL0
      *  Object.
      *  
