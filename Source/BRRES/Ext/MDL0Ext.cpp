@@ -942,7 +942,9 @@ Buffer ObjectCode::toStandardLayout() const
     putCPCommand(gcode, 0x80, toCPDataFormat1(*this));
     putCPCommand(gcode, 0x90, toCPDataFormat2(*this));
 
-    return gcode;
+    fillNOOPs(gcode, 0xB6);
+
+    return gcode.clear();
 }
 
 ObjectCode::ObjectCode() :

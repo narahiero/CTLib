@@ -7,6 +7,9 @@
 
 #include "BRRES/RW/BRRESRWCommon.hpp"
 
+#include <CTLib/Ext/MDL0.hpp>
+#include <CTLib/Ext/WGCode.hpp>
+
 namespace CTLib
 {
 
@@ -918,112 +921,6 @@ void writeMDL0ShaderSections(
     }
 }
 
-uint32_t calcMDL0ObjectCPPresenceFlag(MDL0::Object* instance)
-{
-    uint32_t flagPresenceCP = 0x0;
-    if (instance->getVertexArray() != nullptr)
-    {
-        uint8_t mode = instance->getVertexArrayIndexSize() + 1;
-        flagPresenceCP |= mode << 0x9;
-    }
-    if (instance->getNormalArray() != nullptr)
-    {
-        uint8_t mode = instance->getNormalArrayIndexSize() + 1;
-        flagPresenceCP |= mode << 0xB;
-    }
-    for (uint32_t i = 0; i < MDL0::Object::COLOUR_ARRAY_COUNT; ++i)
-    {
-        if (instance->getColourArray(i) != nullptr)
-        {
-            uint8_t mode = instance->getColourArrayIndexSize(i) + 1;
-            flagPresenceCP |= mode << ((i * 2) + 0xD);
-        }
-    }
-    return flagPresenceCP;
-}
-
-uint32_t calcMDL0ObjectCPTexPresenceFlag(MDL0::Object* instance)
-{
-    uint32_t flagTexPresenceCP = 0x0;
-    for (uint32_t i = 0; i < MDL0::Object::TEX_COORD_ARRAY_COUNT; ++i)
-    {
-        if (instance->getTexCoordArray(i) != nullptr)
-        {
-            uint8_t mode = instance->getTexCoordArrayIndexSize(i) + 1;
-            flagTexPresenceCP |= mode << (i * 2);
-        }
-    }
-    return flagTexPresenceCP;
-}
-
-uint32_t calcMDL0ObjectXFParamCount(MDL0::Object* instance)
-{
-    uint32_t paramCountXF = 0x0;
-
-    uint32_t colourCount = 0;
-    for (uint32_t i = 0; i < MDL0::Object::COLOUR_ARRAY_COUNT; ++i)
-    {
-        if (instance->getColourArray(i) != nullptr)
-        {
-            ++colourCount;
-        }
-    }
-    paramCountXF |= colourCount;
-
-    if (instance->getNormalArray() != nullptr)
-    {
-        paramCountXF |= 1 << 2;
-    }
-
-    uint32_t texCoordCount = 0;
-    for (uint32_t i = 0; i < MDL0::Object::TEX_COORD_ARRAY_COUNT; ++i)
-    {
-        if (instance->getTexCoordArray(i) != nullptr)
-        {
-            ++texCoordCount;
-        }
-    }
-    paramCountXF |= texCoordCount << 4;
-
-    return paramCountXF;
-}
-
-uint32_t calcVertexFormat0CP(MDL0::Object* instance)
-{
-    uint32_t vertexFormat0CP = 0x41201009;
-
-    for (uint32_t i = 0; i < MDL0::Object::COLOUR_ARRAY_COUNT; ++i)
-    {
-        if (instance->getColourArray(i) != nullptr)
-        {
-            vertexFormat0CP |=
-                static_cast<uint32_t>(instance->getColourArray(i)->getFormat())
-                    << (0xE + (i * 4));
-        }
-        else
-        {
-            vertexFormat0CP |= 0xB << (0xD + (i * 4));
-        }
-    }
-
-    return vertexFormat0CP;
-}
-
-uint32_t calcVertexFormat1CP(MDL0::Object* instance)
-{
-    // no calculations are needed at the moment as tex coords must be formatted as floats
-    uint32_t vertexFormat1CP = 0xC8241209;
-    
-    return vertexFormat1CP;
-}
-
-uint32_t calcVertexFormat2CP(MDL0::Object* instance)
-{
-    uint32_t vertexFormat2CP = 0x04824120;
-
-    return vertexFormat2CP;
-}
-
 uint16_t indexOfMDL0Section(MDL0SectionIndices* indices, MDL0::Section* instance)
 {
     return instance == nullptr ? ~0 : indices->indices.at(instance);
@@ -1042,20 +939,23 @@ void writeMDL0ObjectSections(
 
         uint32_t dataSize = padNumber(instance->getGeometryDataSize(), 0x10);
 
-        uint32_t flagPresenceCP = calcMDL0ObjectCPPresenceFlag(instance);
-        uint32_t flagTexPresenceCP = calcMDL0ObjectCPTexPresenceFlag(instance);
-        uint32_t paramCountXF = calcMDL0ObjectXFParamCount(instance);
+        Ext::ObjectCode obj;
+        obj.configureFromMDL0Object(instance);
+        Buffer gcodeVDecl = obj.toStandardLayout();
+
+        Ext::WGCode::Context c;
+        Ext::WGCode::readGraphicsCode(gcodeVDecl, &c, true);
 
         out.position(pos);
         out.putInt(calculateMDL0SectionSize<MDL0::Object>(instance));
         out.putInt(static_cast<uint32_t>(offToMDL0));
         out.putInt(instance->getBone() == nullptr ? ~0 : indices->indices.at(instance->getBone()));
-        out.putInt(flagPresenceCP); // CP vertex presence and mode
-        out.putInt(flagTexPresenceCP); // CP tex coord presence and mode
-        out.putInt(paramCountXF); // XF param count
+        out.putInt(c.cp[Ext::WGCode::CP_VERTEX_MODE]);
+        out.putInt(c.cp[Ext::WGCode::CP_TEX_COORD_MODE]);
+        out.putInt(c.xf[Ext::WGCode::XF_UNIT_SIZE]);
         out.putInt(0xE0); // vertex declaration size
         out.putInt(0x80); // unknown flags; maybe related to vertex declaration?
-        out.putInt(0x68); // vertex declaration offset
+        out.putInt(0x88); // vertex declaration offset
         out.putInt(dataSize); // vertex data size
         out.putInt(dataSize); // vertex data size; duplicate/unused
         out.putInt(0x13C); // vertex data offset
@@ -1080,20 +980,9 @@ void writeMDL0ObjectSections(
         out.putInt(0xFFFFFFFF); // unknown/unused
         out.putInt(0x68); // bone table offset
 
-        uint32_t vertexFormat0CP = calcVertexFormat0CP(instance);
-        uint32_t vertexFormat1CP = calcVertexFormat1CP(instance);
-        uint32_t vertexFormat2CP = calcVertexFormat2CP(instance);
-
         // vertex declaration graphics code
         out.position(pos + 0x88);
-        out.put(0).put(0); // padding
-        out.put(0x08).put(0x50).putInt(flagPresenceCP); // CP vertex presence and mode
-        out.put(0x08).put(0x60).putInt(flagTexPresenceCP); // CP tex presence and mode
-        out.put(0x10).putShort(0).putShort(0x1008).putInt(paramCountXF); // XF param count
-        out.put(0); // padding
-        out.put(0x08).put(0x70).putInt(vertexFormat0CP); // CP vertex format (part 1)
-        out.put(0x08).put(0x80).putInt(vertexFormat1CP); // CP vertex format (part 2)
-        out.put(0x08).put(0x90).putInt(vertexFormat2CP); // CP vertex format (part 3)
+        out.put(gcodeVDecl);
 
         // vertex data graphics code
         out.position(pos + 0x160);

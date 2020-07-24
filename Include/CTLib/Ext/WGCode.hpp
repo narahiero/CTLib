@@ -85,6 +85,13 @@ public:
         CP_DATA_FORMAT2 = 0x90
     };
 
+    /*! @brief Enumeration of all known XF addresses. */
+    enum XFAddress : uint16_t
+    {
+        /*! @brief Unit size. */
+        XF_UNIT_SIZE = 0x1008
+    };
+
     /*! @brief Enumeration of all known BP addresses. */
     enum BPAddress : uint8_t
     {
