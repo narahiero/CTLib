@@ -48,7 +48,7 @@ uint32_t calculateMDL0SectionSize(Type* instance);
 template <>
 uint32_t calculateMDL0SectionSize<MDL0::Links>(MDL0::Links* instance)
 {
-    return padNumber((instance->getCount() * 0x5) + 0x1, 0x10);
+    return padNumber((instance->getCount() * MDL0::Links::sizeFor(instance->getLinksType())) + 0x1, 0x10);
 }
 
 template <>
@@ -945,6 +945,7 @@ void writeMDL0ObjectSections(
 
         Ext::WGCode::Context c;
         Ext::WGCode::readGraphicsCode(gcodeVDecl, &c, true);
+        gcodeVDecl.clear();
 
         out.position(pos);
         out.putInt(calculateMDL0SectionSize<MDL0::Object>(instance));
@@ -955,7 +956,7 @@ void writeMDL0ObjectSections(
         out.putInt(c.xf[Ext::WGCode::XF_UNIT_SIZE]);
         out.putInt(0xE0); // vertex declaration size
         out.putInt(0x80); // unknown flags; maybe related to vertex declaration?
-        out.putInt(0x88); // vertex declaration offset
+        out.putInt(0x68); // vertex declaration offset
         out.putInt(dataSize); // vertex data size
         out.putInt(dataSize); // vertex data size; duplicate/unused
         out.putInt(0x13C); // vertex data offset

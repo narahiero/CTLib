@@ -275,6 +275,9 @@ public:
         /*! @brief Returns the section name for the specified type. */
         static std::string nameForType(Type type);
 
+        /*! @brief Returns the command size for the specified type. */
+        static uint32_t sizeFor(Type type);
+
         ~Links();
 
         /*! @brief Returns SectionType::Links. */

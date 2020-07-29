@@ -339,6 +339,21 @@ std::string MDL0::Links::nameForType(Type type)
     }
 }
 
+uint32_t MDL0::Links::sizeFor(Type type)
+{
+    switch (type)
+    {
+    case Type::NodeTree:
+        return 0x5;
+
+    case Type::DrawOpa:
+        return 0x8;
+
+    default:
+        return 0x0;
+    }
+}
+
 MDL0::Links::Links(MDL0* mdl0, const std::string& name) :
     Section(mdl0, name),
     linksType{}
