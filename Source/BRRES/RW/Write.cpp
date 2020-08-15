@@ -123,7 +123,7 @@ void addSubfilesSize(
     const BRRES& brres, BRRESOffsets* offsets, uint32_t& size, uint32_t (*calculateSize)(Type*)
 )
 {
-    size = padNumber(size, 0x10);
+    size = padNumber(size, 0x20);
 
     for (Type* instance : brres.getAll<Type>())
     {

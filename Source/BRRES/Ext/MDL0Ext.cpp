@@ -225,6 +225,11 @@ inline void putBPCommand(Buffer& gcode, uint8_t address, uint32_t value)
     gcode.put(0x61).putInt((address << 24) | (value & 0x00FFFFFF));
 }
 
+inline void putBPMask(Buffer& gcode, uint32_t mask)
+{
+    putBPCommand(gcode, 0xFE, mask);
+}
+
 inline uint32_t toBPAlphaConstValue(bool enable, uint8_t value)
 {
     return ((enable ? 1 : 0) << 8) | value;
@@ -269,7 +274,10 @@ Buffer MaterialCode::toStandardLayout() const
 {
     Buffer gcode(0x180);
 
-    fillNOOPs(gcode, 0x14); // temporary space fill
+    putBPCommand(gcode, 0xF3, 0x3F0000); // temporarily hard-code alpha func
+    putBPCommand(gcode, 0x40, 0x000017); // temporarily hard-code Z-mode
+    putBPMask(gcode, 0x00FFE3); // blend mode mask
+    putBPCommand(gcode, 0x41, 0x0034A0); // temporarily hard-code blend mode
     putBPCommand(gcode, 0x42, toBPAlphaConstValue(useConstAlpha, constAlpha));
     fillNOOPs(gcode, 0x7); // padding
 

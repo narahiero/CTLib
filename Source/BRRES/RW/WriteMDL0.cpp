@@ -97,7 +97,7 @@ uint32_t calculateMDL0SectionSize<MDL0::Shader>(MDL0::Shader* instance)
 template <>
 uint32_t calculateMDL0SectionSize<MDL0::Object>(MDL0::Object* instance)
 {
-    return 0x160 + padNumber(instance->getGeometryDataSize(), 0x10);
+    return 0x160 + padNumber(instance->getGeometryDataSize(), 0x20);
 }
 
 template <>
@@ -512,8 +512,8 @@ void writeMDL0DrawOpaSection(Buffer& out, MDL0::Links* drawOpa, MDL0SectionIndic
     for (const MDL0::Links::DrawOpaLink& link : drawOpa->getLinks())
     {
         out.put(static_cast<uint8_t>(MDL0::Links::Type::DrawOpa)); // section command
-        out.putShort(indices->indices.at(link.obj));
         out.putShort(indices->indices.at(link.mat));
+        out.putShort(indices->indices.at(link.obj));
         out.putShort(indices->indices.at(link.bone));
         out.put(0); // unknown/unused
     }
@@ -821,7 +821,7 @@ void writeMDL0MaterialSections(
             out.put(0); // precompiled texture and palette information
         }
 
-        out.putInt(0xF); // layer flags
+        out.putInt(0); // layer flags
         out.putInt(0); // texture matrix mode
 
         for (uint32_t i = 0; i < MAX_LAYER_COUNT; ++i) // layer transformations
@@ -937,7 +937,7 @@ void writeMDL0ObjectSections(
         int32_t offToMDL0 = -static_cast<int32_t>(pos);
         uint32_t nameOff = (table->offsets.at(instance->getName()) + tableOff) - pos;
 
-        uint32_t dataSize = padNumber(instance->getGeometryDataSize(), 0x10);
+        uint32_t dataSize = padNumber(instance->getGeometryDataSize(), 0x20);
 
         Ext::ObjectCode obj;
         obj.configureFromMDL0Object(instance);
