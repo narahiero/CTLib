@@ -52,6 +52,11 @@ struct U8PackedNode
     uint32_t size;
 };
 
+uint32_t padNum(uint32_t num, uint8_t pad)
+{
+    return (num & ~(pad - 1)) + ((num & (pad - 1)) > 0 ? pad : 0);
+}
+
 void orderEntries(U8Dir* dir, std::vector<U8Entry*>& out)
 {
     for (U8Entry* entry : *dir)
@@ -87,8 +92,8 @@ void makeStringTable(std::vector<U8Entry*>& entries, U8StringTable* table)
 
 void makeInfo(std::vector<U8Entry*>& entries, U8StringTable* table, U8Info* info)
 {
-    info->entriesSize = ((static_cast<uint32_t>(entries.size()) + 1) * 0xC) + table->size;
-    info->dataOff = (info->entriesSize & 0xFFFFFFF0) + 0x30;
+    info->entriesSize = (static_cast<uint32_t>(entries.size() + 1) * 0xC) + table->size;
+    info->dataOff = padNum(info->entriesSize + 0x30, 0x40);
 
     info->offsets.push_back(0); // for the root node
 
@@ -99,7 +104,7 @@ void makeInfo(std::vector<U8Entry*>& entries, U8StringTable* table, U8Info* info
         {
             uint32_t fileSize = entry->asFile()->getDataSize();
             info->offsets.push_back(fileSize == 0 ? 0 : info->dataOff + dataSize);
-            dataSize += (fileSize & 0xFFFFFFF0) + ((fileSize & 0xF) > 0 ? 0x10 : 0);
+            dataSize += padNum(fileSize, 0x20);
         }
         else
         {
@@ -221,8 +226,8 @@ void writeData(std::vector<U8Entry*> entries, Buffer& out)
         {
             out.put(entry->asFile()->getData());
 
-            size_t padding = 0x10 - (out.position() & 0xF);
-            while (padding != 0x10 && padding-- > 0)
+            size_t padding = 0x20 - (out.position() & 0x1F);
+            while (padding != 0x20 && padding-- > 0)
             {
                 out.put(0);
             }
